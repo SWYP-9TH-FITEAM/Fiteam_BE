@@ -1,4 +1,4 @@
-package com.backend.Fiteam.Security;
+package com.backend.Fiteam.ConfigSecurity;
 
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;

@@ -1,4 +1,4 @@
-package com.backend.Fiteam.Entity;
+package com.backend.Fiteam.User;
 
 import jakarta.persistence.*;
 import lombok.*;

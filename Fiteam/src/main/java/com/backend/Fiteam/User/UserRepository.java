@@ -1,6 +1,5 @@
-package com.backend.Fiteam.Repository;
+package com.backend.Fiteam.User;
 
-import com.backend.Fiteam.Entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

@@ -1,8 +1,8 @@
 package com.backend.Fiteam.Login;
 
-import com.backend.Fiteam.Entity.User;
-import com.backend.Fiteam.Repository.UserRepository;
-import com.backend.Fiteam.Security.JwtTokenProvider;
+import com.backend.Fiteam.User.User;
+import com.backend.Fiteam.User.UserRepository;
+import com.backend.Fiteam.ConfigSecurity.JwtTokenProvider;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import java.io.UnsupportedEncodingException;

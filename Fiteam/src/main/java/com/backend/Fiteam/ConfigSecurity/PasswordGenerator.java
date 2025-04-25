@@ -1,4 +1,4 @@
-package com.backend.Fiteam.Security;
+package com.backend.Fiteam.ConfigSecurity;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
