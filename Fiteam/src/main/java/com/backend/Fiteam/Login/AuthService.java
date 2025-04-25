@@ -1,7 +1,7 @@
 package com.backend.Fiteam.Login;
 
-import com.backend.Fiteam.User.User;
-import com.backend.Fiteam.User.UserRepository;
+import com.backend.Fiteam.User.Entity.User;
+import com.backend.Fiteam.User.Repository.UserRepository;
 import com.backend.Fiteam.ConfigSecurity.JwtTokenProvider;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
