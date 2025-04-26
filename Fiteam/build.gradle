@@ -43,10 +43,10 @@ dependencies {
 	runtimeOnly 'com.mysql:mysql-connector-j' // MySQL 연결 드라이버 (JDBC)
 
 	// 4. Lombok (코드 간결화)
-	//compileOnly 'org.projectlombok:lombok' // 빌드 시 @Getter, @Builder 등 Lombok 애노테이션 지원
-	//annotationProcessor 'org.projectlombok:lombok' // 컴파일 시 Lombok 코드 생성 처리
-	compileOnly 'org.projectlombok:lombok:1.18.32'
-	annotationProcessor 'org.projectlombok:lombok:1.18.32'
+	compileOnly 'org.projectlombok:lombok' // 빌드 시 @Getter, @Builder 등 Lombok 애노테이션 지원
+	annotationProcessor 'org.projectlombok:lombok' // 컴파일 시 Lombok 코드 생성 처리
+	//compileOnly 'org.project lombok:lombok:1.18.32'
+	//annotationProcessor 'org.project lombok:lombok:1.18.32'
 
 	// 5. 테스트용 의존성
 	testImplementation 'org.springframework.boot:spring-boot-starter-test' // JUnit5 + Mockito 포함된 스프링 테스트 설정
@@ -61,7 +61,7 @@ dependencies {
 	implementation 'software.amazon.awssdk:s3:2.20.67'
 
 	// 8. Swagger
-	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.0.2'
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.5'
 }
 
 tasks.named('test') {

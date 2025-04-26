@@ -1,5 +1,6 @@
 package com.backend.Fiteam.User.Entity;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import java.sql.Timestamp;
 import lombok.AllArgsConstructor;
@@ -27,10 +28,12 @@ public class User {
     @Column(length = 50)
     private String password;
 
+    @Schema(description = "사용자 이름", example = "고양이")
     @Column(name = "user_name", length = 30)
     private String userName;
 
-    @Column(name = "profile_img_url", columnDefinition = "TEXT")
+    @Schema(description = "프로필 이미지 URL", example = "https://example.com/profile.jpg")
+    @Column(name = "profile_img_url", length = 255)
     private String profileImgUrl;
 
     @Column(name = "phone_number", length = 20)
@@ -57,6 +60,7 @@ public class User {
     @Column(name = "card_id2")
     private Integer cardId2;
 
+    @Schema(description = "캐릭터 카드 AI 분석결과", example = "ISTP 유형이면서 ~~한 특징이 있는 사람입니다.")
     @Column(columnDefinition = "TEXT")
     private String details;
 

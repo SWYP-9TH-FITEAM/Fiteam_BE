@@ -7,7 +7,7 @@ CREATE TABLE User (
     email VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(50),
     user_name VARCHAR(30),
-    profile_img_url TEXT,
+    profile_img_url VARCHAR(255),
     phone_number VARCHAR(20),
     kakao_id VARCHAR(30),
     job VARCHAR(50),

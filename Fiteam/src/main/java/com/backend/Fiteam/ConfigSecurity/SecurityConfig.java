@@ -38,7 +38,17 @@ public class SecurityConfig {
             "/v3/api-docs/**",
             "/swagger-resources/**",
             "/swagger-ui.html",
-            "/webjars/**"
+            "/webjars/**",
+
+            // Character - 로그인 없이도 사용가능해야함.
+            "/v1/card/{id}",
+            "/v1/card/all",
+            "/v1/question/all",
+
+            // user
+            "/v1/user/mypagedata",
+            "/v1/user/card",
+            "/v1/user/notifications"
     };
 
     @Bean

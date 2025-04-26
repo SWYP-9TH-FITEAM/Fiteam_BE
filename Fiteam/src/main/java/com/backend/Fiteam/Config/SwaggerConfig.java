@@ -18,8 +18,8 @@ public class SwaggerConfig {
 
     private Info info() {
         return new Info()
-                .title("test API")
-                .description("swagger test")
+                .title("Fiteam API Documentation")
+                .description("")
                 .version("1.0");
     }
 }
