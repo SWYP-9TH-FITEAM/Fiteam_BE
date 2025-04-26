@@ -30,7 +30,15 @@ public class SecurityConfig {
     // API endponit 허용할거 작성.
     public static final String[] PERMIT_URLS = {
             "/error",
-            "/favicon.ico"
+            "/favicon.ico",
+            "/v1/auth/test",
+            "/v3/api-docs",
+            "/swagger-ui/index.html",
+            "/swagger-ui/**",
+            "/v3/api-docs/**",
+            "/swagger-resources/**",
+            "/swagger-ui.html",
+            "/webjars/**"
     };
 
     @Bean
