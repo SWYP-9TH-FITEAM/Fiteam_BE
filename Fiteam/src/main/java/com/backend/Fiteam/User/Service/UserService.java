@@ -2,6 +2,8 @@ package com.backend.Fiteam.User.Service;
 
 import com.backend.Fiteam.Character.Entity.CharacterCard;
 import com.backend.Fiteam.Character.Repository.CharacterCardRepository;
+import com.backend.Fiteam.Group.Entity.GroupMember;
+import com.backend.Fiteam.Group.Repository.GroupMemberRepository;
 import com.backend.Fiteam.Notification.Repository.NotificationRepository;
 import com.backend.Fiteam.User.Dto.UserCardDto;
 import com.backend.Fiteam.User.Dto.UserNotifyDto;
@@ -15,6 +17,7 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +27,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final CharacterCardRepository characterCardRepository;
     private final NotificationRepository notificationRepository;
+    private final GroupMemberRepository groupMemberRepository;
 
     public UserProfileDto getUserProfile(int userId) {
         User user = userRepository.findById(userId)
@@ -54,6 +58,10 @@ public class UserService {
                 .worstMatchCode(card.getWorstMatchCode())
                 .worstMatchReason(card.getWorstMatchReason())
                 .details(user.getDetails())
+                .ei(user.getNumEI())
+                .pd(user.getNumPD())
+                .ia(user.getNumIA())
+                .cl(user.getNumCL())
                 .build();
     }
 
@@ -70,5 +78,16 @@ public class UserService {
                 .toList();
     }
 
+    @Transactional
+    public void acceptGroupInvitation(Integer groupId, Integer userId) {
+        GroupMember groupMember = groupMemberRepository.findByGroupIdAndUserId(groupId, userId)
+                .orElseThrow(() -> new IllegalArgumentException("초대 내역이 존재하지 않습니다."));
+
+        if (Boolean.TRUE.equals(groupMember.getIsAccepted())) {
+            throw new IllegalArgumentException("이미 수락한 초대입니다.");
+        }
+
+        groupMember.setIsAccepted(true);
+    }
 
 }

@@ -19,6 +19,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -76,5 +78,21 @@ public class UserController {
             return ResponseEntity.internalServerError().build();
         }
     }
+
+    @Operation(summary = "그룹 참여", description = "현재 사용자가 그룹 초대를 수락합니다.")
+    @PatchMapping("/accept/{groupId}")
+    public ResponseEntity<?> acceptInvitation(
+            @PathVariable Integer groupId, @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            Integer userId = Integer.parseInt(userDetails.getUsername());
+            userService.acceptGroupInvitation(groupId, userId);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
 
 }

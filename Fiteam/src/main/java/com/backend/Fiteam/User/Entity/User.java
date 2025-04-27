@@ -61,8 +61,24 @@ public class User {
     private Integer cardId2;
 
     @Schema(description = "캐릭터 카드 AI 분석결과", example = "ISTP 유형이면서 ~~한 특징이 있는 사람입니다.")
-    @Column(columnDefinition = "TEXT")
+    @Column(length = 500)
     private String details;
+
+    @Schema(description = "EI 성향 점수", example = "7")
+    @Column(name = "num_EI")
+    private Integer numEI;
+
+    @Schema(description = "PD 성향 점수", example = "3")
+    @Column(name = "num_PD")
+    private Integer numPD;
+
+    @Schema(description = "IA 성향 점수", example = "5")
+    @Column(name = "num_IA")
+    private Integer numIA;
+
+    @Schema(description = "CL 성향 점수", example = "8")
+    @Column(name = "num_CL")
+    private Integer numCL;
 
     @Column(name = "created_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private Timestamp createdAt;
