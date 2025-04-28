@@ -41,7 +41,7 @@ CREATE TABLE User (
                       details VARCHAR(500),
                       num_EI INT,
                       num_PD INT,
-                      num_IA INT,
+                      num_VA INT,
                       num_CL INT,
                       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                       updated_at TIMESTAMP,

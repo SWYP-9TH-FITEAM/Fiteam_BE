@@ -8,7 +8,7 @@ import lombok.Getter;
 @Getter
 @Builder
 @AllArgsConstructor
-public class UserCardDto {
+public class UserCardResponseDto {
 
     @Schema(description = "캐릭터 코드", example = "INTJ")
     private final String code;
@@ -49,7 +49,7 @@ public class UserCardDto {
     @Schema(description = "CL 성향 점수", example = "8")
     private final Integer cl;
 
-    @Schema(description = "IA 성향 점수", example = "5")
-    private final Integer ia;
+    @Schema(description = "VA 성향 점수", example = "5")
+    private final Integer va;
 }
 

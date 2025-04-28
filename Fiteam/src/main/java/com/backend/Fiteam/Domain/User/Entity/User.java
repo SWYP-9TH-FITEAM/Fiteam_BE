@@ -73,8 +73,8 @@ public class User {
     private Integer numPD;
 
     @Schema(description = "IA 성향 점수", example = "5")
-    @Column(name = "num_IA")
-    private Integer numIA;
+    @Column(name = "num_VA")
+    private Integer numVA;
 
     @Schema(description = "CL 성향 점수", example = "8")
     @Column(name = "num_CL")
