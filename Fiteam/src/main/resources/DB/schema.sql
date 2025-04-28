@@ -193,6 +193,8 @@ CREATE TABLE Notification (
                               sender_id INT,
                               sender_type VARCHAR(50),
                               user_id INT,
+                              type VARCHAR(30),
+                              table_id INT,
                               content TEXT,
                               is_read BOOLEAN DEFAULT FALSE,
                               created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

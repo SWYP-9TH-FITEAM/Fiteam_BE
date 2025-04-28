@@ -32,6 +32,13 @@ public class Notification {
     @Schema(description = "알림 수신자(현재 사용자) ID", example = "5")
     private Integer userId;
 
+    @Schema(description = "알림 유형", example = "Group invite, team match ... ")
+    @Column(name = "type")
+    private String type;
+
+    @Column(name = "table_id")
+    private Integer tableId;
+
     @Column(name = "content", length = 300)
     @Schema(description = "알림 내용", example = "새로운 팀 초대가 도착했습니다.")
     private String content;

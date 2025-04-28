@@ -1,6 +1,6 @@
-package com.backend.Fiteam.Manager.Repository;
+package com.backend.Fiteam.Group.Repository;
 
-import com.backend.Fiteam.Manager.Entity.Manager;
+import com.backend.Fiteam.Group.Entity.Manager;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ManagerRepository extends JpaRepository<Manager, Integer> {

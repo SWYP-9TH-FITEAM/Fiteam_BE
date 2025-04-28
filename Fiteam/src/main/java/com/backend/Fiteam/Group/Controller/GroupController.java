@@ -16,6 +16,12 @@ public class GroupController {
 
     private final GroupService groupService;
 
+    /*
+    1. 매니저가 그룹 생성	POST	/v1/group/create
+    2. 매니저가 이메일로 유저 초대(1~N명)	POST	/v1/group/{groupId}/invite
+    3. 그룹의 팀타입 지정 POST(랜덤 매칭인지, 직군별 매칭인지 등등)
+    */
+
     // 미완성. Manager가 그룹 생성할 때 TeamType도 생성해야 해서.
     @Operation(summary = "프로젝트 그룹 생성", description = "Manager가 프로젝트 그룹을 생성합니다.")
     @PostMapping("/create")
