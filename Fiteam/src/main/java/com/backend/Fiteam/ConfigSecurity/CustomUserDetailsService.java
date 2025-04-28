@@ -1,7 +1,7 @@
 package com.backend.Fiteam.ConfigSecurity;
 
-import com.backend.Fiteam.User.Repository.UserRepository;
-import com.backend.Fiteam.User.Entity.User;
+import com.backend.Fiteam.Domain.User.Repository.UserRepository;
+import com.backend.Fiteam.Domain.User.Entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

@@ -1,7 +1,0 @@
-package com.backend.Fiteam.User.Repository;
-
-import com.backend.Fiteam.User.Entity.UserLike;
-import org.springframework.data.jpa.repository.JpaRepository;
-
-public interface UserLikeRepository extends JpaRepository<UserLike, Integer> {
-}
