@@ -5,6 +5,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.AllArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -15,14 +16,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 @Component
+@AllArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter{
     private final JwtTokenProvider jwtTokenProvider;
-    private final UserDetailsService userDetailsService;
-
-    public JwtAuthFilter(JwtTokenProvider jwtTokenProvider, UserDetailsService userDetailsService) {
-        this.jwtTokenProvider = jwtTokenProvider;
-        this.userDetailsService = userDetailsService;
-    }
+    private final CustomUserDetailsService userDetailsService;
+    private final ManagerDetailsService managerDetailsService;
 
     // 로그인, 회원가입, OAuth 콜백 등은JWT 인증 없이 접근 가능해야 한다.
     @Override
@@ -42,35 +40,39 @@ public class JwtAuthFilter extends OncePerRequestFilter{
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        // 1. Request 헤더에서 토큰 추출
         String token = jwtTokenProvider.resolveToken(request);
 
         if (token != null) {
             try {
-                if (!jwtTokenProvider.validateToken(token)) { // 만료 시간이 20분 이하일 경우 새로운 토큰 발급
+                if (!jwtTokenProvider.validateToken(token)) {
                     Integer userId = jwtTokenProvider.getIdFromToken(token);
-                    String newToken = jwtTokenProvider.createToken(userId);
+                    String userType = jwtTokenProvider.getTypeFromToken(token);
+                    String newToken = jwtTokenProvider.createToken(userId, userType);
                     response.setHeader("Authorization", "Bearer " + newToken);
                     token = newToken;
                 }
 
                 Integer userId = jwtTokenProvider.getIdFromToken(token);
-                UserDetails userDetails = userDetailsService.loadUserByUsername(String.valueOf(userId));
+                String userType = jwtTokenProvider.getTypeFromToken(token);
+
+                UserDetails userDetails;
+                if ("manager".equals(userType)) {
+                    userDetails = managerDetailsService.loadUserByUsername(String.valueOf(userId));
+                } else {
+                    userDetails = userDetailsService.loadUserByUsername(String.valueOf(userId));
+                }
 
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (ExpiredJwtException e) {
-                // 토큰이 아예 만료된 경우 → 401 응답 반환
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.getWriter().write("{\"message\": \"세션이 만료되었습니다. 다시 로그인하세요.\"}");
                 return;
             }
         }
 
-        // 다음 필터(혹은 컨트롤러)로 요청 전달
         filterChain.doFilter(request, response);
     }
 

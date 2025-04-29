@@ -8,9 +8,6 @@ import lombok.Getter;
 @Getter
 public class CreateGroupRequestDto {
 
-    @Schema(description = "매니저 ID", example = "1")
-    private Integer managerId;
-
     @Schema(description = "그룹 이름", example = "스위프9기")
     private String name;
 
@@ -20,7 +17,7 @@ public class CreateGroupRequestDto {
     @Schema(description = "최대 인원 수", example = "80")
     private Integer maxUserCount;
 
-    @Schema(description = "팀 빌딩 타입 ID", example = "1")
+    @Schema(description = "팀 빌딩 타입 ID", example = "0: 나중에 세팅, 1:랜덤방식, 2:세부설정방식")
     private Integer teamMakeType;
 
     @Schema(description = "연락 정책", example = "카카오톡 오픈채팅 이용, 전화번호 공유 등등")

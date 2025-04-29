@@ -105,6 +105,7 @@ public class UserController {
 
     // 보류
     // 그룹 참여할 때 운영자가 초대를 보내는게 아닌가?....
+    // 운영자 초대->유저 수락->운영자 수락..
     @Operation(summary = "그룹 참여", description = "현재 사용자가 그룹 초대를 수락합니다.")
     @PatchMapping("/accept/{groupId}")
     public ResponseEntity<?> acceptInvitation(

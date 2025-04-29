@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -31,11 +32,20 @@ public class AuthController {
         return ResponseEntity.ok("Register Success");
     }
 
+
+    @Operation(summary = "공통 로그인", description = "Manager 또는 User 이메일로 로그인합니다.")
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody LoginRequestDto request) {
-        String token = authService.login(request);
-        return ResponseEntity.ok(token);
+    public ResponseEntity<?> login(@RequestBody LoginRequestDto requestDto) {
+        try {
+            LoginResponseDto response = authService.login(requestDto.getEmail(), requestDto.getPassword());
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException | UsernameNotFoundException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("서버 오류");
+        }
     }
+
 
     @PostMapping("/send-verification-code")
     public ResponseEntity<String> sendVerification(@RequestBody EmailRequestDto dto) throws MessagingException {

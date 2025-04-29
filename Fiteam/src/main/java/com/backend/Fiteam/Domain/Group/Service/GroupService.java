@@ -25,9 +25,9 @@ public class GroupService {
     private final UserRepository userRepository;
 
     @Transactional
-    public void createGroup(CreateGroupRequestDto requestDto) {
+    public void createGroup(Integer managerId, CreateGroupRequestDto requestDto) {
         ProjectGroup projectGroup = ProjectGroup.builder()
-                .managerId(requestDto.getManagerId())
+                .managerId(managerId)
                 .name(requestDto.getName())
                 .description(requestDto.getDescription())
                 .maxUserCount(requestDto.getMaxUserCount())

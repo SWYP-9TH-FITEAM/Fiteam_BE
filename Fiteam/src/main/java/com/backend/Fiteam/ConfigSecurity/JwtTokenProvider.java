@@ -29,28 +29,40 @@ public class JwtTokenProvider {
     }
 
     // JWT 토큰 생성
-    public String createToken(Integer id) {
+    public String createToken(Integer id, String type) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + tokenValidity);
 
         return Jwts.builder()
                 .setSubject(String.valueOf(id))
+                .claim("type", type)  // userType도 추가로 저장
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
-                .signWith(secretKey) // 최신 버전에서는 SignatureAlgorithm 생략
+                .signWith(secretKey)
                 .compact();
     }
+
 
     // 토큰에서 ID 추출
     public Integer getIdFromToken(String token) {
         Claims claims = Jwts.parserBuilder()
-                .setSigningKey(secretKey) // 최신 API 적용
+                .setSigningKey(secretKey)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
 
         return Integer.valueOf(claims.getSubject());
     }
+
+    public String getTypeFromToken(String token) {
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(secretKey)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+        return claims.get("type", String.class);
+    }
+
 
     // JWT 유효성 검증
     public boolean validateToken(String token) {
@@ -88,4 +100,5 @@ public class JwtTokenProvider {
         }
         return null;
     }
+
 }
