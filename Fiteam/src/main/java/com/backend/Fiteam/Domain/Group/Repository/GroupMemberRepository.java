@@ -1,6 +1,7 @@
 package com.backend.Fiteam.Domain.Group.Repository;
 
 import com.backend.Fiteam.Domain.Group.Entity.GroupMember;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -10,4 +11,6 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Intege
     int countByGroupId(Integer groupId);
 
     Optional<GroupMember> findByGroupIdAndUserId(Integer groupId, Integer userId);
+
+    List<GroupMember> findByGroupId(Integer groupId);
 }

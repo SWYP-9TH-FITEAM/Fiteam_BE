@@ -1,5 +1,7 @@
 package com.backend.Fiteam.Login;
 
+import com.backend.Fiteam.Domain.Group.Entity.Manager;
+import com.backend.Fiteam.Domain.Group.Repository.ManagerRepository;
 import com.backend.Fiteam.Domain.User.Entity.User;
 import com.backend.Fiteam.Domain.User.Repository.UserRepository;
 import com.backend.Fiteam.ConfigSecurity.JwtTokenProvider;
@@ -13,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +27,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final ManagerRepository managerRepository;
 
     public void register(RegisterRequestDto request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
@@ -39,16 +43,30 @@ public class AuthService {
         userRepository.save(user);
     }
 
-    public String login(LoginRequestDto request) {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new IllegalArgumentException("email error"));
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("password error");
+    public LoginResponseDto login(String email, String password) {
+        // 1. Manager 먼저 조회
+        Manager manager = managerRepository.findByEmail(email).orElse(null);
+        if (manager != null) {
+            if (!passwordEncoder.matches(password, manager.getPassword())) {
+                throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+            }
+            String token = jwtTokenProvider.createToken(manager.getId(), "manager");
+            return new LoginResponseDto(token, "manager");
         }
 
-        return jwtTokenProvider.createToken(user.getId());
+        // 2. User 조회
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("존재하지 않는 사용자입니다: " + email));
+
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+        }
+
+        String token = jwtTokenProvider.createToken(user.getId(), "user");
+        return new LoginResponseDto(token, "user");
     }
+
 
 
     // 2. Email 인증하기 로직

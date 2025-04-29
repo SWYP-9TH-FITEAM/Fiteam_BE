@@ -6,4 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface CharacterCardRepository extends JpaRepository<CharacterCard, Integer> {
     Optional<CharacterCard> findById(int id);
+    Optional<CharacterCard> findByCode(String code);
 }
