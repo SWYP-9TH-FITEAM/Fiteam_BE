@@ -24,7 +24,8 @@ import java.util.List;
 public class SecurityConfig {
     private static final List<String> ALLOWED_ORIGINS = List.of(
             "http://localhost:3000",
-            "http://localhost:8080"
+            "http://localhost:8080",
+            "https://swyp-9th-fiteam.github.io"
             // https 프론트나 다른 서버 작성
     );
 
