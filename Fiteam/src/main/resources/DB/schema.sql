@@ -27,7 +27,7 @@ CREATE TABLE CharacterQuestion (
 CREATE TABLE User (
                       id INT AUTO_INCREMENT PRIMARY KEY,
                       email VARCHAR(50) NOT NULL UNIQUE,
-                      password VARCHAR(50),
+                      password VARCHAR(100),
                       user_name VARCHAR(30),
                       profile_img_url TEXT,
                       phone_number VARCHAR(20),

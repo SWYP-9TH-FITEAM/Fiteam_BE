@@ -23,7 +23,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
     private static final List<String> ALLOWED_ORIGINS = List.of(
-            "http://localhost:3000"
+            "http://localhost:3000",
+            "http://localhost:8080"
             // https 프론트나 다른 서버 작성
     );
 
@@ -40,6 +41,10 @@ public class SecurityConfig {
             "/swagger-ui.html",
             "/webjars/**",
 
+            // Auth
+            "/v1/auth/login",
+            "/v1/auth/register",
+
             // Character - 로그인 없이도 사용가능해야함.
             "/v1/card/{id}",
             "/v1/card/all",
@@ -48,7 +53,13 @@ public class SecurityConfig {
             // user
             "/v1/user/mypagedata",
             "/v1/user/card",
-            "/v1/user/notifications"
+            "/v1/user/notifications",
+
+            // Chat
+            "/v1/chat/room",
+            "/v1/chat/list",
+            "/v1/chat/{roomId}/messages",
+            "/ws/chat/**"  // WebSocket STOMP 연결 엔드포인트
     };
 
     @Bean

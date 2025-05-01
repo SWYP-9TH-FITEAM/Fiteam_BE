@@ -35,7 +35,7 @@ public class JwtTokenProvider {
 
         return Jwts.builder()
                 .setSubject(String.valueOf(id))
-                .claim("type", type)  // userType도 추가로 저장
+                .claim("type", type)  // user,manager Type도 추가로 저장
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .signWith(secretKey)

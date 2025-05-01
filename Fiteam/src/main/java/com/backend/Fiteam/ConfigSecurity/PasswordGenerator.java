@@ -8,7 +8,7 @@ public class PasswordGenerator {
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
 
         // 테스트용 평문 비밀번호
-        String plainPassword = "pw5";
+        String plainPassword = "pw1";
 
         // 암호화된 비밀번호 생성
         String hashedPassword = encoder.encode(plainPassword);

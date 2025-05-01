@@ -25,7 +25,7 @@ public class User {
     @Column(nullable = false, unique = true, length = 50)
     private String email;
 
-    @Column(length = 50)
+    @Column(length = 100)
     private String password;
 
     @Schema(description = "사용자 이름", example = "고양이")
