@@ -1,9 +1,21 @@
 package com.backend.Fiteam.Domain.Group.Service;
 
-
+import com.backend.Fiteam.Domain.Group.Dto.GroupMemberProfileResponseDto;
 import com.backend.Fiteam.Domain.Group.Entity.GroupMember;
+import com.backend.Fiteam.Domain.Group.Entity.ProjectGroup;
 import com.backend.Fiteam.Domain.Group.Repository.GroupMemberRepository;
+import com.backend.Fiteam.Domain.Group.Repository.ProjectGroupRepository;
+import com.backend.Fiteam.Domain.Team.Entity.TeamType;
+import com.backend.Fiteam.Domain.Team.Repository.TeamTypeRepository;
 import com.backend.Fiteam.Domain.User.Dto.UserGroupProfileDto;
+import com.backend.Fiteam.Domain.User.Entity.User;
+import com.backend.Fiteam.Domain.User.Repository.UserRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,8 +25,20 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RequiredArgsConstructor
 @RestControllerAdvice
 public class GroupMemberService {
-    private final GroupMemberRepository groupMemberRepository;
 
+    private final GroupMemberRepository groupMemberRepository;
+    private final ProjectGroupRepository projectGroupRepository;
+    private final TeamTypeRepository teamTypeRepository;
+    private final UserRepository userRepository;
+
+
+    // 로그인한 상태의 User가 해당 그룹에 소속된 사람인지 확인하는 검증코드
+    public void validateGroupMembership(Integer userId, Integer groupId) {
+        boolean isMember = groupMemberRepository.existsByGroupIdAndUserIdAndIsAcceptedTrue(groupId, userId);
+        if (!isMember) {
+            throw new IllegalArgumentException("해당 그룹의 멤버가 아닙니다.");
+        }
+    }
 
     @Transactional
     public void updateGroupMemberProfile(Integer groupMemberId, Integer userId, UserGroupProfileDto requestDto) {
@@ -42,4 +66,59 @@ public class GroupMemberService {
             groupMember.setIntroduction(requestDto.getIntroduction());
         }
     }
+
+    // Config Josn 에서 직군 정리를 어떻게 할지에 따라 수정이 필요할수도 있음.
+    public List<String> getPositionListForGroup(Integer groupId) throws JsonProcessingException {
+        ProjectGroup group = projectGroupRepository.findById(groupId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 그룹입니다."));
+
+        Integer typeId = group.getTeamMakeType();
+        TeamType teamType = teamTypeRepository.findById(typeId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 팀 빌딩 방식이 존재하지 않습니다."));
+
+        List<String> positions = new ArrayList<>();
+        if (Boolean.FALSE.equals(teamType.getPositionBased())) {
+            positions.add("normal");
+            return positions;
+        }
+
+        String configJson = teamType.getConfigJson();
+        if (configJson == null || configJson.isBlank()) {
+            return Collections.emptyList();
+        }
+
+        // JSON 파싱
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree(configJson);
+        if (!root.isArray() || root.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        JsonNode positionMap = root.get(0);
+        positionMap.fieldNames().forEachRemaining(positions::add); // json 에서 PM : 1 -> PM만 추가
+
+        return positions;
+    }
+
+    public GroupMemberProfileResponseDto getMemberProfile(Integer targetUserId) {
+        GroupMember member = groupMemberRepository.findTopByUserIdAndIsAcceptedTrue(targetUserId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 유저의 그룹 프로필이 없습니다."));
+
+        User user = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 유저 정보가 없습니다."));
+
+        return GroupMemberProfileResponseDto.builder()
+                .workHistory(member.getWorkHistory())
+                .projectGoal(member.getProjectGoal())
+                .url(member.getUrl())
+                .introduction(member.getIntroduction())
+                .details(user.getDetails())
+                .numEI(user.getNumEI())
+                .numPD(user.getNumPD())
+                .numVA(user.getNumVA())
+                .numCL(user.getNumCL())
+                .build();
+    }
+
+
 }

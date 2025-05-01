@@ -29,7 +29,7 @@ public class ChatService {
     public ChatRoomResponseDto createChatRoom(Integer senderId, ChatRoomCreateRequestDto dto) {
         Integer user1 = Math.min(senderId, dto.getReceiverId());
         Integer user2 = Math.max(senderId, dto.getReceiverId());
-        
+
         Optional<ChatRoom> existing = chatRoomRepository.findByUser1IdAndUser2Id(user1, user2);
         if (existing.isPresent()) {
             ChatRoom room = existing.get();
