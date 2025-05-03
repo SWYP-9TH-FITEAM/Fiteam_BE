@@ -39,9 +39,6 @@ public class Team {
     @Column(length = 20)
     private String status;
 
-    @Column(name = "team_type_id")
-    private Integer teamTypeId;
-
     @Column(name = "created_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private Timestamp createdAt;
 }
