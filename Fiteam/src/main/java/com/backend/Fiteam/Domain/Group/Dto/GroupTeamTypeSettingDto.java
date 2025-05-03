@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 @Getter
 @AllArgsConstructor
 public class GroupTeamTypeSettingDto {
+
     @Schema(description = "팀타입 이름", example = "랜덤매칭, 직군별구성")
     private String name;
 
