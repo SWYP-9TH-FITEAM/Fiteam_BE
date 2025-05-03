@@ -27,9 +27,6 @@ public class UserLike {
     @Column(name = "group_id")
     private Integer groupId;
 
-    @Column(name = "like_num")
-    private Integer likeNum;
-
     @Column
     private Integer number;
 

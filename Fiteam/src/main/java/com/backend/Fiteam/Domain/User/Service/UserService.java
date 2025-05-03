@@ -3,23 +3,25 @@ package com.backend.Fiteam.Domain.User.Service;
 import com.backend.Fiteam.Domain.Character.Entity.CharacterCard;
 import com.backend.Fiteam.Domain.Character.Repository.CharacterCardRepository;
 import com.backend.Fiteam.Domain.Group.Entity.GroupMember;
+import com.backend.Fiteam.Domain.Group.Entity.ProjectGroup;
 import com.backend.Fiteam.Domain.Group.Repository.GroupMemberRepository;
+import com.backend.Fiteam.Domain.Group.Repository.ProjectGroupRepository;
 import com.backend.Fiteam.Domain.User.Dto.SaveTestAnswerRequestDto;
 import com.backend.Fiteam.Domain.User.Dto.TestResultResponseDto;
 import com.backend.Fiteam.Domain.User.Dto.UserCardResponseDto;
 import com.backend.Fiteam.Domain.User.Dto.UserGroupProfileDto;
-import com.backend.Fiteam.Domain.User.Dto.UserLikeCancelRequestDto;
+import com.backend.Fiteam.Domain.User.Dto.UserGroupStatusDto;
 import com.backend.Fiteam.Domain.User.Dto.UserLikeRequestDto;
+import com.backend.Fiteam.Domain.User.Dto.UserLikeResponseDto;
 import com.backend.Fiteam.Domain.User.Dto.UserProfileDto;
 import com.backend.Fiteam.Domain.User.Entity.User;
 import com.backend.Fiteam.Domain.User.Entity.UserLike;
 import com.backend.Fiteam.Domain.User.Repository.UserLikeRepository;
 import com.backend.Fiteam.Domain.User.Repository.UserRepository;
-import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Optional;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -33,8 +35,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final CharacterCardRepository characterCardRepository;
     private final GroupMemberRepository groupMemberRepository;
-    private final UserLikeRepository userLikeRepository;
-
+    private final ProjectGroupRepository projectGroupRepository;
 
     @Transactional
     public void saveCharacterTestResult(Integer userId, SaveTestAnswerRequestDto requestDto) {
@@ -85,11 +86,12 @@ public class UserService {
         // 새로운 cardId1 저장
         user.setCardId1(characterCard.getId());
 
+        // 성향점수와 AI 분석결과 저장
         user.setNumEI(numEI);
         user.setNumPD(numPD);
         user.setNumVA(numVA);
         user.setNumCL(numCL);
-        user.setDetails("description");
+        user.setDetails("hyper clova description");
 
         userRepository.save(user);
     }
@@ -154,8 +156,6 @@ public class UserService {
                 .build();
     }
 
-
-
     @Transactional
     public void acceptGroupInvitation(Integer groupId, Integer userId) {
         GroupMember groupMember = groupMemberRepository.findByGroupIdAndUserId(groupId, userId)
@@ -168,45 +168,22 @@ public class UserService {
         groupMember.setIsAccepted(true);
     }
 
+    public List<UserGroupStatusDto> getUserGroupsByStatus(Integer userId, boolean isAccepted) {
+        List<GroupMember> memberships = isAccepted
+                ? groupMemberRepository.findAllByUserIdAndIsAcceptedTrue(userId)
+                : groupMemberRepository.findAllByUserIdAndIsAcceptedFalse(userId);
 
-    public void sendLike(Integer senderId, UserLikeRequestDto dto) {
-        // 1. 그룹 멤버 여부 확인
-        boolean isValidGroup = groupMemberRepository.existsByGroupIdAndUserIdAndIsAcceptedTrue(dto.getGroupId(), senderId) &&
-                groupMemberRepository.existsByGroupIdAndUserIdAndIsAcceptedTrue(dto.getGroupId(), dto.getReceiverId());
-
-        if (!isValidGroup) {
-            throw new IllegalArgumentException("같은 그룹에 속해있는 사용자에게만 좋아요를 남길 수 있습니다.");
-        }
-
-        // 2. 중복 체크
-        boolean alreadyLiked = userLikeRepository.existsBySenderIdAndReceiverId(
-                senderId, dto.getReceiverId());
-
-        if (alreadyLiked) {
-            throw new IllegalArgumentException("이미 해당 항목에 대해 좋아요를 남겼습니다.");
-        }
-
-        // 3. 저장
-        UserLike like = UserLike.builder()
-                .senderId(senderId)
-                .receiverId(dto.getReceiverId())
-                .groupId(dto.getGroupId())
-                .memo(dto.getMemo())
-                .number(dto.getNumber())
-                .createdAt(new Timestamp(System.currentTimeMillis()))
-                .build();
-
-        userLikeRepository.save(like);
+        return memberships.stream()
+                .map(gm -> {
+                    ProjectGroup pg = projectGroupRepository.findById(gm.getGroupId())
+                            .orElseThrow(() -> new IllegalArgumentException("그룹 정보를 찾을 수 없습니다."));
+                    return UserGroupStatusDto.builder()
+                            .groupId(pg.getId())
+                            .groupName(pg.getName())
+                            .invitedAt(gm.getInvitedAt())
+                            .build();
+                })
+                .collect(Collectors.toList());
     }
-
-
-    public void cancelAllLikesToUser(Integer senderId, Integer receiverId) {
-        UserLike like = userLikeRepository.findBySenderIdAndReceiverId(senderId, receiverId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 유저에게 남긴 좋아요가 없습니다."));
-
-        userLikeRepository.delete(like);
-    }
-
-
 
 }
