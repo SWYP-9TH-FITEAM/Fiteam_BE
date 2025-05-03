@@ -157,7 +157,6 @@ CREATE TABLE UserLike (
                           sender_id INT,
                           receiver_id INT,
                           group_id INT,
-                          status VARCHAR(30) DEFAULT '대기중',
                           number INT,
                           memo TEXT,
                           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

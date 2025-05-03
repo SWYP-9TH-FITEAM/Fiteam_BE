@@ -17,4 +17,7 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Intege
     boolean existsByGroupIdAndUserIdAndIsAcceptedTrue(Integer groupId, Integer userId);
 
     Optional<GroupMember> findTopByUserIdAndIsAcceptedTrue(Integer targetUserId);
+
+    List<GroupMember> findAllByUserIdAndIsAcceptedTrue(Integer userId);
+    List<GroupMember> findAllByUserIdAndIsAcceptedFalse(Integer userId);
 }
