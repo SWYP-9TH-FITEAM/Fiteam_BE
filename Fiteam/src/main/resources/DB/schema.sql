@@ -17,7 +17,7 @@ CREATE TABLE CharacterCard (
 
 CREATE TABLE CharacterQuestion (
                                    id INT PRIMARY KEY,
-                                   dimension VARCHAR(3),
+                                   dimension VARCHAR(4),
                                    question TEXT,
                                    type_a CHAR(1),
                                    type_b CHAR(1)

@@ -12,6 +12,8 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class CharacterCard {
+
+    @Schema(description = "id", example = "1")
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
