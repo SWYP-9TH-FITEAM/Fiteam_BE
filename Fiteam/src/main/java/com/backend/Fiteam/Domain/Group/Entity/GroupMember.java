@@ -33,6 +33,9 @@ public class GroupMember {
     @Column(name = "team_status", length = 20)
     private String teamStatus;
 
+    @Column(name = "team_id")
+    private Integer teamId;
+
     @Column
     private Boolean ban = false;
 

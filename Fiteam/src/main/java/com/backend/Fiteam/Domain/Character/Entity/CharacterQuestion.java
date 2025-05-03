@@ -15,7 +15,7 @@ public class CharacterQuestion {
     @Id
     private Integer id;
 
-    @Column(length = 3)
+    @Column(length = 4)
     private String dimension;
 
     @Column(length = 300)

@@ -1,10 +1,13 @@
 package com.backend.Fiteam.Domain.Team.Controller;
 
 
+import com.backend.Fiteam.Domain.Team.Dto.TeamMemberDto;
 import com.backend.Fiteam.Domain.Team.Dto.TeamRequestDto;
 import com.backend.Fiteam.Domain.Team.Dto.TeamRequestResponseDto;
 import com.backend.Fiteam.Domain.Team.Service.TeamRequestService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +31,7 @@ public class TeamController {
     2. 유저가 받은 요청 List로 받기
     3. 유저가 특정 유저에게 받은 요청 보기
     4. 팀 참가 요청 수락/거절
+
     5. 내 팀 구성 현황
     6. 전체 팀 구성 현황 보기(임시팀, 확정팀 둘다)
     */
@@ -73,7 +77,8 @@ public class TeamController {
             Integer receiverId = Integer.parseInt(userDetails.getUsername());
 
             // 한 개만 조회
-            Optional<TeamRequestResponseDto> dtoOpt = teamRequestService.getRequestFromUser(userId, receiverId);
+            Optional<TeamRequestResponseDto> dtoOpt = Optional.ofNullable(
+                    teamRequestService.getRequestFromUser(userId, receiverId));
 
             return dtoOpt.map(ResponseEntity::ok)
                     .orElseGet(() -> ResponseEntity.noContent().build());
@@ -83,6 +88,66 @@ public class TeamController {
         }
     }
 
+    // 4. 팀 참가 요청 수락
+    @Operation(summary = "받은 팀 요청 수락", description = "특정 사용자가 보낸 팀 요청을 수락합니다.")
+    @PostMapping("/request/accept/{senderId}")
+    public ResponseEntity<?> acceptTeamRequest(
+            @AuthenticationPrincipal UserDetails userDetails, TeamRequestResponseDto reqdto) {
+        try {
+            Integer receiverId = Integer.parseInt(userDetails.getUsername());
+            teamRequestService.acceptTeamRequest(receiverId, reqdto);
+            return ResponseEntity.ok("팀 요청이 수락되었습니다.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("서버 오류가 발생했습니다.");
+        }
+    }
 
+    // 4. 팀 참가 요청 거절 - 요청을 삭제하는 방식으로 일단 했음.
+    @Operation(summary = "받은 팀 요청 거절", description = "특정 사용자가 보낸 팀 요청을 거절합니다.")
+    @PostMapping("/request/reject/{senderId}")
+    public ResponseEntity<?> rejectTeamRequest(
+            @AuthenticationPrincipal UserDetails userDetails, @RequestBody TeamRequestResponseDto reqdto) {
+        try {
+            Integer receiverId = Integer.parseInt(userDetails.getUsername());
+            teamRequestService.rejectTeamRequest(receiverId, reqdto);
+            return ResponseEntity.ok("팀 요청이 거절되었습니다.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("서버 오류가 발생했습니다.");
+        }
+    }
 
+    // 5. 내 팀 구성 현황
+    @Operation(summary = "내 팀 구성 현황 조회", description = "로그인한 사용자가 속한 팀의 멤버 리스트를 반환합니다.")
+    @GetMapping("/myteam")
+    public ResponseEntity<List<TeamMemberDto>> getMyTeam(
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        Integer userId = Integer.parseInt(userDetails.getUsername());
+        List<TeamMemberDto> members = teamRequestService.getMyTeamMembers(userId);
+        return ResponseEntity.ok(members);
+    }
+
+    //    6. 전체 팀 구성 현황 보기(임시팀, 확정팀 둘다)
+    @Operation(
+            summary = "전체 팀 구성 현황 조회",
+            description = "로그인한 사용자의 그룹에 속한 모든 팀의 멤버 리스트(2차원 배열) 를 반환합니다.",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            description = "팀별 멤버 리스트",
+                            content = @io.swagger.v3.oas.annotations.media.Content(
+                                    array = @ArraySchema(schema = @Schema(implementation = TeamMemberDto.class))
+                            )
+                    )
+            }
+    )
+    @GetMapping("/teambuildingstatus")
+    public ResponseEntity<List<List<TeamMemberDto>>> getGroupTeams(@AuthenticationPrincipal UserDetails userDetails) {
+        Integer userId = Integer.parseInt(userDetails.getUsername());
+        List<List<TeamMemberDto>> status = teamRequestService.getGroupTeamStatus(userId);
+        return ResponseEntity.ok(status);
+    }
 }

@@ -10,6 +10,8 @@ import java.sql.Timestamp;
 @Builder
 public class TeamRequestResponseDto {
 
+    private Integer id;
+
     @Schema(description = "요청 보낸 유저 ID", example = "3")
     private Integer senderId;
 
