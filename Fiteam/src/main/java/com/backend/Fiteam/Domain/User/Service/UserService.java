@@ -8,11 +8,18 @@ import com.backend.Fiteam.Domain.User.Dto.SaveTestAnswerRequestDto;
 import com.backend.Fiteam.Domain.User.Dto.TestResultResponseDto;
 import com.backend.Fiteam.Domain.User.Dto.UserCardResponseDto;
 import com.backend.Fiteam.Domain.User.Dto.UserGroupProfileDto;
+import com.backend.Fiteam.Domain.User.Dto.UserLikeCancelRequestDto;
+import com.backend.Fiteam.Domain.User.Dto.UserLikeRequestDto;
 import com.backend.Fiteam.Domain.User.Dto.UserProfileDto;
 import com.backend.Fiteam.Domain.User.Entity.User;
+import com.backend.Fiteam.Domain.User.Entity.UserLike;
+import com.backend.Fiteam.Domain.User.Repository.UserLikeRepository;
 import com.backend.Fiteam.Domain.User.Repository.UserRepository;
+import java.sql.Timestamp;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -26,6 +33,8 @@ public class UserService {
     private final UserRepository userRepository;
     private final CharacterCardRepository characterCardRepository;
     private final GroupMemberRepository groupMemberRepository;
+    private final UserLikeRepository userLikeRepository;
+
 
     @Transactional
     public void saveCharacterTestResult(Integer userId, SaveTestAnswerRequestDto requestDto) {
@@ -159,6 +168,44 @@ public class UserService {
         groupMember.setIsAccepted(true);
     }
 
+
+    public void sendLike(Integer senderId, UserLikeRequestDto dto) {
+        // 1. 그룹 멤버 여부 확인
+        boolean isValidGroup = groupMemberRepository.existsByGroupIdAndUserIdAndIsAcceptedTrue(dto.getGroupId(), senderId) &&
+                groupMemberRepository.existsByGroupIdAndUserIdAndIsAcceptedTrue(dto.getGroupId(), dto.getReceiverId());
+
+        if (!isValidGroup) {
+            throw new IllegalArgumentException("같은 그룹에 속해있는 사용자에게만 좋아요를 남길 수 있습니다.");
+        }
+
+        // 2. 중복 체크
+        boolean alreadyLiked = userLikeRepository.existsBySenderIdAndReceiverId(
+                senderId, dto.getReceiverId());
+
+        if (alreadyLiked) {
+            throw new IllegalArgumentException("이미 해당 항목에 대해 좋아요를 남겼습니다.");
+        }
+
+        // 3. 저장
+        UserLike like = UserLike.builder()
+                .senderId(senderId)
+                .receiverId(dto.getReceiverId())
+                .groupId(dto.getGroupId())
+                .memo(dto.getMemo())
+                .number(dto.getNumber())
+                .createdAt(new Timestamp(System.currentTimeMillis()))
+                .build();
+
+        userLikeRepository.save(like);
+    }
+
+
+    public void cancelAllLikesToUser(Integer senderId, Integer receiverId) {
+        UserLike like = userLikeRepository.findBySenderIdAndReceiverId(senderId, receiverId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 유저에게 남긴 좋아요가 없습니다."));
+
+        userLikeRepository.delete(like);
+    }
 
 
 

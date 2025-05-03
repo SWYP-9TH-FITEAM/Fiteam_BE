@@ -4,6 +4,8 @@ import com.backend.Fiteam.Domain.User.Dto.SaveTestAnswerRequestDto;
 import com.backend.Fiteam.Domain.User.Dto.TestResultResponseDto;
 import com.backend.Fiteam.Domain.User.Dto.UserCardResponseDto;
 import com.backend.Fiteam.Domain.User.Dto.UserGroupProfileDto;
+import com.backend.Fiteam.Domain.User.Dto.UserLikeCancelRequestDto;
+import com.backend.Fiteam.Domain.User.Dto.UserLikeRequestDto;
 import com.backend.Fiteam.Domain.User.Dto.UserProfileDto;
 import com.backend.Fiteam.Domain.User.Service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,10 +35,10 @@ public class UserController {
     2.테스트 결과 조회 (Mini 모달용)
     3.내 프로필카드(GET) (캐릭터카드+AI분석)
     4.마이페이지에서 유저사진과 유저 이름 가져오기
+    5.그룹 참여중/대기중 리스트 GET (User 입장)
 
-    6.그룹 참여중/대기중 리스트 GET (User 입장)
-    7.좋아요 표시
-    8.좋아요 취소
+    6.좋아요 표시
+    7.좋아요 취소
     */
 
     // 1.테스트 결과 저장	POST
@@ -121,6 +124,35 @@ public class UserController {
         }
     }
 
+    // 6. 유저 좋아요 표시
+    @Operation(summary = "다른 유저에게 좋아요 남기기", description = "같은 그룹에 속한 다른 유저에게 좋아요와 메모를 남깁니다.")
+    @PostMapping("/like")
+    public ResponseEntity<?> sendLike(@RequestBody UserLikeRequestDto dto,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            Integer senderId = Integer.parseInt(userDetails.getUsername());
+            userService.sendLike(senderId, dto);
+            return ResponseEntity.ok("Like success");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("서버 오류가 발생했습니다.");
+        }
+    }
+
+    // 7. 유저 좋아요 취소
+    @Operation(summary = "좋아요 취소", description = "특정 유저에게 남긴 모든 좋아요를 취소합니다.")
+    @DeleteMapping("/unlike/{receiverId}")
+    public ResponseEntity<?> cancelAllLikes(@AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Integer receiverId) {
+        try {
+            Integer senderId = Integer.parseInt(userDetails.getUsername());
+            userService.cancelAllLikesToUser(senderId, receiverId);
+            return ResponseEntity.ok("좋아요가 모두 취소되었습니다.");
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("서버 오류가 발생했습니다.");
+        }
+    }
 
 
 }
