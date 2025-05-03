@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/v1/user")
+@RequestMapping("/v1/like")
 @RequiredArgsConstructor
 public class UserLikeController {
 
@@ -33,7 +33,7 @@ public class UserLikeController {
 
     // 1.좋아요 표시
     @Operation(summary = "그룹 내 다른 유저에게 좋아요 표시", description = "JWT 인증된 사용자가 같은 그룹의 다른 유저에게 좋아요를 남깁니다.")
-    @PostMapping("/like")
+    @PostMapping("/add")
     public ResponseEntity<String> likeUser(
             @AuthenticationPrincipal UserDetails userDetails, @RequestBody UserLikeRequestDto dto) {
         try {

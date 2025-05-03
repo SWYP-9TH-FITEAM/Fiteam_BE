@@ -31,9 +31,9 @@ public class SecurityConfig {
 
     // API endponit 허용할거 작성.
     public static final String[] PERMIT_URLS = {
+            // 기본/Swagger
             "/error",
             "/favicon.ico",
-            "/v1/auth/test",
             "/v3/api-docs",
             "/swagger-ui/index.html",
             "/swagger-ui/**",
@@ -43,25 +43,62 @@ public class SecurityConfig {
             "/webjars/**",
 
             // Auth
+            "/v1/auth/test",
             "/v1/auth/login",
             "/v1/auth/register",
+            "/v1/auth/verify-email",
+            "/v1/auth/reset-password",
 
-            // Character - 로그인 없이도 사용가능해야함.
-            "/v1/card/{id}",
-            "/v1/card/all",
+            // Character (인증 없이)
+            "/v1/card/*",
             "/v1/question/all",
-
-            // user
-            "/v1/user/mypagedata",
-            "/v1/user/card",
-            "/v1/user/notifications",
 
             // Chat
             "/v1/chat/room",
             "/v1/chat/list",
-            "/v1/chat/{roomId}/messages",
-            "/ws/chat/**"  // WebSocket STOMP 연결 엔드포인트
+            "/v1/chat/*/messages",
+            // WebSocket STOMP
+            "/ws/chat/**",
+
+            // ProjectGroup
+            "/v1/group/create",
+            "/v1/group/set-teamtype/*",
+            "/v1/group/invite",
+            "/v1/group/*/members",
+
+            // GroupMember
+            "/v1/member/*/positions",
+            "/v1/member/groupprofile/*",
+            "/v1/member/member/*/profile",
+
+            // Notification
+            "/v1/noti/notifications",
+
+            // Team
+            "/v1/team/request",
+            "/v1/team/requests/received",
+            "/v1/team/request/from/*",
+            "/v1/team/request/accept/*",
+            "/v1/team/request/reject/*",
+            "/v1/team/myteam",
+            "/v1/team/teambuildingstatus",
+
+            // User
+            "/v1/user/savecard",
+            "/v1/user/test-result",
+            "/v1/user/card",
+            "/v1/user/name/img",
+            "/v1/user/accept/*",
+            "/v1/user/groups/accepted",
+            "/v1/user/groups/pending",
+
+            // UserLike
+            "/v1/like/add",
+            "/v1/like/unlike/*",
+            "/v1/like/likelist",
+            "/v1/like/memo/*",
     };
+
 
     @Bean
     public PasswordEncoder passwordEncoder() {

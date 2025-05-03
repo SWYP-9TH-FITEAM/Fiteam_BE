@@ -14,11 +14,6 @@ public class CharacterQuestionService {
 
     private final CharacterQuestionRepository characterQuestionRepository;
 
-    /*
-    public Optional<CharacterQuestion> getCharacterQuestionById(int id) {
-        return characterQuestionRepository.findById(id);
-    }
-    */
 
     public List<CharacterQuestion> getAllCharacterQuestions() {
         return characterQuestionRepository.findAll();

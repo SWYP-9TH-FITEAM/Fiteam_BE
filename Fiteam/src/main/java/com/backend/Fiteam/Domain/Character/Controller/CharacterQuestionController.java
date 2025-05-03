@@ -14,16 +14,6 @@ import org.springframework.web.bind.annotation.*;
 public class CharacterQuestionController {
 
     private final CharacterQuestionService characterQuestionService;
-    /*
-    @GetMapping("/{id}")
-    public ResponseEntity<Optional<CharacterQuestion>> getCharacterQuestionById(@PathVariable int id) {
-        Optional<CharacterQuestion> question = characterQuestionService.getCharacterQuestionById(id);
-        if (question.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(question);
-    }
-    */
 
     @Operation(description = "질문 문항 전체 가져오기")
     @GetMapping("/all")
