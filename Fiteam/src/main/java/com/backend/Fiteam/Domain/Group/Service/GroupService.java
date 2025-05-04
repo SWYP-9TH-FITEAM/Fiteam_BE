@@ -1,22 +1,33 @@
 package com.backend.Fiteam.Domain.Group.Service;
 
+import com.backend.Fiteam.Domain.Character.Entity.CharacterCard;
+import com.backend.Fiteam.Domain.Character.Repository.CharacterCardRepository;
 import com.backend.Fiteam.Domain.Group.Dto.CreateGroupRequestDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupInvitedResponseDto;
-import com.backend.Fiteam.Domain.Group.Dto.GroupMemberResponseDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupTeamTypeSettingDto;
+import com.backend.Fiteam.Domain.Group.Dto.UpdateGroupRequestDto;
 import com.backend.Fiteam.Domain.Group.Entity.GroupMember;
 import com.backend.Fiteam.Domain.Group.Entity.ProjectGroup;
 import com.backend.Fiteam.Domain.Group.Repository.GroupMemberRepository;
 import com.backend.Fiteam.Domain.Group.Repository.ProjectGroupRepository;
-import com.backend.Fiteam.Domain.Team.Entity.TeamType;
+import com.backend.Fiteam.Domain.Group.Entity.TeamType;
+import com.backend.Fiteam.Domain.Team.Entity.Team;
 import com.backend.Fiteam.Domain.Team.Repository.TeamRepository;
+import com.backend.Fiteam.Domain.Team.Repository.TeamRequestRepository;
 import com.backend.Fiteam.Domain.Team.Repository.TeamTypeRepository;
+import com.backend.Fiteam.Domain.Team.Service.TeamService;
 import com.backend.Fiteam.Domain.User.Entity.User;
 import com.backend.Fiteam.Domain.User.Repository.UserRepository;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +41,9 @@ public class GroupService {
     private final GroupMemberRepository groupMemberRepository;
     private final UserRepository userRepository;
     private final TeamTypeRepository teamTypeRepository;
+    private final CharacterCardRepository characterCardRepository;
+    private final TeamService teamService;
+
 
     @Transactional(readOnly = true)
     public ProjectGroup getProjectGroup(Integer groupId) {
@@ -89,9 +103,6 @@ public class GroupService {
         }
     }
 
-
-
-
     @Transactional
     public GroupInvitedResponseDto inviteUsersToGroup(Integer groupId, List<String> emails) {
         List<String> alreadyInGroupEmails = new ArrayList<>();
@@ -146,35 +157,214 @@ public class GroupService {
                 .build();
     }
 
-    @Transactional(readOnly = true)
-    public boolean isUserInGroup(Integer groupId, Integer userId) {
-        return groupMemberRepository.existsByGroupIdAndUserId(groupId, userId);
+    @Transactional
+    public void updateGroup(ProjectGroup projectGroup, UpdateGroupRequestDto requestDto) {
+        // null 체크 후 값이 있을 때만 업데이트
+        if (requestDto.getName() != null) {
+            projectGroup.setName(requestDto.getName());
+        }
+        if (requestDto.getDescription() != null) {
+            projectGroup.setDescription(requestDto.getDescription());
+        }
+        if (requestDto.getMaxUserCount() != null) {
+            projectGroup.setMaxUserCount(requestDto.getMaxUserCount());
+        }
+        if (requestDto.getContactPolicy() != null) {
+            projectGroup.setContactPolicy(requestDto.getContactPolicy());
+        }
+
+        projectGroupRepository.save(projectGroup);
     }
 
-    @Transactional(readOnly = true)
-    public List<GroupMemberResponseDto> getGroupMembers(Integer groupId) {
-        List<GroupMember> groupMembers = groupMemberRepository.findByGroupId(groupId);
-        List<GroupMemberResponseDto> result = new ArrayList<>();
+    @Transactional
+    public void RandomTeamBuilding(ProjectGroup projectGroup) {
+        int groupId = projectGroup.getId();
 
-        for (GroupMember member : groupMembers) {
-            if (Boolean.TRUE.equals(member.getIsAccepted())) {
-                User user = userRepository.findById(member.getUserId())
-                        .orElseThrow(() -> new NoSuchElementException("유저 정보를 찾을 수 없습니다."));
+        // 팀타입 조회
+        TeamType teamType = teamTypeRepository.findById(projectGroup.getTeamMakeType())
+                .orElseThrow(() -> new NoSuchElementException("팀 빌딩 설정이 없습니다."));
 
-                GroupMemberResponseDto dto = new GroupMemberResponseDto(
-                        user.getId(),
-                        user.getUserName(),
-                        user.getCardId1(),
-                        member.getTeamStatus(),
-                        member.getPosition()
-                );
+        // PositionBased가 false인지 확인
+        if (Boolean.TRUE.equals(teamType.getPositionBased())) {
+            throw new IllegalArgumentException("이 API는 positionBase=false 일 때만 사용 가능합니다.");
+        }
 
-                result.add(dto);
+        // 수락된 멤버 목록 가져오기
+        List<GroupMember> acceptedMembers = groupMemberRepository.findAllByGroupIdAndIsAcceptedTrue(projectGroup.getId());
+
+        // 랜덤 팀빌딩 로직 수행 (구현 예정)
+        executeRandomTeamBuilding(groupId, acceptedMembers, teamType);
+    }
+
+    @Transactional
+    protected void executeRandomTeamBuilding(Integer groupId, List<GroupMember> members, TeamType teamType) {
+        int minMembers = teamType.getMinMembers();
+        int maxMembers = teamType.getMaxMembers();
+        int totalMembers = members.size();
+
+        // 팀 개수 및 인원 배정
+        int numTeams = totalMembers / minMembers;
+        int remainder = totalMembers % minMembers;
+
+        List<Integer> teamSizes = new ArrayList<>();
+        for (int i = 0; i < numTeams; i++) {
+            teamSizes.add(minMembers);
+        }
+
+        int idx = 0;
+        while (remainder > 0) {
+            if (teamSizes.get(idx) < maxMembers) {
+                teamSizes.set(idx, teamSizes.get(idx) + 1);
+                remainder--;
+            }
+            idx = (idx + 1) % teamSizes.size();
+        }
+
+        // userId → CharacterCard code 맵핑
+        Map<Integer, String> userCharacterMap = new HashMap<>();
+        Map<String, CharacterCard> characterCardMap = new HashMap<>();
+
+        for (GroupMember gm : members) {
+            User user = userRepository.findById(gm.getUserId())
+                    .orElseThrow(() -> new NoSuchElementException("User Not Found"));
+            CharacterCard card = characterCardRepository.findById(user.getCardId1())
+                    .orElseThrow(() -> new NoSuchElementException("Card Not Found"));
+            userCharacterMap.put(gm.getUserId(), card.getCode());
+            characterCardMap.put(card.getCode(), card);
+        }
+
+        // 팀 목록 초기화
+        List<List<GroupMember>> teams = new ArrayList<>();
+        for (int size : teamSizes) {
+            teams.add(new ArrayList<>());
+        }
+
+        // 최적화 팀 구성 로직
+        Set<Integer> assigned = new HashSet<>();
+
+        // 우선 랜덤 셔플로 시작
+        Collections.shuffle(members);
+
+        for (GroupMember gm : members) {
+            if (assigned.contains(gm.getUserId())) continue;
+
+            String code = userCharacterMap.get(gm.getUserId());
+            CharacterCard card = characterCardMap.get(code);
+
+            // best_match_code를 찾기
+            String best1 = card.getBestMatchCode1();
+            String best2 = card.getBestMatchCode2();
+            String worst1 = card.getWorstMatchCode1();
+            String worst2 = card.getWorstMatchCode2();
+
+            boolean assignedToTeam = false;
+
+            // 기존 팀 중 best-match가 가장 많은 팀 찾기
+            int bestTeamIndex = -1;
+            int bestTeamScore = -1;
+
+            for (int i = 0; i < teams.size(); i++) {
+                List<GroupMember> team = teams.get(i);
+                if (team.size() >= teamSizes.get(i)) continue;
+
+                int score = 0;
+                for (GroupMember member : team) {
+                    String memberCode = userCharacterMap.get(member.getUserId());
+                    if (memberCode.equals(best1) || memberCode.equals(best2)) score += 2;
+                    if (memberCode.equals(worst1) || memberCode.equals(worst2)) score -= 3;
+                }
+
+                if (score > bestTeamScore) {
+                    bestTeamScore = score;
+                    bestTeamIndex = i;
+                }
+            }
+
+            // 적절한 팀 찾으면 배정
+            if (bestTeamIndex != -1) {
+                teams.get(bestTeamIndex).add(gm);
+                assigned.add(gm.getUserId());
+                assignedToTeam = true;
+            }
+
+            // 적절한 팀 못 찾으면 가장 인원이 적은 팀에 배정
+            if (!assignedToTeam) {
+                teams.stream()
+                        .filter(t -> t.size() < maxMembers)
+                        .min(Comparator.comparingInt(List::size))
+                        .ifPresent(team -> {
+                            team.add(gm);
+                            assigned.add(gm.getUserId());
+                        });
             }
         }
-        return result;
+
+        // Team 생성 로직을 분리된 TeamService를 통해 호출
+        teamService.createTeams(groupId, teams);
     }
 
+    @Transactional
+    public void banGroupMember(Integer groupId, Integer groupMemberId) {
+        // 1) 해당 멤버 조회
+        GroupMember gm = groupMemberRepository.findById(groupMemberId)
+                .orElseThrow(() -> new NoSuchElementException("해당 그룹 멤버가 없습니다."));
+
+        // 2) 멤버가 요청된 그룹 소속인지 확인
+        if (!gm.getGroupId().equals(groupId)) {
+            throw new IllegalArgumentException("멤버가 해당 그룹에 속해있지 않습니다.");
+        }
+
+        // 3) 차단 처리: 수락 취소 + ban 플래그 설정
+        gm.setIsAccepted(false);
+        gm.setBan(true);
+
+        // 4) 변경 저장
+        groupMemberRepository.save(gm);
+    }
+
+    @Transactional
+    public void cancelGroupInvitationByEmail(Integer groupId, String email) {
+        // 1) 사용자 조회
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new NoSuchElementException("해당 이메일의 사용자가 없습니다."));
+
+        // 2) GroupMember 조회 (수락 전)
+        GroupMember gm = groupMemberRepository
+                .findByGroupIdAndUserId(groupId, user.getId())
+                .orElseThrow(() -> new NoSuchElementException("해당 그룹에 초대된 기록이 없습니다."));
+
+        if (Boolean.TRUE.equals(gm.getIsAccepted())) {
+            throw new IllegalArgumentException("이미 수락된 멤버는 취소할 수 없습니다.");
+        }
+
+        // 3) 레코드 삭제
+        groupMemberRepository.delete(gm);
+    }
+
+    @Transactional
+    public void deleteGroup(Integer groupId) {
+        // 1) 그룹 존재 확인
+        ProjectGroup group = projectGroupRepository.findById(groupId)
+                .orElseThrow(() -> new NoSuchElementException("존재하지 않는 그룹입니다."));
+
+        // 2) 그룹 멤버 모두 삭제
+        List<GroupMember> members = groupMemberRepository.findAllByGroupId(groupId);
+        if (!members.isEmpty()) {
+            groupMemberRepository.deleteAll(members);
+        }
+
+        // 3) 팀 + 팀 요청 삭제 (TeamService)
+        teamService.deleteTeamsAndRequestsByGroupId(groupId);
+
+        // 5) 그룹에 연결된 TeamType 설정 삭제
+        Integer teamTypeId = group.getTeamMakeType();
+        if (teamTypeId != null) {
+            teamTypeRepository.deleteById(teamTypeId);
+        }
+
+        // 6) 마지막으로 그룹 자체 삭제
+        projectGroupRepository.delete(group);
+    }
 
 
 }

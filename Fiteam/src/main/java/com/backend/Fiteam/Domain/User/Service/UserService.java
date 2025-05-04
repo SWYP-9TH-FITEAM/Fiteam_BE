@@ -6,18 +6,18 @@ import com.backend.Fiteam.Domain.Group.Entity.GroupMember;
 import com.backend.Fiteam.Domain.Group.Entity.ProjectGroup;
 import com.backend.Fiteam.Domain.Group.Repository.GroupMemberRepository;
 import com.backend.Fiteam.Domain.Group.Repository.ProjectGroupRepository;
+import com.backend.Fiteam.Domain.Team.Entity.Team;
+import com.backend.Fiteam.Domain.Group.Entity.TeamType;
+import com.backend.Fiteam.Domain.Team.Repository.TeamRepository;
+import com.backend.Fiteam.Domain.Team.Repository.TeamTypeRepository;
 import com.backend.Fiteam.Domain.User.Dto.SaveTestAnswerRequestDto;
 import com.backend.Fiteam.Domain.User.Dto.TestResultResponseDto;
 import com.backend.Fiteam.Domain.User.Dto.UserCardResponseDto;
-import com.backend.Fiteam.Domain.User.Dto.UserGroupProfileDto;
 import com.backend.Fiteam.Domain.User.Dto.UserGroupStatusDto;
-import com.backend.Fiteam.Domain.User.Dto.UserLikeRequestDto;
-import com.backend.Fiteam.Domain.User.Dto.UserLikeResponseDto;
 import com.backend.Fiteam.Domain.User.Dto.UserProfileDto;
 import com.backend.Fiteam.Domain.User.Entity.User;
-import com.backend.Fiteam.Domain.User.Entity.UserLike;
-import com.backend.Fiteam.Domain.User.Repository.UserLikeRepository;
 import com.backend.Fiteam.Domain.User.Repository.UserRepository;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -36,6 +36,8 @@ public class UserService {
     private final CharacterCardRepository characterCardRepository;
     private final GroupMemberRepository groupMemberRepository;
     private final ProjectGroupRepository projectGroupRepository;
+    private final TeamRepository teamRepository;
+    private final TeamTypeRepository teamTypeRepository;
 
     @Transactional
     public void saveCharacterTestResult(Integer userId, SaveTestAnswerRequestDto requestDto) {
@@ -141,13 +143,18 @@ public class UserService {
         return UserCardResponseDto.builder()
                 .code(card.getCode())
                 .name(card.getName())
+                .keyword(card.getKeyword()) // 추가된 필드
                 .summary(card.getSummary())
                 .teamStrength(card.getTeamStrength())
                 .caution(card.getCaution())
-                .bestMatchCode(card.getBestMatchCode())
-                .bestMatchReason(card.getBestMatchReason())
-                .worstMatchCode(card.getWorstMatchCode())
-                .worstMatchReason(card.getWorstMatchReason())
+                .bestMatchCode1(card.getBestMatchCode1())
+                .bestMatchReason1(card.getBestMatchReason1())
+                .bestMatchCode2(card.getBestMatchCode2())
+                .bestMatchReason2(card.getBestMatchReason2())
+                .worstMatchCode1(card.getWorstMatchCode1())
+                .worstMatchReason1(card.getWorstMatchReason1())
+                .worstMatchCode2(card.getWorstMatchCode2())
+                .worstMatchReason2(card.getWorstMatchReason2())
                 .details(user.getDetails())
                 .ei(user.getNumEI())
                 .pd(user.getNumPD())
@@ -165,8 +172,41 @@ public class UserService {
             throw new IllegalArgumentException("이미 수락한 초대입니다.");
         }
 
+        // 초대 수락
         groupMember.setIsAccepted(true);
+
+        // 그룹 정보 조회
+        ProjectGroup projectGroup = projectGroupRepository.findById(groupId)
+                .orElseThrow(() -> new IllegalArgumentException("그룹이 존재하지 않습니다."));
+
+        // 팀타입 정보 조회
+        Integer teamTypeId = projectGroup.getTeamMakeType();
+        TeamType teamType = teamTypeRepository.findById(teamTypeId)
+                .orElseThrow(() -> new IllegalArgumentException("팀 구성 방식이 존재하지 않습니다."));
+
+        // 유저 이름 조회
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저가 존재하지 않습니다."));
+
+        // 1인 팀 생성
+        Team newTeam = Team.builder()
+                .groupId(groupId)
+                .teamId(groupMember.getId()) // groupMember id → teamId로 사용
+                .masterUserId(userId)
+                .name("temp_" + user.getUserName())  // 예: temp_김철수
+                .maxMembers(teamType.getMaxMembers())
+                .description(null)
+                .status("대기중")
+                .createdAt(new Timestamp(System.currentTimeMillis()))
+                .build();
+
+        teamRepository.save(newTeam);
+
+        // GroupMember 테이블에도 팀 정보 반영
+        groupMember.setTeamId(newTeam.getTeamId());
+        groupMember.setTeamStatus("대기중");
     }
+
 
     public List<UserGroupStatusDto> getUserGroupsByStatus(Integer userId, boolean isAccepted) {
         List<GroupMember> memberships = isAccepted

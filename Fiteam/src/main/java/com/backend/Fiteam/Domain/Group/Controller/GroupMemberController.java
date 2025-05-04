@@ -1,7 +1,10 @@
 package com.backend.Fiteam.Domain.Group.Controller;
 
 import com.backend.Fiteam.Domain.Group.Dto.GroupMemberProfileResponseDto;
+import com.backend.Fiteam.Domain.Group.Dto.GroupMemberResponseDto;
+import com.backend.Fiteam.Domain.Group.Entity.ProjectGroup;
 import com.backend.Fiteam.Domain.Group.Service.GroupMemberService;
+import com.backend.Fiteam.Domain.Group.Service.GroupService;
 import com.backend.Fiteam.Domain.User.Dto.UserGroupProfileDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,11 +27,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class GroupMemberController {
 
     /*
-    1. 직무 유형 리스트 GET,POST (PM,디자이너 등)	GET	/v1/groupmember/positions
-    2. 해당그룹 프로필 작성 (경력/목표/URL/소개 작성)	PATCH	/v1/groupmember/{groupMemberId}
-    3. 그룹 다른멤버 프로필 조회	GET	/v1/member/{userId}/profile
+    1. 직무 유형 리스트 GET,POST (PM,디자이너 등)
+    2. 해당그룹 프로필 작성 (경력/목표/URL/소개 작성)
+    3. 그룹 다른멤버 프로필 조회
+    4. 그룹에 참여한 전체 멤버 리스트 GET
     */
 
+    private final GroupService groupService;
     private final GroupMemberService groupMemberService;
 
     // 1. 직무 유형 리스트 GET (PM,디자이너 등)
@@ -83,4 +88,32 @@ public class GroupMemberController {
         }
     }
 
+    // 4. 그룹에 참여한 전체 멤버 리스트 GET
+    @Operation(summary = "그룹 전체 멤버 리스트 조회", description = "그룹에 속한 모든 멤버를 조회합니다.")
+    @GetMapping("/{groupId}/members")
+    public ResponseEntity<?> getGroupMembers(
+            @AuthenticationPrincipal UserDetails userDetails,  @PathVariable Integer groupId) {
+        try {
+            Integer requesterId = Integer.valueOf(userDetails.getUsername());
+
+            // 1. 그룹 존재 여부 확인
+            ProjectGroup group = groupService.getProjectGroup(groupId);
+
+            // 2. 요청자가 이 그룹에 속한 사용자 or 매니저인지 확인
+            boolean isManager = group.getManagerId().equals(requesterId);
+            boolean isMember = groupMemberService.isUserInGroup(groupId, requesterId);
+
+            if (!isManager && !isMember) {
+                throw new IllegalArgumentException("해당 그룹에 접근할 권한이 없습니다.");
+            }
+
+            List<GroupMemberResponseDto> response = groupMemberService.getGroupMembers(groupId);
+            return ResponseEntity.ok(response);
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
 }

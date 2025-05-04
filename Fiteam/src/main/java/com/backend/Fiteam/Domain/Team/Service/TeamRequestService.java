@@ -7,7 +7,7 @@ import com.backend.Fiteam.Domain.Team.Dto.TeamMemberDto;
 import com.backend.Fiteam.Domain.Team.Dto.TeamRequestResponseDto;
 import com.backend.Fiteam.Domain.Team.Entity.Team;
 import com.backend.Fiteam.Domain.Team.Entity.TeamRequest;
-import com.backend.Fiteam.Domain.Team.Entity.TeamType;
+import com.backend.Fiteam.Domain.Group.Entity.TeamType;
 import com.backend.Fiteam.Domain.Team.Repository.TeamRepository;
 import com.backend.Fiteam.Domain.Team.Repository.TeamRequestRepository;
 import com.backend.Fiteam.Domain.Team.Repository.TeamTypeRepository;
@@ -171,6 +171,10 @@ public class TeamRequestService {
         toMove.forEach(gm -> gm.setTeamId(primaryTeamId));
         groupMemberRepository.saveAll(toMove);
 
+        //  추가: TeamRequest 삭제
+        List<TeamRequest> relatedRequests = teamRequestRepository.findByTeamId(secondaryTeamId);
+        teamRequestRepository.deleteAll(relatedRequests);
+
         // secondary 팀 삭제
         teamRepository.delete(secondary);
     }
@@ -225,7 +229,7 @@ public class TeamRequestService {
         Integer groupId = me.getGroupId();
 
         // 2) 그룹의 전체 멤버 조회
-        List<GroupMember> all = groupMemberRepository.findAllByGroupId(groupId);
+        List<GroupMember> all = groupMemberRepository.findAllByGroupIdAndIsAcceptedTrue(groupId);
 
         // 3) teamId 별로 묶어서 TeamMemberDto 로 매핑한 뒤 List<List<...>> 로
         Map<Integer, List<GroupMember>> byTeam = all.stream()

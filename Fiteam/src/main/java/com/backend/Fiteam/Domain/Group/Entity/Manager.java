@@ -21,7 +21,7 @@ public class Manager {
     @Column(nullable = false, unique = true, length = 50)
     private String email;
 
-    @Column(length = 50)
+    @Column(length = 100)
     private String password;
 
     @Column(name = "manager_name", length = 30)

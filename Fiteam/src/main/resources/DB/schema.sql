@@ -6,13 +6,18 @@ CREATE TABLE CharacterCard (
     id INT AUTO_INCREMENT PRIMARY KEY,
     code VARCHAR(4) NOT NULL UNIQUE,
     name VARCHAR(30),
+    keyword VARCHAR(50),
     summary TEXT,
     team_strength TEXT,
     caution TEXT,
-    best_match_code VARCHAR(4),
-    best_match_reason TEXT,
-    worst_match_code VARCHAR(4),
-    worst_match_reason TEXT
+    best_match_code1 VARCHAR(4),
+    best_match_reason1 TEXT,
+    best_match_code2 VARCHAR(4),
+    best_match_reason2 TEXT,
+    worst_match_code1 VARCHAR(4),
+    worst_match_reason1 TEXT,
+    worst_match_code2 VARCHAR(4),
+    worst_match_reason2 TEXT
 );
 
 CREATE TABLE CharacterQuestion (
@@ -52,7 +57,7 @@ CREATE TABLE User (
 CREATE TABLE Admin (
     id INT AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(50) NOT NULL UNIQUE,
-    password VARCHAR(50),
+    password VARCHAR(100),
     admin_name VARCHAR(30),
     position VARCHAR(50),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -61,7 +66,7 @@ CREATE TABLE Admin (
 CREATE TABLE Manager (
     id INT AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(50) NOT NULL UNIQUE,
-    password VARCHAR(50),
+    password VARCHAR(100),
     manager_name VARCHAR(30),
     organization VARCHAR(50),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

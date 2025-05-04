@@ -92,7 +92,7 @@ public class TeamController {
     @Operation(summary = "받은 팀 요청 수락", description = "특정 사용자가 보낸 팀 요청을 수락합니다.")
     @PostMapping("/request/accept/{senderId}")
     public ResponseEntity<?> acceptTeamRequest(
-            @AuthenticationPrincipal UserDetails userDetails, TeamRequestResponseDto reqdto) {
+            @AuthenticationPrincipal UserDetails userDetails, @RequestBody TeamRequestResponseDto reqdto) {
         try {
             Integer receiverId = Integer.parseInt(userDetails.getUsername());
             teamRequestService.acceptTeamRequest(receiverId, reqdto);

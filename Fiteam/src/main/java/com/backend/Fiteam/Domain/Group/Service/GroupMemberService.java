@@ -1,11 +1,12 @@
 package com.backend.Fiteam.Domain.Group.Service;
 
 import com.backend.Fiteam.Domain.Group.Dto.GroupMemberProfileResponseDto;
+import com.backend.Fiteam.Domain.Group.Dto.GroupMemberResponseDto;
 import com.backend.Fiteam.Domain.Group.Entity.GroupMember;
 import com.backend.Fiteam.Domain.Group.Entity.ProjectGroup;
 import com.backend.Fiteam.Domain.Group.Repository.GroupMemberRepository;
 import com.backend.Fiteam.Domain.Group.Repository.ProjectGroupRepository;
-import com.backend.Fiteam.Domain.Team.Entity.TeamType;
+import com.backend.Fiteam.Domain.Group.Entity.TeamType;
 import com.backend.Fiteam.Domain.Team.Repository.TeamTypeRepository;
 import com.backend.Fiteam.Domain.User.Dto.UserGroupProfileDto;
 import com.backend.Fiteam.Domain.User.Entity.User;
@@ -16,6 +17,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.NoSuchElementException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -87,18 +89,18 @@ public class GroupMemberService {
             return Collections.emptyList();
         }
 
-        // JSON 파싱
+        // JSON 파싱: Object 형태로 가정
         ObjectMapper mapper = new ObjectMapper();
         JsonNode root = mapper.readTree(configJson);
-        if (!root.isArray() || root.isEmpty()) {
+
+        if (!root.isObject()) {
             return Collections.emptyList();
         }
 
-        JsonNode positionMap = root.get(0);
-        positionMap.fieldNames().forEachRemaining(positions::add); // json 에서 PM : 1 -> PM만 추가
-
+        root.fieldNames().forEachRemaining(positions::add); // PM, DS, FE, BE 등 key만 추출
         return positions;
     }
+
 
     public GroupMemberProfileResponseDto getMemberProfile(Integer targetUserId) {
         GroupMember member = groupMemberRepository.findTopByUserIdAndIsAcceptedTrue(targetUserId)
@@ -120,5 +122,32 @@ public class GroupMemberService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
+    public boolean isUserInGroup(Integer groupId, Integer userId) {
+        return groupMemberRepository.existsByGroupIdAndUserId(groupId, userId);
+    }
 
+    @Transactional(readOnly = true)
+    public List<GroupMemberResponseDto> getGroupMembers(Integer groupId) {
+        List<GroupMember> groupMembers = groupMemberRepository.findByGroupId(groupId);
+        List<GroupMemberResponseDto> result = new ArrayList<>();
+
+        for (GroupMember member : groupMembers) {
+            if (Boolean.TRUE.equals(member.getIsAccepted())) {
+                User user = userRepository.findById(member.getUserId())
+                        .orElseThrow(() -> new NoSuchElementException("유저 정보를 찾을 수 없습니다."));
+
+                GroupMemberResponseDto dto = new GroupMemberResponseDto(
+                        user.getId(),
+                        user.getUserName(),
+                        user.getCardId1(),
+                        member.getTeamStatus(),
+                        member.getPosition()
+                );
+
+                result.add(dto);
+            }
+        }
+        return result;
+    }
 }
