@@ -15,6 +15,8 @@ import com.backend.Fiteam.Domain.User.Dto.TestResultResponseDto;
 import com.backend.Fiteam.Domain.User.Dto.UserCardResponseDto;
 import com.backend.Fiteam.Domain.User.Dto.UserGroupStatusDto;
 import com.backend.Fiteam.Domain.User.Dto.UserProfileDto;
+import com.backend.Fiteam.Domain.User.Dto.UserSettingsRequestDto;
+import com.backend.Fiteam.Domain.User.Dto.UserSettingsResponseDto;
 import com.backend.Fiteam.Domain.User.Entity.User;
 import com.backend.Fiteam.Domain.User.Repository.UserRepository;
 import java.sql.Timestamp;
@@ -226,4 +228,61 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
+    public void updateUserSettings(Integer userId, UserSettingsRequestDto dto) {
+        // 1) 사용자 조회
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("User not found with id: " + userId));
+
+        // 2) null 체크 후 값이 있을 때만 업데이트
+        if (dto.getPhoneNumber() != null) {
+            user.setPhoneNumber(dto.getPhoneNumber());
+        }
+        if (dto.getKakaoId() != null) {
+            user.setKakaoId(dto.getKakaoId());
+        }
+        if (dto.getJob() != null) {
+            user.setJob(dto.getJob());
+        }
+        if (dto.getMajor() != null) {
+            user.setMajor(dto.getMajor());
+        }
+        if (dto.getIntroduction() != null) {
+            user.setIntroduction(dto.getIntroduction());
+        }
+        if (dto.getUrl() != null) {
+            user.setUrl(dto.getUrl());
+        }
+
+        // 3) 업데이트 시간 기록
+        user.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
+
+        // 4) 저장
+        userRepository.save(user);
+    }
+
+    @Transactional(readOnly = true)
+    public UserSettingsResponseDto getUserSettings(Integer userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("User not found with id: " + userId));
+
+        return UserSettingsResponseDto.builder()
+                .userName(user.getUserName())
+                .profileImgUrl(user.getProfileImgUrl())
+                .phoneNumber(user.getPhoneNumber())
+                .kakaoId(user.getKakaoId())
+                .job(user.getJob())
+                .major(user.getMajor())
+                .introduction(user.getIntroduction())
+                .url(user.getUrl())
+                .cardId1(user.getCardId1())
+                .cardId2(user.getCardId2())
+                .details(user.getDetails())
+                .numEI(user.getNumEI())
+                .numPD(user.getNumPD())
+                .numVA(user.getNumVA())
+                .numCL(user.getNumCL())
+                .createdAt(user.getCreatedAt())
+                .build();
+    }
 }

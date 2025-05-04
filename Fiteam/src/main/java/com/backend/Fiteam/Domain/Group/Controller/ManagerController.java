@@ -149,7 +149,7 @@ public class ManagerController {
         }
     }
 
-    // 7. 매니저가 그룹 멤버 Ban 하기
+    // 6. 매니저가 그룹 멤버 Ban 하기
     @Operation(summary = "그룹 멤버 차단", description = "매니저 권한이 있는 사용자가 그룹 멤버를 Ban 처리합니다.")
     @PatchMapping("/{groupId}/member/{groupMemberId}/ban")
     public ResponseEntity<?> banGroupMember(
@@ -172,7 +172,7 @@ public class ManagerController {
         }
     }
 
-    // 8. 매니저가 요청한 그룹 참여 취소하기(잘못 입력하거나 할때)
+    // 7. 매니저가 요청한 그룹 참여 취소하기(잘못 입력하거나 할때)
     @Operation(summary = "그룹 초대 취소 (이메일 기준)", description = "매니저 권한이 있는 사용자가 아직 수락되지 않은 초대를 사용자 이메일로 취소합니다.")
     @DeleteMapping("/{groupId}/member/cancel")
     public ResponseEntity<?> cancelGroupInvitationByEmail(
@@ -198,7 +198,7 @@ public class ManagerController {
         }
     }
 
-    // 9. 매니져가 그룹 자체를 삭제하기…
+    // 8. 매니져가 그룹 자체를 삭제하기…
     @Operation(summary = "그룹 삭제- 사용시 주의", description = "매니저 권한이 있는 사용자가 해당 그룹을 완전 삭제합니다. (멤버·팀·설정 모두 삭제)")
     @DeleteMapping("/{groupId}")
     public ResponseEntity<?> deleteGroup(

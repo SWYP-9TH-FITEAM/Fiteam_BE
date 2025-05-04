@@ -8,9 +8,12 @@ import com.backend.Fiteam.Domain.User.Dto.UserGroupStatusDto;
 import com.backend.Fiteam.Domain.User.Dto.UserLikeRequestDto;
 import com.backend.Fiteam.Domain.User.Dto.UserLikeResponseDto;
 import com.backend.Fiteam.Domain.User.Dto.UserProfileDto;
+import com.backend.Fiteam.Domain.User.Dto.UserSettingsRequestDto;
+import com.backend.Fiteam.Domain.User.Dto.UserSettingsResponseDto;
 import com.backend.Fiteam.Domain.User.Service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import java.util.List;
+import java.util.NoSuchElementException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -39,6 +42,7 @@ public class UserController {
     4.마이페이지에서 유저사진과 유저 이름 가져오기
     5.그룹 초대 수락하기
     6.그룹 참여중/대기중 리스트 GET (User 입장)
+    7.마이페이지 설정값 변경하기(프로필 이미지나 등등)
     */
 
     // 1.테스트 결과 저장	POST
@@ -153,5 +157,30 @@ public class UserController {
         }
     }
 
+    // 7.마이페이지 설정값 변경하기(프로필 이미지나 등등)
+    @Operation(summary = "마이페이지 설정 변경", description = "전화번호, 카카오톡 ID, 직업, 전공, 소개, URL을 수정합니다. null은 변경하지 않습니다.")
+    @PatchMapping("/settings")
+    public ResponseEntity<?> updateUserSettings(
+            @AuthenticationPrincipal UserDetails userDetails, @RequestBody UserSettingsRequestDto dto) {
+        try {
+            Integer userId = Integer.valueOf(userDetails.getUsername());
+            userService.updateUserSettings(userId, dto);
+            return ResponseEntity.ok().build();
 
+        } catch (NoSuchElementException | IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // 8. 마이페이지 설정값 가져오기
+    @Operation(summary = "마이페이지 정보 조회", description = "로그인한 사용자의 전화번호, 카카오ID, 직업, 전공, 소개, URL을 반환합니다.")
+    @GetMapping("/settings")
+    public ResponseEntity<UserSettingsResponseDto> getUserSettings(@AuthenticationPrincipal UserDetails userDetails) {
+        Integer userId = Integer.valueOf(userDetails.getUsername());
+        UserSettingsResponseDto dto = userService.getUserSettings(userId);
+        return ResponseEntity.ok(dto);
+    }
 }
