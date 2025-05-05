@@ -57,7 +57,7 @@ public class GroupMemberController {
 
     // 2. 해당그룹 프로필 작성 (경력/목표/URL/소개 작성)
     @Operation(summary = "그룹멤버 프로필 수정", description = "초대 수락 후에 그룹 멤버가 자신의 프로필 정보를 수정합니다. (수정 안하는 필드는 null로 입력해주세요")
-    @PatchMapping("/groupprofile/{groupMemberId}")
+    @PatchMapping("/profile/{groupMemberId}")
     public ResponseEntity<?> updateGroupMemberProfile(
             @AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer groupMemberId, @RequestBody UserGroupProfileDto requestDto) {
         try {
@@ -71,10 +71,24 @@ public class GroupMemberController {
         }
     }
 
+    // 2-1. 현재 그룹에서 내가 작성한 프로필 GET
+    @Operation(summary = "다른 멤버 프로필 조회", description = "같은 그룹의 멤버일 경우 해당 사용자의 프로필을 조회합니다.")
+    @GetMapping("/profile")
+    public ResponseEntity<?> getSelfMemberProfile(@AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            Integer userId = Integer.parseInt(userDetails.getUsername());
+            GroupMemberProfileResponseDto profile = groupMemberService.getMemberProfile(userId);
+            return ResponseEntity.ok(profile);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
 
     // 3. 그룹 다른멤버 프로필 조회
     @Operation(summary = "다른 멤버 프로필 조회", description = "같은 그룹의 멤버일 경우 해당 사용자의 프로필을 조회합니다.")
-    @GetMapping("/member/{userId}/profile")
+    @GetMapping("/{userId}/profile")
     public ResponseEntity<?> getOtherMemberProfile(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer userId) {
         try {
             Integer requesterId = Integer.parseInt(userDetails.getUsername());

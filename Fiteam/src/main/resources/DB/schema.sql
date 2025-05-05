@@ -124,6 +124,7 @@ CREATE TABLE GroupMember (
     position VARCHAR(30),
     work_history INT,
     project_goal VARCHAR(200),
+    project_purpose VARCHAR(50),
     url VARCHAR(200),
     introduction TEXT,
     FOREIGN KEY (group_id) REFERENCES ProjectGroup(id),

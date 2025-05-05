@@ -48,6 +48,9 @@ public class GroupMember {
     @Column(name = "project_goal", length = 200)
     private String projectGoal;
 
+    @Column(name = "project_purpose", length = 50)
+    private String projectPurpose;
+
     @Column(length = 200)
     private String url;
 

@@ -43,6 +43,7 @@ public class UserController {
     5.그룹 초대 수락하기
     6.그룹 참여중/대기중 리스트 GET (User 입장)
     7.마이페이지 설정값 변경하기(프로필 이미지나 등등)
+    8. 마이페이지 설정값 가져오기
     */
 
     // 1.테스트 결과 저장	POST
@@ -66,7 +67,7 @@ public class UserController {
 
     // 2.테스트 결과 조회 (Mini 모달용)
     @Operation(summary = "성향검사 결과 조회 (Mini 모달용)", description = "유저의 성향검사 결과를 조회합니다.")
-    @GetMapping("/test-result")
+    @GetMapping("/mini-result")
     public ResponseEntity<TestResultResponseDto> getTestResult(@AuthenticationPrincipal UserDetails userDetails){
         try {
             Integer userId = Integer.parseInt(userDetails.getUsername());
@@ -80,8 +81,8 @@ public class UserController {
         }
     }
 
-    // 3. 내 프로필카드(GET) (캐릭터카드+AI분석)
-    @Operation(summary = "유저 프로필카드 조회", description = "JWT를 통해 인증된 사용자 본인의 프로필카드를 조회합니다.")
+    // 3. 테스트 결과 전체(GET) (캐릭터카드+AI분석)
+    @Operation(summary = "테스트 결과 전체(GET) (캐릭터카드+AI분석)", description = "JWT를 통해 인증된 사용자 본인의 프로필카드를 조회합니다.")
     @GetMapping("/card")
     public ResponseEntity<UserCardResponseDto> getUserProfileCard(@AuthenticationPrincipal UserDetails userDetails) {
         try {
@@ -98,7 +99,7 @@ public class UserController {
 
     // 4. get 마이페이지에서 유저사진과 유저 이름 가져오기
     @Operation(summary = "마이페이지 유저 프로필 조회", description = "JWT를 통해 사용자 이름과 프로필 이미지를 조회합니다.")
-    @GetMapping("/name/img")
+    @GetMapping("/name-img-job")
     public ResponseEntity<UserProfileDto> getUserInfo(@AuthenticationPrincipal UserDetails userDetails) {
         try {
             Integer userId = Integer.parseInt(userDetails.getUsername());
@@ -157,8 +158,8 @@ public class UserController {
         }
     }
 
-    // 7.마이페이지 설정값 변경하기(프로필 이미지나 등등)
-    @Operation(summary = "마이페이지 설정 변경", description = "전화번호, 카카오톡 ID, 직업, 전공, 소개, URL을 수정합니다. null은 변경하지 않습니다.")
+    // 7.마이페이지 내정보 변경하기(프로필 이미지나 등등)
+    @Operation(summary = "마이페이지 내정보 설정 변경", description = "전화번호, 카카오톡 ID, 직업, 전공, 소개, URL을 수정합니다. null로 넘어온 값은 변경하지 않습니다.")
     @PatchMapping("/settings")
     public ResponseEntity<?> updateUserSettings(
             @AuthenticationPrincipal UserDetails userDetails, @RequestBody UserSettingsRequestDto dto) {
@@ -176,7 +177,7 @@ public class UserController {
     }
 
     // 8. 마이페이지 설정값 가져오기
-    @Operation(summary = "마이페이지 정보 조회", description = "로그인한 사용자의 전화번호, 카카오ID, 직업, 전공, 소개, URL을 반환합니다.")
+    @Operation(summary = "마이페이지 내정보 조회", description = "로그인한 사용자의 전화번호, 카카오ID, 직업, 전공, 소개, URL을 반환합니다.")
     @GetMapping("/settings")
     public ResponseEntity<UserSettingsResponseDto> getUserSettings(@AuthenticationPrincipal UserDetails userDetails) {
         Integer userId = Integer.valueOf(userDetails.getUsername());

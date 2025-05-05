@@ -129,7 +129,7 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("User not found with id: " + userId));
 
-        return new UserProfileDto(user.getUserName(), user.getProfileImgUrl());
+        return new UserProfileDto(user.getUserName(), user.getProfileImgUrl(), user.getJob());
     }
 
     public UserCardResponseDto getUserProfileCard(int userId) {

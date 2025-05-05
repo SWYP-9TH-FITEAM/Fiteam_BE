@@ -19,7 +19,7 @@ public class NotificationController {
 
     // 1. 내 알림 리스트 GET
     @Operation(summary = "받은 알림 모아보기(최신순)", description = "JWT 인증된 사용자의 알림 목록을 조회합니다.")
-    @GetMapping("/notifications")
+    @GetMapping("/all")
     public ResponseEntity<List<UserNotifyDto>> getMyNotifications(
             @AuthenticationPrincipal UserDetails userDetails) {
         Integer userId = Integer.valueOf(userDetails.getUsername());
@@ -28,23 +28,20 @@ public class NotificationController {
 
     // 2. 알림 하나 열어보기
     @Operation(summary = "알림 상세 조회 및 읽음 처리", description = "알림 ID로 특정 알림을 읽음 처리하고 반환합니다.")
-    @GetMapping("/notifications/{notificationId}")
-    public ResponseEntity<UserNotifyDto> readNotification(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @PathVariable Integer notificationId) {
+    @GetMapping("/{id}")
+    public ResponseEntity<UserNotifyDto> readNotification(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer id) {
         Integer userId = Integer.valueOf(userDetails.getUsername());
-        UserNotifyDto dto = notificationService.markAsReadAndGet(userId, notificationId);
+        UserNotifyDto dto = notificationService.markAsReadAndGet(userId, id);
         return ResponseEntity.ok(dto);
     }
 
     // 3. 알림 메시지 삭제하기
     @Operation(summary = "알림 삭제", description = "알림 ID로 특정 알림을 삭제합니다.")
-    @DeleteMapping("/notifications/{notificationId}")
+    @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteNotification(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @PathVariable Integer notificationId) {
+            @AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer id) {
         Integer userId = Integer.valueOf(userDetails.getUsername());
-        notificationService.deleteNotification(userId, notificationId);
+        notificationService.deleteNotification(userId, id);
         return ResponseEntity.noContent().build();
     }
 

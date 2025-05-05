@@ -3,10 +3,13 @@ package com.backend.Fiteam.Domain.Character.Controller;
 
 import com.backend.Fiteam.Domain.Character.Entity.CharacterCard;
 import com.backend.Fiteam.Domain.Character.Service.CharacterCardService;
+import com.backend.Fiteam.Domain.User.Dto.SaveTestAnswerRequestDto;
 import io.swagger.v3.oas.annotations.Operation;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -38,4 +41,5 @@ public class CharacterCardController {
         List<CharacterCard> cards = characterCardService.getAllCharacterCards();
         return ResponseEntity.ok(cards);
     }
+
 }

@@ -1,10 +1,18 @@
 package com.backend.Fiteam.Domain.Character.Service;
 
+import com.backend.Fiteam.Domain.Character.Dto.SaveTestResultResponseDto;
+import com.backend.Fiteam.Domain.Character.Entity.CharacterCard;
 import com.backend.Fiteam.Domain.Character.Entity.CharacterQuestion;
+import com.backend.Fiteam.Domain.Character.Repository.CharacterCardRepository;
 import com.backend.Fiteam.Domain.Character.Repository.CharacterQuestionRepository;
+import com.backend.Fiteam.Domain.User.Dto.SaveTestAnswerRequestDto;
+import com.backend.Fiteam.Domain.User.Entity.User;
 import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @Service
@@ -13,9 +21,57 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class CharacterQuestionService {
 
     private final CharacterQuestionRepository characterQuestionRepository;
+    private final CharacterCardRepository characterCardRepository;
 
 
     public List<CharacterQuestion> getAllCharacterQuestions() {
         return characterQuestionRepository.findAll();
+    }
+
+
+    public SaveTestResultResponseDto saveCharacterTestResult(SaveTestAnswerRequestDto requestDto) {
+        int E = 0, I = 0, P = 0, D = 0, V = 0, A = 0, C = 0, L = 0;
+
+        // 1) 답변 점수 합산
+        for (Map<String, Integer> answer : requestDto.getAnswers()) {
+            for (Map.Entry<String, Integer> e : answer.entrySet()) {
+                switch (e.getKey()) {
+                    case "E" -> E += e.getValue();
+                    case "I" -> I += e.getValue();
+                    case "P" -> P += e.getValue();
+                    case "D" -> D += e.getValue();
+                    case "V" -> V += e.getValue();
+                    case "A" -> A += e.getValue();
+                    case "C" -> C += e.getValue();
+                    case "L" -> L += e.getValue();
+                }
+            }
+        }
+
+        int numEI = E;
+        int numPD = P;
+        int numVA = V;
+        int numCL = C;
+
+        // 2) 코드 생성
+        StringBuilder codeBuilder = new StringBuilder();
+        codeBuilder.append(E >= I ? "E" : "I");
+        codeBuilder.append(P >= D ? "P" : "D");
+        codeBuilder.append(V >= A ? "V" : "A");
+        codeBuilder.append(C >= L ? "C" : "L");
+        String code = codeBuilder.toString();
+
+        // 3) CharacterCard 조회
+        CharacterCard characterCard = characterCardRepository.findByCode(code)
+                .orElseThrow(() -> new NoSuchElementException("CharacterCard not found with code: " + code));
+
+        // 4) DTO 반환 (DB 저장 없음)
+        return SaveTestResultResponseDto.builder()
+                .cardId(characterCard.getId())
+                .numEI(numEI)
+                .numPD(numPD)
+                .numVA(numVA)
+                .numCL(numCL)
+                .build();
     }
 }

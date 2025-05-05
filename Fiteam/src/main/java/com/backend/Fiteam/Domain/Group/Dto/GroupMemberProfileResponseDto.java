@@ -9,10 +9,16 @@ import lombok.Getter;
 public class GroupMemberProfileResponseDto {
 
     @Schema(description = "경력(개월 수)", example = "12")
+    private String position;
+
+    @Schema(description = "경력(개월 수)", example = "12")
     private Integer workHistory;
 
-    @Schema(description = "목표", example = "프론트엔드 실력 성장")
+    @Schema(description = "목표", example = "최고의 PM이 되는것")
     private String projectGoal;
+
+    @Schema(description = "목적", example = "수익화")
+    private String projectPurpose;
 
     @Schema(description = "포트폴리오 URL", example = "https://portfolio.com/abc")
     private String url;
@@ -21,8 +27,8 @@ public class GroupMemberProfileResponseDto {
     private String introduction;
 
     // User Entity 기반 필드 추가
-    @Schema(description = "AI 분석 설명", example = "ISTP 유형이면서 ~~한 특징이 있는 사람입니다.")
-    private String details;
+    @Schema(description = "판단된 캐릭터카드 ID", example = "12")
+    private Integer cardId;
 
     @Schema(description = "EI 성향 점수", example = "7")
     private Integer numEI;

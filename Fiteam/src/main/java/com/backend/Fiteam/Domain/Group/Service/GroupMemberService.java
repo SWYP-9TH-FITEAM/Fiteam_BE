@@ -110,15 +110,17 @@ public class GroupMemberService {
                 .orElseThrow(() -> new IllegalArgumentException("해당 유저 정보가 없습니다."));
 
         return GroupMemberProfileResponseDto.builder()
-                .workHistory(member.getWorkHistory())
-                .projectGoal(member.getProjectGoal())
-                .url(member.getUrl())
-                .introduction(member.getIntroduction())
-                .details(user.getDetails())
+                .cardId(user.getCardId1())
                 .numEI(user.getNumEI())
                 .numPD(user.getNumPD())
                 .numVA(user.getNumVA())
                 .numCL(user.getNumCL())
+
+                .workHistory(member.getWorkHistory())
+                .projectGoal(member.getProjectGoal())
+                .projectPurpose(member.getProjectPurpose())
+                .url(member.getUrl())
+                .introduction(member.getIntroduction())
                 .build();
     }
 

@@ -173,6 +173,38 @@
         }
       }
     },
+    "/v1/question/unauth/test-result": {
+      "post": {
+        "tags": [
+          "character-question-controller"
+        ],
+        "summary": "로그인 없이 성향검사 결과 연산",
+        "description": "질문 결과를 연산하여 캐릭터카드 ID와 4가지 성향 점수를 반환합니다.",
+        "operationId": "saveTestResult_1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveTestAnswerRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaveTestResultResponseDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/like/add": {
       "post": {
         "tags": [
@@ -532,7 +564,7 @@
         "tags": [
           "user-controller"
         ],
-        "summary": "마이페이지 정보 조회",
+        "summary": "마이페이지 내정보 조회",
         "description": "로그인한 사용자의 전화번호, 카카오ID, 직업, 전공, 소개, URL을 반환합니다.",
         "operationId": "getUserSettings",
         "responses": {
@@ -552,8 +584,8 @@
         "tags": [
           "user-controller"
         ],
-        "summary": "마이페이지 설정 변경",
-        "description": "전화번호, 카카오톡 ID, 직업, 전공, 소개, URL을 수정합니다. null은 변경하지 않습니다.",
+        "summary": "마이페이지 내정보 설정 변경",
+        "description": "전화번호, 카카오톡 ID, 직업, 전공, 소개, URL을 수정합니다. null로 넘어온 값은 변경하지 않습니다.",
         "operationId": "updateUserSettings",
         "requestBody": {
           "content": {
@@ -685,7 +717,7 @@
         }
       }
     },
-    "/v1/member/groupprofile/{groupMemberId}": {
+    "/v1/member/profile/{groupMemberId}": {
       "patch": {
         "tags": [
           "group-member-controller"
@@ -813,29 +845,7 @@
         }
       }
     },
-    "/v1/user/test-result": {
-      "get": {
-        "tags": [
-          "user-controller"
-        ],
-        "summary": "성향검사 결과 조회 (Mini 모달용)",
-        "description": "유저의 성향검사 결과를 조회합니다.",
-        "operationId": "getTestResult",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/TestResultResponseDto"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/user/name/img": {
+    "/v1/user/name-img-job": {
       "get": {
         "tags": [
           "user-controller"
@@ -850,6 +860,28 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/UserProfileDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/user/mini-result": {
+      "get": {
+        "tags": [
+          "user-controller"
+        ],
+        "summary": "성향검사 결과 조회 (Mini 모달용)",
+        "description": "유저의 성향검사 결과를 조회합니다.",
+        "operationId": "getTestResult",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestResultResponseDto"
                 }
               }
             }
@@ -912,7 +944,7 @@
         "tags": [
           "user-controller"
         ],
-        "summary": "유저 프로필카드 조회",
+        "summary": "테스트 결과 전체(GET) (캐릭터카드+AI분석)",
         "description": "JWT를 통해 인증된 사용자 본인의 프로필카드를 조회합니다.",
         "operationId": "getUserProfileCard",
         "responses": {
@@ -1091,32 +1123,7 @@
         }
       }
     },
-    "/v1/noti/notifications": {
-      "get": {
-        "tags": [
-          "notification-controller"
-        ],
-        "summary": "받은 알림 모아보기(최신순)",
-        "description": "JWT 인증된 사용자의 알림 목록을 조회합니다.",
-        "operationId": "getMyNotifications",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/UserNotifyDto"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/noti/notifications/{notificationId}": {
+    "/v1/noti/{id}": {
       "get": {
         "tags": [
           "notification-controller"
@@ -1126,7 +1133,7 @@
         "operationId": "readNotification",
         "parameters": [
           {
-            "name": "notificationId",
+            "name": "id",
             "in": "path",
             "required": true,
             "schema": {
@@ -1157,7 +1164,7 @@
         "operationId": "deleteNotification",
         "parameters": [
           {
-            "name": "notificationId",
+            "name": "id",
             "in": "path",
             "required": true,
             "schema": {
@@ -1169,6 +1176,64 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/noti/all": {
+      "get": {
+        "tags": [
+          "notification-controller"
+        ],
+        "summary": "받은 알림 모아보기(최신순)",
+        "description": "JWT 인증된 사용자의 알림 목록을 조회합니다.",
+        "operationId": "getMyNotifications",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserNotifyDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/member/{userId}/profile": {
+      "get": {
+        "tags": [
+          "group-member-controller"
+        ],
+        "summary": "다른 멤버 프로필 조회",
+        "description": "같은 그룹의 멤버일 경우 해당 사용자의 프로필을 조회합니다.",
+        "operationId": "getOtherMemberProfile",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         }
       }
@@ -1239,25 +1304,14 @@
         }
       }
     },
-    "/v1/member/member/{userId}/profile": {
+    "/v1/member/profile": {
       "get": {
         "tags": [
           "group-member-controller"
         ],
         "summary": "다른 멤버 프로필 조회",
         "description": "같은 그룹의 멤버일 경우 해당 사용자의 프로필을 조회합니다.",
-        "operationId": "getOtherMemberProfile",
-        "parameters": [
-          {
-            "name": "userId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
+        "operationId": "getSelfMemberProfile",
         "responses": {
           "200": {
             "description": "OK",
@@ -1727,6 +1781,41 @@
           }
         }
       },
+      "SaveTestResultResponseDto": {
+        "type": "object",
+        "properties": {
+          "cardId": {
+            "type": "integer",
+            "format": "int32",
+            "description": "판단된 캐릭터카드 ID",
+            "example": 12
+          },
+          "numEI": {
+            "type": "integer",
+            "format": "int32",
+            "description": "EI 성향 점수",
+            "example": 7
+          },
+          "numPD": {
+            "type": "integer",
+            "format": "int32",
+            "description": "PD 성향 점수",
+            "example": 5
+          },
+          "numVA": {
+            "type": "integer",
+            "format": "int32",
+            "description": "VA 성향 점수",
+            "example": 4
+          },
+          "numCL": {
+            "type": "integer",
+            "format": "int32",
+            "description": "CL 성향 점수",
+            "example": 6
+          }
+        }
+      },
       "UserLikeRequestDto": {
         "type": "object",
         "properties": {
@@ -2044,45 +2133,6 @@
           }
         }
       },
-      "TestResultResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string",
-            "description": "캐릭터 코드 (ex: INTJ)",
-            "example": "INTJ"
-          },
-          "name": {
-            "type": "string",
-            "description": "캐릭터 이름 (ex: 전략가)",
-            "example": "전략가"
-          },
-          "numEI": {
-            "type": "integer",
-            "format": "int32",
-            "description": "EI 성향 점수",
-            "example": 7
-          },
-          "numPD": {
-            "type": "integer",
-            "format": "int32",
-            "description": "PD 성향 점수",
-            "example": 3
-          },
-          "numVA": {
-            "type": "integer",
-            "format": "int32",
-            "description": "VA 성향 점수",
-            "example": 5
-          },
-          "numCL": {
-            "type": "integer",
-            "format": "int32",
-            "description": "CL 성향 점수",
-            "example": 8
-          }
-        }
-      },
       "UserSettingsResponseDto": {
         "type": "object",
         "properties": {
@@ -2183,6 +2233,48 @@
           },
           "profileImgUrl": {
             "type": "string"
+          },
+          "job": {
+            "type": "string"
+          }
+        }
+      },
+      "TestResultResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "캐릭터 코드 (ex: INTJ)",
+            "example": "INTJ"
+          },
+          "name": {
+            "type": "string",
+            "description": "캐릭터 이름 (ex: 전략가)",
+            "example": "전략가"
+          },
+          "numEI": {
+            "type": "integer",
+            "format": "int32",
+            "description": "EI 성향 점수",
+            "example": 7
+          },
+          "numPD": {
+            "type": "integer",
+            "format": "int32",
+            "description": "PD 성향 점수",
+            "example": 3
+          },
+          "numVA": {
+            "type": "integer",
+            "format": "int32",
+            "description": "VA 성향 점수",
+            "example": 5
+          },
+          "numCL": {
+            "type": "integer",
+            "format": "int32",
+            "description": "CL 성향 점수",
+            "example": 8
           }
         }
       },
