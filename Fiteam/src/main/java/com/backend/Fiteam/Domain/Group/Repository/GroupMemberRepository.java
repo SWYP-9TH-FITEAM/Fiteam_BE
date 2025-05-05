@@ -33,4 +33,6 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Intege
     List<GroupMember> findAllByUserIdAndIsAcceptedFalse(Integer userId);
 
     List<GroupMember> findAllByGroupIdAndIsAcceptedTrue(Integer groupId);
+
+    Optional<GroupMember> findByUserIdAndTeamId(Integer userId, Integer teamId);
 }

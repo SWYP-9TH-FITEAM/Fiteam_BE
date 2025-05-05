@@ -6,6 +6,7 @@ import com.backend.Fiteam.Domain.Group.Entity.GroupMember;
 import com.backend.Fiteam.Domain.Group.Entity.ProjectGroup;
 import com.backend.Fiteam.Domain.Group.Repository.GroupMemberRepository;
 import com.backend.Fiteam.Domain.Group.Repository.ProjectGroupRepository;
+import com.backend.Fiteam.Domain.Team.Dto.TeamContactResponseDto;
 import com.backend.Fiteam.Domain.Team.Entity.Team;
 import com.backend.Fiteam.Domain.Group.Entity.TeamType;
 import com.backend.Fiteam.Domain.Team.Repository.TeamRepository;
@@ -284,5 +285,17 @@ public class UserService {
                 .numCL(user.getNumCL())
                 .createdAt(user.getCreatedAt())
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public TeamContactResponseDto getContactForUser(Integer userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("유저 정보를 찾을 수 없습니다."));
+        return new TeamContactResponseDto(
+                user.getId(),
+                user.getUserName(),
+                user.getPhoneNumber(),
+                user.getKakaoId()
+        );
     }
 }
