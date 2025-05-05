@@ -48,9 +48,6 @@ public class NotificationService {
         return notificationRepository.save(notification);
     }
 
-    /**
-     * 알림 리스트 조회 (기존)
-     */
     public List<UserNotifyDto> getUserNotifications(Integer userId) {
         return notificationRepository.findByUserId(userId).stream()
                 .sorted((n1, n2) -> n2.getCreatedAt().compareTo(n1.getCreatedAt()))
@@ -66,9 +63,6 @@ public class NotificationService {
                 .toList();
     }
 
-    /**
-     * 단건 읽음 처리 후 DTO 반환
-     */
     @Transactional
     public UserNotifyDto markAsReadAndGet(Integer userId, Integer notiId) {
         Notification n = notificationRepository.findById(notiId)
@@ -89,9 +83,6 @@ public class NotificationService {
                 .build();
     }
 
-    /**
-     * 알림 삭제
-     */
     @Transactional
     public void deleteNotification(Integer userId, Integer notiId) {
         Notification n = notificationRepository.findById(notiId)

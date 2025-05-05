@@ -11,6 +11,11 @@
       "description": "Generated server url"
     }
   ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
   "paths": {
     "/v1/user/savecard": {
       "post": {
@@ -114,16 +119,16 @@
         "summary": "받은 팀 요청 수락",
         "description": "특정 사용자가 보낸 팀 요청을 수락합니다.",
         "operationId": "acceptTeamRequest",
-        "parameters": [
-          {
-            "name": "reqdto",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/TeamRequestResponseDto"
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamRequestResponseDto"
+              }
             }
-          }
-        ],
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -200,10 +205,43 @@
         }
       }
     },
+    "/v1/group/{groupId}/random-team-building": {
+      "post": {
+        "tags": [
+          "manager-controller"
+        ],
+        "summary": "랜덤 자동 팀빌딩 지원",
+        "description": "랜덤 팀 빌딩 방식으로 설정된 그룹의 팀 빌딩을 시작시간에 수행합니다.",
+        "operationId": "randomTeamBuilding",
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/group/set-teamtype/{groupId}": {
       "post": {
         "tags": [
-          "group-controller"
+          "manager-controller"
         ],
         "summary": "팀 빌딩 타입 설정",
         "description": "특정 그룹에 팀 빌딩 방식을 설정합니다.",
@@ -246,7 +284,7 @@
     "/v1/group/invite": {
       "post": {
         "tags": [
-          "group-controller"
+          "manager-controller"
         ],
         "summary": "그룹에 이메일로 유저 초대 (1~N명 가능)",
         "description": "Manager가 여러 사용자를 프로젝트 그룹에 초대합니다.",
@@ -278,7 +316,7 @@
     "/v1/group/create": {
       "post": {
         "tags": [
-          "group-controller"
+          "manager-controller"
         ],
         "operationId": "createGroup",
         "requestBody": {
@@ -489,6 +527,58 @@
         }
       }
     },
+    "/v1/user/settings": {
+      "get": {
+        "tags": [
+          "user-controller"
+        ],
+        "summary": "마이페이지 정보 조회",
+        "description": "로그인한 사용자의 전화번호, 카카오ID, 직업, 전공, 소개, URL을 반환합니다.",
+        "operationId": "getUserSettings",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserSettingsResponseDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "user-controller"
+        ],
+        "summary": "마이페이지 설정 변경",
+        "description": "전화번호, 카카오톡 ID, 직업, 전공, 소개, URL을 수정합니다. null은 변경하지 않습니다.",
+        "operationId": "updateUserSettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserSettingsRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/user/accept/{groupId}": {
       "patch": {
         "tags": [
@@ -500,6 +590,79 @@
         "parameters": [
           {
             "name": "groupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/team/{teamId}/leader/{new_master_id}": {
+      "patch": {
+        "tags": [
+          "team-controller"
+        ],
+        "summary": "팀장 변경",
+        "description": "현재 팀장만 자신의 팀 내 다른 멤버를 새로운 팀장으로 지정할 수 있습니다.",
+        "operationId": "changeTeamLeader",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "new_master_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/team/{teamId}/confirm": {
+      "patch": {
+        "tags": [
+          "team-controller"
+        ],
+        "operationId": "confirmTeam",
+        "parameters": [
+          {
+            "name": "teamId",
             "in": "path",
             "required": true,
             "schema": {
@@ -551,6 +714,91 @@
           },
           "required": true
         },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/group/{groupId}/update": {
+      "patch": {
+        "tags": [
+          "manager-controller"
+        ],
+        "summary": "그룹 정보 수정",
+        "description": "매니저가 그룹 정보를 수정합니다. (수정하지 않는 필드는 null로 전달)",
+        "operationId": "updateGroupInfo",
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGroupRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/group/{groupId}/member/{groupMemberId}/ban": {
+      "patch": {
+        "tags": [
+          "manager-controller"
+        ],
+        "summary": "그룹 멤버 차단",
+        "description": "매니저 권한이 있는 사용자가 그룹 멤버를 Ban 처리합니다.",
+        "operationId": "banGroupMember",
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "groupMemberId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -674,6 +922,39 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/UserCardResponseDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/team/{teamId}/contacts": {
+      "get": {
+        "tags": [
+          "team-controller"
+        ],
+        "summary": "팀원 연락처 조회",
+        "description": "팀 확정 이후, 로그인한 팀장만 해당 팀의 멤버 연락처(전화번호, 카카오톡 ID)를 조회할 수 있습니다.",
+        "operationId": "getTeamContacts",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
                 }
               }
             }
@@ -835,6 +1116,63 @@
         }
       }
     },
+    "/v1/noti/notifications/{notificationId}": {
+      "get": {
+        "tags": [
+          "notification-controller"
+        ],
+        "summary": "알림 상세 조회 및 읽음 처리",
+        "description": "알림 ID로 특정 알림을 읽음 처리하고 반환합니다.",
+        "operationId": "readNotification",
+        "parameters": [
+          {
+            "name": "notificationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserNotifyDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "notification-controller"
+        ],
+        "summary": "알림 삭제",
+        "description": "알림 ID로 특정 알림을 삭제합니다.",
+        "operationId": "deleteNotification",
+        "parameters": [
+          {
+            "name": "notificationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/v1/member/{groupId}/positions": {
       "get": {
         "tags": [
@@ -843,6 +1181,39 @@
         "summary": "유저가 직무 유형 리스트 조회(PM, DS, FE, BE 등등)",
         "description": "teamMakeType 기준으로 TeamType의 configJson을 파싱하여 직무(position) 리스트를 반환합니다.",
         "operationId": "getGroupPositions",
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/member/{groupId}/members": {
+      "get": {
+        "tags": [
+          "group-member-controller"
+        ],
+        "summary": "그룹 전체 멤버 리스트 조회",
+        "description": "그룹에 속한 모든 멤버를 조회합니다.",
+        "operationId": "getGroupMembers",
         "parameters": [
           {
             "name": "groupId",
@@ -952,39 +1323,6 @@
                   "items": {
                     "$ref": "#/components/schemas/UserLikeResponseDto"
                   }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/group/{groupId}/members": {
-      "get": {
-        "tags": [
-          "group-controller"
-        ],
-        "summary": "그룹 전체 멤버 리스트 조회",
-        "description": "그룹에 속한 모든 멤버를 조회합니다.",
-        "operationId": "getGroupMembers",
-        "parameters": [
-          {
-            "name": "groupId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "type": "object"
                 }
               }
             }
@@ -1131,6 +1469,39 @@
         }
       }
     },
+    "/v1/team/{teamId}/leave": {
+      "delete": {
+        "tags": [
+          "team-controller"
+        ],
+        "summary": "팀 탈퇴",
+        "description": "팀 소속 멤버가 팀을 탈퇴합니다. (팀장은 먼저 리더를 변경해야 합니다.)",
+        "operationId": "leaveTeam",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/s3/delete": {
       "delete": {
         "tags": [
@@ -1186,6 +1557,80 @@
               "*/*": {
                 "schema": {
                   "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/group/{groupId}": {
+      "delete": {
+        "tags": [
+          "manager-controller"
+        ],
+        "summary": "그룹 삭제- 사용시 주의",
+        "description": "매니저 권한이 있는 사용자가 해당 그룹을 완전 삭제합니다. (멤버·팀·설정 모두 삭제)",
+        "operationId": "deleteGroup",
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/group/{groupId}/member/cancel": {
+      "delete": {
+        "tags": [
+          "manager-controller"
+        ],
+        "summary": "그룹 초대 취소 (이메일 기준)",
+        "description": "매니저 권한이 있는 사용자가 아직 수락되지 않은 초대를 사용자 이메일로 취소합니다.",
+        "operationId": "cancelGroupInvitationByEmail",
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "email",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
                 }
               }
             }
@@ -1507,6 +1952,41 @@
           }
         }
       },
+      "UserSettingsRequestDto": {
+        "type": "object",
+        "properties": {
+          "phoneNumber": {
+            "type": "string",
+            "description": "전화번호",
+            "example": "010-1234-5678"
+          },
+          "kakaoId": {
+            "type": "string",
+            "description": "카카오톡 ID",
+            "example": "my_kakao_id"
+          },
+          "job": {
+            "type": "string",
+            "description": "직업",
+            "example": "Frontend Developer"
+          },
+          "major": {
+            "type": "string",
+            "description": "전공",
+            "example": "Computer Science"
+          },
+          "introduction": {
+            "type": "string",
+            "description": "자기소개",
+            "example": "안녕하세요. 프론트엔드 개발자입니다."
+          },
+          "url": {
+            "type": "string",
+            "description": "웹사이트 URL (GitHub, Blog)",
+            "example": "https://github.com/username"
+          }
+        }
+      },
       "UserGroupProfileDto": {
         "type": "object",
         "properties": {
@@ -1535,6 +2015,32 @@
             "type": "string",
             "description": "자기소개",
             "example": "열정 넘치는 백엔드 개발자입니다."
+          }
+        }
+      },
+      "UpdateGroupRequestDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "그룹 이름 (수정할 경우 입력)",
+            "example": "스위프10기"
+          },
+          "description": {
+            "type": "string",
+            "description": "그룹 설명 (수정할 경우 입력)",
+            "example": "더 멋진 스위프가 되었습니다."
+          },
+          "maxUserCount": {
+            "type": "integer",
+            "format": "int32",
+            "description": "최대 인원 수 (수정할 경우 입력)",
+            "example": 100
+          },
+          "contactPolicy": {
+            "type": "string",
+            "description": "연락 정책 (수정할 경우 입력)",
+            "example": "이메일로만 연락"
           }
         }
       },
@@ -1574,6 +2080,98 @@
             "format": "int32",
             "description": "CL 성향 점수",
             "example": 8
+          }
+        }
+      },
+      "UserSettingsResponseDto": {
+        "type": "object",
+        "properties": {
+          "userName": {
+            "type": "string",
+            "description": "사용자 이름",
+            "example": "고양이"
+          },
+          "profileImgUrl": {
+            "type": "string",
+            "description": "프로필 이미지 URL",
+            "example": "https://example.com/profile.jpg"
+          },
+          "phoneNumber": {
+            "type": "string",
+            "description": "전화번호",
+            "example": "010-1234-5678"
+          },
+          "kakaoId": {
+            "type": "string",
+            "description": "카카오톡 ID",
+            "example": "my_kakao_id"
+          },
+          "job": {
+            "type": "string",
+            "description": "직업",
+            "example": "Frontend Developer"
+          },
+          "major": {
+            "type": "string",
+            "description": "전공",
+            "example": "Computer Science"
+          },
+          "introduction": {
+            "type": "string",
+            "description": "자기소개",
+            "example": "안녕하세요. 프론트엔드 개발자입니다."
+          },
+          "url": {
+            "type": "string",
+            "description": "웹사이트 URL (GitHub, Blog)",
+            "example": "https://github.com/username"
+          },
+          "cardId1": {
+            "type": "integer",
+            "format": "int32",
+            "description": "CharacterCard1 ID",
+            "example": 1
+          },
+          "cardId2": {
+            "type": "integer",
+            "format": "int32",
+            "description": "CharacterCard2 ID",
+            "example": 2
+          },
+          "details": {
+            "type": "string",
+            "description": "캐릭터 카드 AI 분석결과",
+            "example": "ISTP 유형이면서 ~~한 특징이 있는 사람입니다."
+          },
+          "numEI": {
+            "type": "integer",
+            "format": "int32",
+            "description": "EI 성향 점수",
+            "example": 7
+          },
+          "numPD": {
+            "type": "integer",
+            "format": "int32",
+            "description": "PD 성향 점수",
+            "example": 3
+          },
+          "numVA": {
+            "type": "integer",
+            "format": "int32",
+            "description": "VA 성향 점수",
+            "example": 5
+          },
+          "numCL": {
+            "type": "integer",
+            "format": "int32",
+            "description": "CL 성향 점수",
+            "example": 8
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "계정 생성일시",
+            "example": "2025-05-01T12:00:00"
           }
         }
       },
@@ -1623,6 +2221,11 @@
             "description": "캐릭터 이름",
             "example": "전략가"
           },
+          "keyword": {
+            "type": "string",
+            "description": "키워드",
+            "example": "분석력, 전략, 계획"
+          },
           "summary": {
             "type": "string",
             "description": "요약 설명",
@@ -1638,25 +2241,45 @@
             "description": "주의해야 할 점",
             "example": "과도한 완벽주의"
           },
-          "bestMatchCode": {
+          "bestMatchCode1": {
             "type": "string",
-            "description": "가장 잘 맞는 캐릭터 코드",
+            "description": "가장 잘 맞는 캐릭터 코드1",
             "example": "ENFP"
           },
-          "bestMatchReason": {
+          "bestMatchReason1": {
             "type": "string",
-            "description": "베스트 매칭 이유",
+            "description": "베스트 매칭 이유1",
             "example": "서로의 부족한 부분을 보완할 수 있음"
           },
-          "worstMatchCode": {
+          "bestMatchCode2": {
             "type": "string",
-            "description": "가장 맞지 않는 캐릭터 코드",
+            "description": "가장 잘 맞는 캐릭터 코드2",
+            "example": "INFJ"
+          },
+          "bestMatchReason2": {
+            "type": "string",
+            "description": "베스트 매칭 이유2",
+            "example": "공감과 계획의 조화로 시너지를 냄"
+          },
+          "worstMatchCode1": {
+            "type": "string",
+            "description": "가장 맞지 않는 캐릭터 코드1",
             "example": "ISFP"
           },
-          "worstMatchReason": {
+          "worstMatchReason1": {
             "type": "string",
-            "description": "워스트 매칭 이유",
+            "description": "워스트 매칭 이유1",
             "example": "소통 스타일 차이"
+          },
+          "worstMatchCode2": {
+            "type": "string",
+            "description": "가장 맞지 않는 캐릭터 코드2",
+            "example": "ESFP"
+          },
+          "worstMatchReason2": {
+            "type": "string",
+            "description": "워스트 매칭 이유2",
+            "example": "즉흥성과 논리의 부조화"
           },
           "details": {
             "type": "string",
@@ -1739,22 +2362,49 @@
       "UserNotifyDto": {
         "type": "object",
         "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32",
+            "description": "알림 ID",
+            "example": 1
+          },
           "senderType": {
-            "type": "string"
+            "type": "string",
+            "description": "발신자 타입 (user, admin 등)",
+            "example": "user"
           },
           "senderId": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "description": "발신자 ID (유저/관리자 등)",
+            "example": 2
+          },
+          "type": {
+            "type": "string",
+            "description": "알림 유형",
+            "example": "group_invite"
+          },
+          "tableId": {
+            "type": "integer",
+            "format": "int32",
+            "description": "관련 엔티티 ID (그룹 ID, 팀 ID 등)",
+            "example": 3
           },
           "content": {
-            "type": "string"
+            "type": "string",
+            "description": "알림 내용",
+            "example": "새로운 팀 초대가 도착했습니다."
           },
           "isRead": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "알림 읽음 여부",
+            "example": false
           },
           "createdAt": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "알림 생성 시간",
+            "example": "2025-05-05T14:30:00"
           }
         }
       },
@@ -1879,47 +2529,72 @@
           },
           "code": {
             "type": "string",
-            "example": "INTJ"
+            "example": "EPIC"
           },
           "name": {
             "type": "string",
             "description": "캐릭터 이름",
-            "example": "전략가"
+            "example": "반짝이는 아이디어 조율 요정"
+          },
+          "keyword": {
+            "type": "string",
+            "description": "키워드",
+            "example": "아이디어, 조율력, 팀 분위기 업"
           },
           "summary": {
             "type": "string",
-            "description": "요약 설명",
-            "example": "전략적이고 계획적인 성향을 가졌습니다."
+            "description": "성향 요약",
+            "example": "외향적이고 창의적이며 계획을 중시하고 분위기를 잘 맞춤"
           },
           "teamStrength": {
             "type": "string",
             "description": "팀에서의 강점",
-            "example": "~~분위기 메이커"
+            "example": "아이디어 공유, 팀원 간 중재, 분위기메이커"
           },
           "caution": {
             "type": "string",
-            "description": "주의해야 할 점",
-            "example": "과도한 완벽주의"
+            "description": "보완해야 할 점",
+            "example": "우유부단, 결정 장애, 방향 설정 고민"
           },
-          "bestMatchCode": {
+          "bestMatchCode1": {
             "type": "string",
-            "description": "가장 잘 맞는 캐릭터 코드",
+            "description": "가장 잘 맞는 캐릭터 코드1",
             "example": "ENFP"
           },
-          "bestMatchReason": {
+          "bestMatchReason1": {
             "type": "string",
-            "description": "베스트 매칭 이유",
-            "example": "ISTP의 부족함인 적극성을 보완하는 성격"
+            "description": "베스트 매칭 이유1",
+            "example": "감정적인 접근을 통해 INTJ의 균형을 잡아주는 성격"
           },
-          "worstMatchCode": {
+          "bestMatchCode2": {
             "type": "string",
-            "description": "가장 맞지 않는 캐릭터 코드",
+            "description": "가장 잘 맞는 캐릭터 코드2",
+            "example": "INFJ"
+          },
+          "bestMatchReason2": {
+            "type": "string",
+            "description": "베스트 매칭 이유2",
+            "example": "가치 지향적인 관점을 공유하여 깊은 유대감을 형성"
+          },
+          "worstMatchCode1": {
+            "type": "string",
+            "description": "가장 맞지 않는 캐릭터 코드1",
+            "example": "ESFP"
+          },
+          "worstMatchReason1": {
+            "type": "string",
+            "description": "워스트 매칭 이유1",
+            "example": "즉흥적인 행동과 계획적인 성향의 충돌"
+          },
+          "worstMatchCode2": {
+            "type": "string",
+            "description": "가장 맞지 않는 캐릭터 코드2",
             "example": "ISFP"
           },
-          "worstMatchReason": {
+          "worstMatchReason2": {
             "type": "string",
-            "description": "워스트 매칭 이유",
-            "example": "소통 방식 차이"
+            "description": "워스트 매칭 이유2",
+            "example": "갈등 회피 경향으로 인해 소통이 어려울 수 있음"
           }
         }
       },
@@ -1933,6 +2608,13 @@
             "type": "string"
           }
         }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
       }
     }
   }

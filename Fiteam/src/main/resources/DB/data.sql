@@ -1,3 +1,5 @@
+USE Fiteam;
+
 INSERT INTO CharacterCard (
     code, name, keyword, summary, team_strength, caution,
     best_match_code1, best_match_reason1,

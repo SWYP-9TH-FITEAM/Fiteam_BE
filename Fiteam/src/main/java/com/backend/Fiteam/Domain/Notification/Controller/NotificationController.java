@@ -26,7 +26,7 @@ public class NotificationController {
         return ResponseEntity.ok(notificationService.getUserNotifications(userId));
     }
 
-    // 2. 알림 하나 열어보기 (읽음 처리 후 DTO 반환)
+    // 2. 알림 하나 열어보기
     @Operation(summary = "알림 상세 조회 및 읽음 처리", description = "알림 ID로 특정 알림을 읽음 처리하고 반환합니다.")
     @GetMapping("/notifications/{notificationId}")
     public ResponseEntity<UserNotifyDto> readNotification(
