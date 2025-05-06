@@ -11,6 +11,9 @@ public class TeamMemberDto {
     @Schema(description = "유저 ID", example = "3")
     private Integer userId;
 
+    @Schema(description = "팀장 여부", example = "true")
+    private Boolean isMaster;
+
     @Schema(description = "유저 이름", example = "김코딩")
     private String userName;
 

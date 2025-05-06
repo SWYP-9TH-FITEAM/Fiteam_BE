@@ -175,6 +175,7 @@ CREATE TABLE ChatMessage (
     id INT AUTO_INCREMENT PRIMARY KEY,
     chat_room_id INT,
     sender_id INT,
+    message_type VARCHAR(20),
     content TEXT,
     is_read BOOLEAN DEFAULT FALSE,
     sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

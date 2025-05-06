@@ -9,4 +9,7 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Intege
 
     Optional<ChatMessage> findTopByChatRoomIdOrderBySentAtDesc(Integer chatRoomId);
     List<ChatMessage> findByChatRoomIdOrderBySentAtAsc(Integer chatRoomId);
+
+    long countByChatRoomIdAndSenderIdNotAndIsReadFalse(Integer chatRoomId, Integer userId);
+
 }

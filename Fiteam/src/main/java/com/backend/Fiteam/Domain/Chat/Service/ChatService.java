@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.sql.Timestamp;
 import java.util.Comparator;
 import java.util.Optional;
 
@@ -55,6 +56,7 @@ public class ChatService {
                 .build();
     }
 
+
     public List<ChatRoomListResponseDto> getChatRoomsForUser(Integer userId) {
         List<ChatRoom> allRooms = chatRoomRepository.findByUser1IdOrUser2Id(userId, userId);
 
@@ -63,14 +65,16 @@ public class ChatService {
                     Optional<User> otherUserOpt = userRepository.findById(otherId);
 
                     ChatMessage lastMsg = chatMessageRepository.findTopByChatRoomIdOrderBySentAtDesc(room.getId()).orElse(null);
-
+                    long unreadCount = chatMessageRepository.countByChatRoomIdAndSenderIdNotAndIsReadFalse(room.getId(), userId);
                     return ChatRoomListResponseDto.builder()
                             .chatRoomId(room.getId())
+                            .userId(userId)
                             .otherUserId(otherId)
                             .otherUserName(otherUserOpt.map(User::getUserName).orElse("탈퇴한 유저"))
                             .otherUserProfileImgUrl(otherUserOpt.map(User::getProfileImgUrl).orElse(null))
                             .lastMessageContent(lastMsg != null ? lastMsg.getContent() : "")
                             .lastMessageTime(lastMsg != null ? lastMsg.getSentAt() : null)
+                            .unreadMessageCount(unreadCount)
                             .build();
                 }).sorted(Comparator.comparing(ChatRoomListResponseDto::getLastMessageTime,
                         Comparator.nullsLast(Comparator.reverseOrder())))
@@ -91,4 +95,44 @@ public class ChatService {
                 .build()
         ).collect(Collectors.toList());
     }
+
+    // TeamService에서 사용함
+    public void sendTeamRequestMessage(Integer senderId, Integer receiverId) {
+        Integer user1 = Math.min(senderId, receiverId);
+        Integer user2 = Math.max(senderId, receiverId);
+
+        ChatRoom room = chatRoomRepository.findByUser1IdAndUser2Id(user1, user2)
+                .orElseThrow(() -> new IllegalArgumentException("채팅방이 존재하지 않습니다."));
+
+        ChatMessage teamRequestMessage = ChatMessage.builder()
+                .chatRoomId(room.getId())
+                .senderId(senderId)
+                .content("OO님이 팀 제안을 보냈습니다!")  // 프론트에서 적절히 파싱
+                .isRead(false)
+                .sentAt(new Timestamp(System.currentTimeMillis()))
+                .messageType("TEAM_REQUEST")
+                .build();
+
+        chatMessageRepository.save(teamRequestMessage);
+    }
+    // TeamService에서 사용함
+    public void sendTeamAcceptMessage(Integer senderId, Integer receiverId) {
+        Integer user1 = Math.min(senderId, receiverId);
+        Integer user2 = Math.max(senderId, receiverId);
+
+        ChatRoom room = chatRoomRepository.findByUser1IdAndUser2Id(user1, user2)
+                .orElseThrow(() -> new IllegalArgumentException("채팅방이 존재하지 않습니다."));
+
+        ChatMessage acceptMessage = ChatMessage.builder()
+                .chatRoomId(room.getId())
+                .senderId(receiverId)  // 수락한 사람(팀장)
+                .content("OO님이 팀 제안을 수락했습니다!")  // 프론트에서 카드로 보여주기
+                .isRead(false)
+                .sentAt(new Timestamp(System.currentTimeMillis()))
+                .messageType("TEAM_RESPONSE")
+                .build();
+
+        chatMessageRepository.save(acceptMessage);
+    }
+
 }

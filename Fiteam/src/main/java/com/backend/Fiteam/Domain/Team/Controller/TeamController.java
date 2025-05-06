@@ -38,6 +38,7 @@ public class TeamController {
     3. 유저가 특정 유저에게 받은 요청 보기
     4. 팀 참가 요청 수락/거절
     5. 내 팀 구성 현황
+    5-1. 나한테 팀참가 요청 보낸 사람의 팀 구성 보기. -> 특정 유저가 소속한 팀 정보 보기(같은 그룹에서)
     6. 전체 팀 구성 현황 보기(임시팀, 확정팀 둘다)
     7. 팀장 변경하기(현재 팀장이 같은 팀소속의 다른 멤버를 지정해서 넘겨줌)
     8. 팀(임시 포함) 나오기 기능
@@ -141,6 +142,23 @@ public class TeamController {
         Integer userId = Integer.parseInt(userDetails.getUsername());
         List<TeamMemberDto> members = teamRequestService.getMyTeamMembers(userId);
         return ResponseEntity.ok(members);
+    }
+
+    // 5-1. 나한테 팀참가 요청 보낸 사람의 팀 구성 보기. -> 특정 유저가 소속한 팀 정보 보기(같은 그룹에서)
+    @Operation(summary = "상대방 팀 구성 보기", description = "특정 사용자가 소속된 팀의 멤버 리스트를 반환합니다.")
+    @GetMapping("/{senderId}/{groupId}")
+    public ResponseEntity<List<TeamMemberDto>> getSenderTeam(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Integer senderId, @PathVariable Integer groupId) {
+        try {
+            // 로그인 사용자의 권한 확인을 원하면 여기에 추가 가능
+            List<TeamMemberDto> members = teamRequestService.getTeamOfSender(senderId, groupId);
+            return ResponseEntity.ok(members);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(null);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(null);
+        }
     }
 
     // 6. 전체 팀 구성 현황 보기(임시팀, 확정팀 둘다)

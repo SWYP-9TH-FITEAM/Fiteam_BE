@@ -56,7 +56,7 @@ public class ChatController {
         }
     }
 
-    // 2.채팅방 리스트 조회-대화 마지막 시간순서대로..?
+    // 2.채팅방 리스트 조회-대화 마지막 시간순서대로
     @Operation(summary = "로그인한 사용자의 채팅방 리스트 조회", description = "현재 유저가 속한 모든 채팅방을 최근 메시지 기준으로 정렬해서 반환합니다.")
     @GetMapping("/list")
     public ResponseEntity<List<ChatRoomListResponseDto>> getChatRooms(@AuthenticationPrincipal UserDetails userDetails) {
@@ -97,6 +97,7 @@ public class ChatController {
         ChatMessage message = ChatMessage.builder()
                 .chatRoomId(dto.getChatRoomId())
                 .senderId(dto.getSenderId())
+                .messageType(dto.getMessageType() != null ? dto.getMessageType() : "TEXT")
                 .content(dto.getContent())
                 .isRead(false)
                 .sentAt(new Timestamp(System.currentTimeMillis()))

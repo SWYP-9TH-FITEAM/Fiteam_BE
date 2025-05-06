@@ -24,6 +24,9 @@ public class ChatMessage {
     @Column(name = "sender_id")
     private Integer senderId;
 
+    @Column(name = "message_type", length = 20)
+    private String messageType;  // "TEXT", "TEAM_REQUEST", "TEAM_RESPONSE" 등
+
     @Column(length = 300)
     private String content;
 

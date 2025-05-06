@@ -1,5 +1,7 @@
 package com.backend.Fiteam.Domain.Team.Service;
 
+import com.backend.Fiteam.Domain.Chat.Entity.ChatMessage;
+import com.backend.Fiteam.Domain.Chat.Service.ChatService;
 import com.backend.Fiteam.Domain.Group.Entity.GroupMember;
 import com.backend.Fiteam.Domain.Group.Repository.GroupMemberRepository;
 import com.backend.Fiteam.Domain.Group.Repository.ProjectGroupRepository;
@@ -31,6 +33,7 @@ public class TeamRequestService {
     private final TeamRepository          teamRepository;
     private final GroupMemberRepository   groupMemberRepository;
     private final UserRepository          userRepository;
+    private final ChatService             chatService;
 
     public void sendTeamRequest(Integer senderId, Integer receiverId, Integer groupId) {
         // 1) 이미 보낸 요청 여부
@@ -67,6 +70,9 @@ public class TeamRequestService {
                 .requestedAt(new Timestamp(System.currentTimeMillis()))
                 .build();
         teamRequestRepository.save(request);
+
+        // 메시지로 저장도 함.
+        chatService.sendTeamRequestMessage(senderId, receiverId);
     }
 
     public List<TeamRequestResponseDto> getReceivedTeamRequests(Integer receiverId) {
@@ -133,10 +139,13 @@ public class TeamRequestService {
             throw new IllegalArgumentException("팀 참가 요청은 팀장만 수락할 수 있습니다.");
         }
 
-        // 5) 항상 두 팀(1인 팀)을 병합
+        // 5) 채팅 메시지 추가
+        chatService.sendTeamAcceptMessage(senderId, receiverId);
+
+        // 6) 항상 두 팀(1인 팀)을 병합
         mergeTeams(senderMember.getTeamId(), receiverMember.getTeamId());
 
-        // 6) 요청 상태 업데이트
+        // 7) 요청 상태 업데이트
         request.setStatus("수락됨");
         teamRequestRepository.save(request);
     }
@@ -194,8 +203,6 @@ public class TeamRequestService {
         teamRequestRepository.delete(request);
     }
 
-
-    // TeamRequestService.java — getMyTeamMembers 메서드만 수정
     public List<TeamMemberDto> getMyTeamMembers(Integer userId) {
         // 1) 내 GroupMember 조회
         GroupMember me = groupMemberRepository.findByUserIdAndIsAcceptedTrueAndTeamIdNotNull(userId)
@@ -203,16 +210,22 @@ public class TeamRequestService {
 
         Integer teamId = me.getTeamId();
 
-        // 2) 같은 팀의 멤버 모두 조회
+        // 2) 해당 팀 정보 조회 (팀장 ID, 상태 등)
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new IllegalArgumentException("팀 정보를 찾을 수 없습니다."));
+        Integer masterId = team.getMasterUserId();
+
+        // 3) 같은 팀의 멤버 모두 조회
         List<GroupMember> members = groupMemberRepository.findAllByTeamId(teamId);
 
-        // 3) DTO 변환 (필요한 4가지 필드만 매핑)
+        // 4) DTO 변환 (필요한 4가지 필드만 매핑)
         return members.stream()
                 .map(gm -> {
                     User u = userRepository.findById(gm.getUserId())
                             .orElseThrow(() -> new IllegalArgumentException("유저 정보를 찾을 수 없습니다."));
                     return TeamMemberDto.builder()
                             .userId(u.getId())
+                            .isMaster(u.getId().equals(masterId))
                             .userName(u.getUserName())
                             .profileImgUrl(u.getProfileImgUrl())
                             .position(gm.getPosition())
@@ -231,24 +244,72 @@ public class TeamRequestService {
         // 2) 그룹의 전체 멤버 조회
         List<GroupMember> all = groupMemberRepository.findAllByGroupIdAndIsAcceptedTrue(groupId);
 
-        // 3) teamId 별로 묶어서 TeamMemberDto 로 매핑한 뒤 List<List<...>> 로
+        // 3) teamId 별로 묶기
         Map<Integer, List<GroupMember>> byTeam = all.stream()
                 .collect(Collectors.groupingBy(GroupMember::getTeamId));
 
-        return byTeam.values().stream()
-                .map(gmList -> gmList.stream()
-                        .map(gm -> {
-                            User u = userRepository.findById(gm.getUserId())
-                                    .orElseThrow(() -> new IllegalArgumentException("유저 정보를 찾을 수 없습니다."));
-                            return TeamMemberDto.builder()
-                                    .userId(u.getId())
-                                    .userName(u.getUserName())
-                                    .profileImgUrl(u.getProfileImgUrl())
-                                    .position(gm.getPosition())
-                                    .build();
-                        })
-                        .collect(Collectors.toList())
-                )
+        // 4) 팀별로 DTO 리스트 변환
+        return byTeam.entrySet().stream()
+                .map(entry -> {
+                    Integer teamId = entry.getKey();
+                    List<GroupMember> gmList = entry.getValue();
+
+                    // 팀 정보 가져오기
+                    Team team = teamRepository.findById(teamId)
+                            .orElseThrow(() -> new IllegalArgumentException("팀 정보를 찾을 수 없습니다."));
+                    Integer leaderId = team.getMasterUserId();
+
+                    return gmList.stream()
+                            .map(gm -> {
+                                User u = userRepository.findById(gm.getUserId())
+                                        .orElseThrow(() -> new IllegalArgumentException("유저 정보를 찾을 수 없습니다."));
+                                return TeamMemberDto.builder()
+                                        .userId(u.getId())
+                                        .userName(u.getUserName())
+                                        .profileImgUrl(u.getProfileImgUrl())
+                                        .position(gm.getPosition())
+                                        .isMaster(u.getId().equals(leaderId))
+                                        .build();
+                            })
+                            .collect(Collectors.toList());
+                })
                 .collect(Collectors.toList());
     }
+
+
+    public List<TeamMemberDto> getTeamOfSender(Integer senderId, Integer groupId) {
+        // 1) sender가 그룹에 속해 있어야 함
+        GroupMember senderMember = groupMemberRepository.findByUserIdAndGroupId(senderId, groupId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 사용자가 그룹에 속해 있지 않습니다."));
+
+        if (senderMember.getTeamId() == null) {
+            throw new IllegalArgumentException("해당 사용자가 팀에 속해 있지 않습니다.");
+        }
+
+        Integer teamId = senderMember.getTeamId();
+
+        // 2) 해당 팀 정보 조회 (팀장 ID, 상태 등)
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new IllegalArgumentException("팀 정보를 찾을 수 없습니다."));
+        Integer masterId = team.getMasterUserId();
+
+        // 3) 해당 팀의 멤버 전체 조회
+        List<GroupMember> members = groupMemberRepository.findAllByTeamId(teamId);
+
+        return members.stream()
+                .map(gm -> {
+                    User u = userRepository.findById(gm.getUserId())
+                            .orElseThrow(() -> new IllegalArgumentException("유저 정보를 찾을 수 없습니다."));
+                    return TeamMemberDto.builder()
+                            .userId(u.getId())
+                            .isMaster(u.getId().equals(masterId))
+                            .userName(u.getUserName())
+                            .profileImgUrl(u.getProfileImgUrl())
+                            .position(gm.getPosition())
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+
 }
