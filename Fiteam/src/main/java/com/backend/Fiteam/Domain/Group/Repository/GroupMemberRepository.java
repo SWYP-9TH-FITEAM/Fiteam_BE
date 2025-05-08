@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface GroupMemberRepository extends JpaRepository<GroupMember, Integer> {
     boolean existsByGroupIdAndUserId(Integer groupId, Integer id);
     Optional<GroupMember> findByUserIdAndGroupId(Integer senderId, Integer groupId);
-    
+
     int countByGroupId(Integer groupId);
 
     Optional<GroupMember> findByGroupIdAndUserId(Integer groupId, Integer userId);
@@ -35,4 +35,8 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Intege
     List<GroupMember> findAllByGroupIdAndIsAcceptedTrue(Integer groupId);
 
     Optional<GroupMember> findByUserIdAndTeamId(Integer userId, Integer teamId);
+
+    Optional<GroupMember> findByUserId(Integer userId);
+
+    Optional<GroupMember> findByIdAndIsAcceptedTrue(Integer memberId);
 }

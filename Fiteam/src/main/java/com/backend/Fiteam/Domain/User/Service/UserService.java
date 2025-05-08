@@ -11,7 +11,6 @@ import com.backend.Fiteam.Domain.Team.Entity.Team;
 import com.backend.Fiteam.Domain.Group.Entity.TeamType;
 import com.backend.Fiteam.Domain.Team.Repository.TeamRepository;
 import com.backend.Fiteam.Domain.Team.Repository.TeamTypeRepository;
-import com.backend.Fiteam.Domain.User.Dto.SaveTestAnswerRequestDto;
 import com.backend.Fiteam.Domain.User.Dto.TestResultResponseDto;
 import com.backend.Fiteam.Domain.User.Dto.UserCardResponseDto;
 import com.backend.Fiteam.Domain.User.Dto.UserGroupStatusDto;
@@ -43,13 +42,13 @@ public class UserService {
     private final TeamTypeRepository teamTypeRepository;
 
     @Transactional
-    public void saveCharacterTestResult(Integer userId, SaveTestAnswerRequestDto requestDto) {
+    public void saveCharacterTestResult(Integer userId, List<Map<String, Integer>> answers) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("User not found with id: " + userId));
 
         int E = 0, I = 0, P = 0, D = 0, V = 0, A = 0, C = 0, L = 0;
 
-        for (Map<String, Integer> answer : requestDto.getAnswers()) {
+        for (Map<String, Integer> answer : answers) {
             for (String key : answer.keySet()) {
                 int value = answer.get(key);
                 switch (key) {
@@ -124,7 +123,7 @@ public class UserService {
     }
 
 
-
+    @Transactional(readOnly = true)
     public UserProfileDto getUserProfile(int userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("User not found with id: " + userId));
@@ -132,12 +131,13 @@ public class UserService {
         return new UserProfileDto(user.getUserName(), user.getProfileImgUrl(), user.getJob());
     }
 
+    @Transactional(readOnly = true)
     public UserCardResponseDto getUserProfileCard(int userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("해당 유저를 찾을 수 없습니다. id: " + userId));
 
         if (user.getCardId1() == null) {
-            throw new NoSuchElementException("해당 유저는 CharactorCard 가 없습니다.");
+            throw new NoSuchElementException("해당 유저는 테스트 결과 가 없습니다.");
         }
 
         CharacterCard card = characterCardRepository.findById(user.getCardId1())
@@ -146,7 +146,7 @@ public class UserService {
         return UserCardResponseDto.builder()
                 .code(card.getCode())
                 .name(card.getName())
-                .keyword(card.getKeyword()) // 추가된 필드
+                .keyword(card.getKeyword())
                 .summary(card.getSummary())
                 .teamStrength(card.getTeamStrength())
                 .caution(card.getCaution())
@@ -178,6 +178,7 @@ public class UserService {
         // 초대 수락
         groupMember.setIsAccepted(true);
 
+        // 매니져가 초대를 보내면서 teamtype 설정 해두는게 좋을듯
         // 그룹 정보 조회
         ProjectGroup projectGroup = projectGroupRepository.findById(groupId)
                 .orElseThrow(() -> new IllegalArgumentException("그룹이 존재하지 않습니다."));

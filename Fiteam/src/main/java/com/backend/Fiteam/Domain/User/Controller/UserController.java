@@ -1,18 +1,24 @@
 package com.backend.Fiteam.Domain.User.Controller;
 
-import com.backend.Fiteam.Domain.User.Dto.SaveTestAnswerRequestDto;
+
 import com.backend.Fiteam.Domain.User.Dto.TestResultResponseDto;
 import com.backend.Fiteam.Domain.User.Dto.UserCardResponseDto;
-import com.backend.Fiteam.Domain.User.Dto.UserGroupProfileDto;
+
 import com.backend.Fiteam.Domain.User.Dto.UserGroupStatusDto;
-import com.backend.Fiteam.Domain.User.Dto.UserLikeRequestDto;
-import com.backend.Fiteam.Domain.User.Dto.UserLikeResponseDto;
+
 import com.backend.Fiteam.Domain.User.Dto.UserProfileDto;
 import com.backend.Fiteam.Domain.User.Dto.UserSettingsRequestDto;
 import com.backend.Fiteam.Domain.User.Dto.UserSettingsResponseDto;
 import com.backend.Fiteam.Domain.User.Service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -31,32 +37,37 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/v1/user")
 @RequiredArgsConstructor
+@Tag(name = "3. UserController - 로그인한 User")
 public class UserController {
 
     private final UserService userService;
 
     /*
     1.테스트 결과 저장	POST
-    2.테스트 결과 조회 (Mini 모달용)
-    3.내 프로필카드(GET) (캐릭터카드+AI분석)
-    4.마이페이지에서 유저사진과 유저 이름 가져오기
-    5.그룹 초대 수락하기
-    6.그룹 참여중/대기중 리스트 GET (User 입장)
-    7.마이페이지 설정값 변경하기(프로필 이미지나 등등)
-    8. 마이페이지 설정값 가져오기
+    2.성향검사 결과 조회 (Mini 모달용)
+    3.나의 테스트 결과(캐릭터카드, 점수)+AI분석 보기
+    4.get 마이페이지에서 유저사진과 유저 이름 가져오기
+    5.초대받은 그룹에 참여하기
+    6.참여중인 그룹 목록 조회
+    7.초대받은(유저가 수락하기 전) 그룹 목록 조회
+    8.마이페이지 내정보 변경하기(프로필 이미지나 등등)
+    9.마이페이지 내정보 조회
     */
 
     // 1.테스트 결과 저장	POST
-    @Operation(summary = "사용자의 성향검사 답변을 결과형태로 저장. 질문의 typeA:I, typeB:E 일 때 응답이 4라면-> I:1, E:4",
-            description = "[{E:4, I:1}, {P:2, D:3}...] 이렇게 사용자 응답결과를 RequestBody로 주세요")
+    @Operation(
+            summary = "1. 테스트 결과 저장 (성향검사 응답 → 결과)",
+            description = "사용자의 성향검사 답변을 결과형태로 저장합니다.",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @Content(examples = @ExampleObject(
+                    value = "[{\"E\": 4, \"I\": 1}, {\"P\": 2, \"D\": 3}, " + "{\"V\": 3, \"A\": 2}, {\"C\": 4, \"L\": 1}]"))))
     @PostMapping("/savecard")
     public ResponseEntity<?> saveTestResult(
-            @AuthenticationPrincipal UserDetails userDetails, @RequestBody SaveTestAnswerRequestDto requestDto) {
+            @AuthenticationPrincipal UserDetails userDetails, @RequestBody List<Map<String, Integer>> answers) {
         try{
             Integer userId = Integer.parseInt(userDetails.getUsername());
 
             // 질문에 대한 답변을 받아서 연산후 성향 점수를 저장함.
-            userService.saveCharacterTestResult(userId, requestDto);
+            userService.saveCharacterTestResult(userId, answers);
             return ResponseEntity.ok("테스트 결과가 성공적으로 저장되었습니다.");
         }catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
@@ -65,8 +76,8 @@ public class UserController {
         }
     }
 
-    // 2.테스트 결과 조회 (Mini 모달용)
-    @Operation(summary = "성향검사 결과 조회 (Mini 모달용)", description = "유저의 성향검사 결과를 조회합니다.")
+    // 2.성향검사 결과 조회 (Mini 모달용)
+    @Operation(summary = "2. 성향검사 결과 조회 (Mini 모달용)", description = "유저의 성향검사 결과를 조회합니다.")
     @GetMapping("/mini-result")
     public ResponseEntity<TestResultResponseDto> getTestResult(@AuthenticationPrincipal UserDetails userDetails){
         try {
@@ -81,8 +92,8 @@ public class UserController {
         }
     }
 
-    // 3. 테스트 결과 전체(GET) (캐릭터카드+AI분석)
-    @Operation(summary = "테스트 결과 전체(GET) (캐릭터카드+AI분석)", description = "JWT를 통해 인증된 사용자 본인의 프로필카드를 조회합니다.")
+    // 3.나의 테스트 결과(캐릭터카드, 점수)+AI분석 보기
+    @Operation(summary = "3. 나의 테스트 결과(캐릭터카드, 점수)+AI분석 보기", description = "JWT를 통해 인증된 사용자 본인의 프로필카드를 조회합니다.")
     @GetMapping("/card")
     public ResponseEntity<UserCardResponseDto> getUserProfileCard(@AuthenticationPrincipal UserDetails userDetails) {
         try {
@@ -98,7 +109,7 @@ public class UserController {
     }
 
     // 4. get 마이페이지에서 유저사진과 유저 이름 가져오기
-    @Operation(summary = "마이페이지 유저 프로필 조회", description = "JWT를 통해 사용자 이름과 프로필 이미지를 조회합니다.")
+    @Operation(summary = "4. 마이페이지에서 유저사진과 유저 이름 가져오기", description = "JWT를 통해 사용자 이름과 프로필 이미지 그리고 직업을 조회합니다.")
     @GetMapping("/name-img-job")
     public ResponseEntity<UserProfileDto> getUserInfo(@AuthenticationPrincipal UserDetails userDetails) {
         try {
@@ -113,7 +124,7 @@ public class UserController {
     }
 
     // 5. 초대받은 그룹에 참여하기
-    @Operation(summary = "유저가 받은 그룹 초대에서 그룹 참여", description = "현재 사용자가 그룹 초대를 수락합니다.")
+    @Operation(summary = "5. 초대받은 그룹에 참여하기", description = "그룹 ID 정보가 '알림' 에 담겨서 넘어올 수 있음. 팀빌딩 페이지 에서도 확인 가능")
     @PatchMapping("/accept/{groupId}")
     public ResponseEntity<?> acceptInvitation(
             @AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer groupId) {
@@ -129,7 +140,8 @@ public class UserController {
     }
 
     // 6. 참여중인 그룹 목록 조회
-    @Operation(summary = "참여중인 그룹 조회", description = "JWT 인증된 사용자가 현재 참여중인 그룹 리스트를 반환합니다.")
+    @Operation(summary = "6. 참여중인 그룹 목록 조회", description = "JWT 인증된 사용자가 현재 참여중인 그룹 리스트를 반환합니다.",
+            responses = {@ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = UserGroupStatusDto.class)))),})
     @GetMapping("/groups/accepted")
     public ResponseEntity<List<UserGroupStatusDto>> getAcceptedGroups(@AuthenticationPrincipal UserDetails userDetails) {
         try {
@@ -143,8 +155,11 @@ public class UserController {
         }
     }
 
-    // 6. 초대받은(유저가 수락하기 전) 그룹 목록 조회
-    @Operation(summary = "대기중인 그룹 조회", description = "JWT 인증된 사용자가 초대 대기중인 그룹 리스트를 반환합니다.")
+    // 7. 초대받은(유저가 수락하기 전) 그룹 목록 조회
+    @Operation(
+            summary = "7. 초대받은(유저가 수락하기 전) 그룹 목록 조회",
+            description = "6번 API와 구조 동일",
+            responses = {@ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = UserGroupStatusDto.class))))})
     @GetMapping("/groups/pending")
     public ResponseEntity<List<UserGroupStatusDto>> getPendingGroups(@AuthenticationPrincipal UserDetails userDetails) {
         try {
@@ -158,8 +173,13 @@ public class UserController {
         }
     }
 
-    // 7.마이페이지 내정보 변경하기(프로필 이미지나 등등)
-    @Operation(summary = "마이페이지 내정보 설정 변경", description = "전화번호, 카카오톡 ID, 직업, 전공, 소개, URL을 수정합니다. null로 넘어온 값은 변경하지 않습니다.")
+    // 8.마이페이지 내정보 변경하기(프로필 이미지나 등등)
+    @Operation(
+            summary = "8. 마이페이지 내정보 변경하기 (프로필 이미지 등)",
+            description = "null로 넘어온 값은 변경되지 않습니다.",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    content = @Content(schema = @Schema(implementation = UserSettingsRequestDto.class)))
+    )
     @PatchMapping("/settings")
     public ResponseEntity<?> updateUserSettings(
             @AuthenticationPrincipal UserDetails userDetails, @RequestBody UserSettingsRequestDto dto) {
@@ -176,8 +196,11 @@ public class UserController {
         }
     }
 
-    // 8. 마이페이지 설정값 가져오기
-    @Operation(summary = "마이페이지 내정보 조회", description = "로그인한 사용자의 전화번호, 카카오ID, 직업, 전공, 소개, URL을 반환합니다.")
+    // 9. 마이페이지 내정보 조회
+    @Operation(
+            summary = "9. 마이페이지 내정보 조회",
+            description = "로그인한 사용자의 전화번호, 카카오 ID, 직업, 전공, 소개, URL을 반환합니다.",
+            responses = {@ApiResponse(content = @Content(schema = @Schema(implementation = UserSettingsResponseDto.class))),})
     @GetMapping("/settings")
     public ResponseEntity<UserSettingsResponseDto> getUserSettings(@AuthenticationPrincipal UserDetails userDetails) {
         Integer userId = Integer.valueOf(userDetails.getUsername());

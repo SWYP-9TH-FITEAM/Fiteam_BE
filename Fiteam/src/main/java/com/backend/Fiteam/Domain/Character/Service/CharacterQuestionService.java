@@ -5,14 +5,11 @@ import com.backend.Fiteam.Domain.Character.Entity.CharacterCard;
 import com.backend.Fiteam.Domain.Character.Entity.CharacterQuestion;
 import com.backend.Fiteam.Domain.Character.Repository.CharacterCardRepository;
 import com.backend.Fiteam.Domain.Character.Repository.CharacterQuestionRepository;
-import com.backend.Fiteam.Domain.User.Dto.SaveTestAnswerRequestDto;
-import com.backend.Fiteam.Domain.User.Entity.User;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @Service
@@ -29,11 +26,11 @@ public class CharacterQuestionService {
     }
 
 
-    public SaveTestResultResponseDto saveCharacterTestResult(SaveTestAnswerRequestDto requestDto) {
+    public SaveTestResultResponseDto saveCharacterTestResult(List<Map<String, Integer>> answers) {
         int E = 0, I = 0, P = 0, D = 0, V = 0, A = 0, C = 0, L = 0;
 
         // 1) 답변 점수 합산
-        for (Map<String, Integer> answer : requestDto.getAnswers()) {
+        for (Map<String, Integer> answer : answers) {
             for (Map.Entry<String, Integer> e : answer.entrySet()) {
                 switch (e.getKey()) {
                     case "E" -> E += e.getValue();

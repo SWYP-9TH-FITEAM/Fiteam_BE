@@ -1,5 +1,5 @@
 CREATE DATABASE IF NOT EXISTS Fiteam DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE Fiteam;
+USE fiteam;
 
 -- ========== 성향검사 & 캐릭터 카드 ==========
 CREATE TABLE CharacterCard (
@@ -121,7 +121,7 @@ CREATE TABLE GroupMember (
     ban BOOLEAN DEFAULT FALSE,
     team_status VARCHAR(20),
     team_id INT,
-    position VARCHAR(30),
+    team_status VARCHAR(30),
     work_history INT,
     project_goal VARCHAR(200),
     project_purpose VARCHAR(50),

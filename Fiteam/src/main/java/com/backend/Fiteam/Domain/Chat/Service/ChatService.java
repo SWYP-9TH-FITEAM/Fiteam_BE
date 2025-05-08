@@ -10,9 +10,11 @@ import com.backend.Fiteam.Domain.Chat.Repository.ChatMessageRepository;
 import com.backend.Fiteam.Domain.Chat.Repository.ChatRoomRepository;
 import com.backend.Fiteam.Domain.User.Entity.User;
 import com.backend.Fiteam.Domain.User.Repository.UserRepository;
+import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
@@ -115,6 +117,7 @@ public class ChatService {
 
         chatMessageRepository.save(teamRequestMessage);
     }
+
     // TeamService에서 사용함
     public void sendTeamAcceptMessage(Integer senderId, Integer receiverId) {
         Integer user1 = Math.min(senderId, receiverId);
@@ -135,4 +138,13 @@ public class ChatService {
         chatMessageRepository.save(acceptMessage);
     }
 
+
+    public void verifyUserInRoom(Integer roomId, Integer userId) {
+        ChatRoom room = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 채팅방이 없습니다."));
+
+        if (!room.getUser1Id().equals(userId) && !room.getUser2Id().equals(userId)) {
+            throw new AccessDeniedException("채팅방 접근 권한이 없습니다.");
+        }
+    }
 }

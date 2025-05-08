@@ -1,13 +1,21 @@
 package com.backend.Fiteam.Domain.Group.Controller;
 
+import com.backend.Fiteam.Domain.Group.Dto.GroupMemberMiniProfileResponseDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupMemberProfileResponseDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupMemberResponseDto;
 import com.backend.Fiteam.Domain.Group.Entity.ProjectGroup;
 import com.backend.Fiteam.Domain.Group.Service.GroupMemberService;
 import com.backend.Fiteam.Domain.Group.Service.GroupService;
 import com.backend.Fiteam.Domain.User.Dto.UserGroupProfileDto;
+import com.backend.Fiteam.Domain.User.Dto.UserProfileDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -24,39 +32,45 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/v1/member")
 @RequiredArgsConstructor
+@Tag(name = "5. GroupMemberController - 그룹에서 멤버로서")
 public class GroupMemberController {
 
     /*
     1. 직무 유형 리스트 GET,POST (PM,디자이너 등)
     2. 해당그룹 프로필 작성 (경력/목표/URL/소개 작성)
-    3. 그룹 다른멤버 프로필 조회
-    4. 그룹에 참여한 전체 멤버 리스트 GET
+    3. 현재 그룹에서 내가 작성한 프로필 GET
+    4. 그룹 다른멤버 프로필 조회
+    5. 그룹에 참여한 전체 멤버 리스트 GET
+
+    6. 팀빌딩 페이지에 내 미니정보 가져오기->내 팀(1인일때도) 포함해서
     */
 
-    private final GroupService groupService;
     private final GroupMemberService groupMemberService;
 
     // 1. 직무 유형 리스트 GET (PM,디자이너 등)
-    @Operation(summary = "유저가 직무 유형 리스트 조회(PM, DS, FE, BE 등등)", description = "teamMakeType 기준으로 TeamType의 configJson을 파싱하여 직무(position) 리스트를 반환합니다.")
+    @Operation(
+            summary = "1. 직무 유형 리스트 GET (PM,디자이너 등)",
+            description = "teamMakeType 기준으로 TeamType의 configJson을 파싱하여 직무(position) 리스트를 반환합니다.",
+            responses = {@ApiResponse(content = @Content(examples = @ExampleObject(value = "[\"PM\", \"DS\", \"FE\", \"BE\"]")))})
     @GetMapping("/{groupId}/positions")
-    public ResponseEntity<?> getGroupPositions(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer groupId) {
+    public ResponseEntity<List<String>> getGroupPositions(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer groupId) {
         try {
             Integer userId = Integer.parseInt(userDetails.getUsername());
-            groupMemberService.validateGroupMembership(userId, groupId); // 멤버 여부 확인
+            groupMemberService.validateGroupMembership(userId, groupId);
 
             List<String> positions = groupMemberService.getPositionListForGroup(groupId);
             return ResponseEntity.ok(positions);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().build(); // 바디 없이 상태만 전달
         } catch (JsonProcessingException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().build();
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
     }
 
-    // 2. 해당그룹 프로필 작성 (경력/목표/URL/소개 작성)
-    @Operation(summary = "그룹멤버 프로필 수정", description = "초대 수락 후에 그룹 멤버가 자신의 프로필 정보를 수정합니다. (수정 안하는 필드는 null로 입력해주세요")
+    // 2. 해당그룹 프로필 작성 (경력/목표/목적/URL/소개 작성)
+    @Operation(summary = "2. 해당그룹 프로필 작성. (경력/목표/목적/URL/소개 작성)그룹멤버 프로필 수정", description = "초대 수락 후에 그룹 멤버가 자신의 프로필 정보를 수정합니다. (수정 안하는 필드는 null로 입력해주세요")
     @PatchMapping("/profile/{groupMemberId}")
     public ResponseEntity<?> updateGroupMemberProfile(
             @AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer groupMemberId, @RequestBody UserGroupProfileDto requestDto) {
@@ -71,9 +85,26 @@ public class GroupMemberController {
         }
     }
 
-    // 2-1. 현재 그룹에서 내가 작성한 프로필 GET
-    @Operation(summary = "다른 멤버 프로필 조회", description = "같은 그룹의 멤버일 경우 해당 사용자의 프로필을 조회합니다.")
-    @GetMapping("/profile")
+    // 3-1. 현재 그룹에서 내가 작성한 프로필 Mini GET
+    @Operation(summary = "3. 현재 그룹에서 내가 작성한 프로필 Mini GET", description = "내 프로필 정보",
+            responses = {@ApiResponse(content = @Content(schema = @Schema(implementation = GroupMemberMiniProfileResponseDto.class)))})
+    @GetMapping("/myprofile/mini")
+    public ResponseEntity<?> getMiniSelfMemberProfile(@AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            Integer userId = Integer.parseInt(userDetails.getUsername());
+            GroupMemberMiniProfileResponseDto profile = groupMemberService.getMemberMiniProfile(userId);
+            return ResponseEntity.ok(profile);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // 3. 현재 그룹에서 내가 작성한 프로필 GET
+    @Operation(summary = "3. 현재 그룹에서 내가 작성한 프로필 GET", description = "내 프로필 정보",
+            responses = {@ApiResponse(content = @Content(schema = @Schema(implementation = GroupMemberProfileResponseDto.class)))})
+    @GetMapping("/profile/my")
     public ResponseEntity<?> getSelfMemberProfile(@AuthenticationPrincipal UserDetails userDetails) {
         try {
             Integer userId = Integer.parseInt(userDetails.getUsername());
@@ -86,14 +117,15 @@ public class GroupMemberController {
         }
     }
 
-    // 3. 그룹 다른멤버 프로필 조회
-    @Operation(summary = "다른 멤버 프로필 조회", description = "같은 그룹의 멤버일 경우 해당 사용자의 프로필을 조회합니다.")
-    @GetMapping("/{userId}/profile")
-    public ResponseEntity<?> getOtherMemberProfile(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer userId) {
+    // 4. 그룹 다른멤버 프로필 조회
+    @Operation(summary = "4. 그룹 다른멤버 프로필 조회", description = "같은 그룹의 멤버일 경우 해당 사용자의 프로필을 조회합니다. 5번 API에서 userId, memberId를 다 주기 때문에 memberId로 해주세요!",
+            responses = {@ApiResponse(content = @Content(schema = @Schema(implementation = GroupMemberProfileResponseDto.class)))})
+    @GetMapping("/profile/{memberId}")
+    public ResponseEntity<?> getOtherMemberProfile(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer memberId) {
         try {
             Integer requesterId = Integer.parseInt(userDetails.getUsername());
 
-            GroupMemberProfileResponseDto profile = groupMemberService.getMemberProfile(userId);
+            GroupMemberProfileResponseDto profile = groupMemberService.getMemberProfile(memberId);
             return ResponseEntity.ok(profile);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -102,26 +134,23 @@ public class GroupMemberController {
         }
     }
 
-    // 4. 그룹에 참여한 전체 멤버 리스트 GET
-    @Operation(summary = "그룹 전체 멤버 리스트 조회", description = "그룹에 속한 모든 멤버를 조회합니다.")
+    // 5. 그룹에 참여한 전체 멤버 리스트 GET
+    @Operation(summary = "5. 그룹 전체 멤버 리스트 조회", description = "그룹에 속한 모든 멤버를 조회합니다.",
+            responses = {@ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = GroupMemberResponseDto.class))))})
     @GetMapping("/{groupId}/members")
     public ResponseEntity<?> getGroupMembers(
             @AuthenticationPrincipal UserDetails userDetails,  @PathVariable Integer groupId) {
         try {
             Integer requesterId = Integer.valueOf(userDetails.getUsername());
 
-            // 1. 그룹 존재 여부 확인
-            ProjectGroup group = groupService.getProjectGroup(groupId);
-
-            // 2. 요청자가 이 그룹에 속한 사용자 or 매니저인지 확인
-            boolean isManager = group.getManagerId().equals(requesterId);
+            // 요청자가 이 그룹에 속한 사용자 인지 확인
             boolean isMember = groupMemberService.isUserInGroup(groupId, requesterId);
 
-            if (!isManager && !isMember) {
+            if (!isMember) {
                 throw new IllegalArgumentException("해당 그룹에 접근할 권한이 없습니다.");
             }
 
-            List<GroupMemberResponseDto> response = groupMemberService.getGroupMembers(groupId);
+            List<GroupMemberResponseDto> response = groupMemberService.getGroupMembers(requesterId, groupId);
             return ResponseEntity.ok(response);
 
         } catch (IllegalArgumentException e) {
@@ -130,4 +159,5 @@ public class GroupMemberController {
             return ResponseEntity.internalServerError().build();
         }
     }
+
 }

@@ -5,24 +5,32 @@ import com.backend.Fiteam.Domain.Chat.Dto.ChatMessageResponseDto;
 import com.backend.Fiteam.Domain.Chat.Dto.ChatRoomCreateRequestDto;
 import com.backend.Fiteam.Domain.Chat.Dto.ChatRoomListResponseDto;
 import com.backend.Fiteam.Domain.Chat.Dto.ChatRoomResponseDto;
+import com.backend.Fiteam.Domain.Chat.Dto.UserPresenceDto;
 import com.backend.Fiteam.Domain.Chat.Entity.ChatMessage;
 import com.backend.Fiteam.Domain.Chat.Repository.ChatMessageRepository;
 import com.backend.Fiteam.Domain.Chat.Service.ChatService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import java.sql.Timestamp;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.context.annotation.Lazy;
 
 @RestController
 @RequestMapping("/v1/chat")
@@ -36,9 +44,11 @@ public class ChatController {
     4.채팅 메시지 전송	POST
     */
 
-    private final ChatService chatRoomService;
+    private final ChatService chatService;
     private final ChatMessageRepository chatMessageRepository;
-    private final SimpMessagingTemplate messagingTemplate;
+    private final @Lazy SimpMessagingTemplate messagingTemplate;
+    //private final PresenceRegistry presenceRegistry;
+
 
     // 1.채팅방 생성 (채팅신청하기)
     @Operation(summary = "채팅방 생성", description = "상대방과 채팅방을 생성합니다. 이미 존재하면 기존 방을 반환합니다.")
@@ -47,7 +57,7 @@ public class ChatController {
             @AuthenticationPrincipal UserDetails userDetails, @RequestBody ChatRoomCreateRequestDto dto) {
         try {
             Integer senderId = Integer.parseInt(userDetails.getUsername());
-            ChatRoomResponseDto room = chatRoomService.createChatRoom(senderId, dto);
+            ChatRoomResponseDto room = chatService.createChatRoom(senderId, dto);
             return ResponseEntity.ok(room);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
@@ -62,7 +72,8 @@ public class ChatController {
     public ResponseEntity<List<ChatRoomListResponseDto>> getChatRooms(@AuthenticationPrincipal UserDetails userDetails) {
         try {
             Integer userId = Integer.parseInt(userDetails.getUsername());
-            List<ChatRoomListResponseDto> rooms = chatRoomService.getChatRoomsForUser(userId);
+
+            List<ChatRoomListResponseDto> rooms = chatService.getChatRoomsForUser(userId);
             return ResponseEntity.ok(rooms);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
@@ -72,19 +83,24 @@ public class ChatController {
     }
 
     // 3.채팅방 메시지 조회
-    @Operation(summary = "채팅방 메시지 조회", description = "채팅방 ID를 기반으로 메시지를 시간순으로 조회합니다.")
+    @Operation(summary     = "채팅방 메시지 조회", description = "로그인한 사용자가 해당 채팅방에 참여자인 경우에만 메시지를 시간순으로 반환합니다.")
     @GetMapping("/{roomId}/messages")
     public ResponseEntity<List<ChatMessageResponseDto>> getMessagesForRoom(
             @AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer roomId) {
         try {
             Integer userId = Integer.parseInt(userDetails.getUsername());
 
-            // roomId 접근 권한 체크를 수행하려면 여기다 로직 추가
+            // 1. 권한 검사
+            chatService.verifyUserInRoom(roomId, userId);
 
-            List<ChatMessageResponseDto> messages = chatRoomService.getMessagesForRoom(roomId);
+            // 2. 메시지 조회
+            List<ChatMessageResponseDto> messages = chatService.getMessagesForRoom(roomId);
             return ResponseEntity.ok(messages);
+
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
+        } catch (AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
@@ -108,4 +124,33 @@ public class ChatController {
         // 구독자에게 브로드캐스트
         messagingTemplate.convertAndSend("/topic/chatroom." + dto.getChatRoomId(), saved);
     }
+
+
+    // 5. 채팅 메시지 읽음 처리
+    @Operation(summary = "채팅 메시지 읽음 처리", description = "로그인한 사용자가 지정된 채팅방(roomId)에 있는 자신의 읽지 않은 메시지를 모두 읽음 처리합니다.")
+    @PatchMapping("/{roomId}/read")
+    public ResponseEntity<Void> markMessagesAsRead(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer roomId) {
+        try {
+            Integer userId = Integer.parseInt(userDetails.getUsername());
+            chatMessageRepository.markAllAsRead(roomId, userId);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /*
+    @Operation(summary = "유저 온라인 여부 조회", description = "해당 유저가 현재 WebSocket 세션에 연결되어 있는지 반환합니다.",
+            responses = {@ApiResponse(responseCode = "200", description  = "유저 접속 상태 DTO 반환",
+                    content = @Content(schema = @Schema(implementation = UserPresenceDto.class)))})
+    @GetMapping("/presence/{userId}")
+    public ResponseEntity<UserPresenceDto> getUserPresence(
+            @PathVariable Integer userId
+    ) {
+        boolean online = presenceRegistry.isOnline(userId);
+        return ResponseEntity.ok(new UserPresenceDto(userId, online));
+    }
+     */
 }

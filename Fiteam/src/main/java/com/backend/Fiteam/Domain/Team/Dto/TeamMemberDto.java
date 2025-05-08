@@ -2,6 +2,7 @@
 package com.backend.Fiteam.Domain.Team.Dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.List;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -23,3 +24,4 @@ public class TeamMemberDto {
     @Schema(description = "포지션", example = "백엔드")
     private String position;
 }
+

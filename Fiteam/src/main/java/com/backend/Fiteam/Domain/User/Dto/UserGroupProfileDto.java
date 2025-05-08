@@ -1,6 +1,7 @@
 package com.backend.Fiteam.Domain.User.Dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.persistence.Column;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -20,6 +21,9 @@ public class UserGroupProfileDto {
 
     @Schema(description = "프로젝트 목표", example = "포트폴리오 웹사이트 개발")
     private String projectGoal;
+
+    @Schema(description = "프로젝트 목적", example = "포트폴리오 완성하기")
+    private String projectPurpose;
 
     @Schema(description = "개인 URL", example = "https://portfolio.example.com")
     private String url;

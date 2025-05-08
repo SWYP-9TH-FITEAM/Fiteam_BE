@@ -1,5 +1,6 @@
 package com.backend.Fiteam.Domain.Group.Service;
 
+import com.backend.Fiteam.Domain.Group.Dto.GroupMemberMiniProfileResponseDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupMemberProfileResponseDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupMemberResponseDto;
 import com.backend.Fiteam.Domain.Group.Entity.GroupMember;
@@ -10,14 +11,18 @@ import com.backend.Fiteam.Domain.Group.Entity.TeamType;
 import com.backend.Fiteam.Domain.Team.Repository.TeamTypeRepository;
 import com.backend.Fiteam.Domain.User.Dto.UserGroupProfileDto;
 import com.backend.Fiteam.Domain.User.Entity.User;
+import com.backend.Fiteam.Domain.User.Entity.UserLike;
+import com.backend.Fiteam.Domain.User.Repository.UserLikeRepository;
 import com.backend.Fiteam.Domain.User.Repository.UserRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,7 +37,7 @@ public class GroupMemberService {
     private final ProjectGroupRepository projectGroupRepository;
     private final TeamTypeRepository teamTypeRepository;
     private final UserRepository userRepository;
-
+    private final UserLikeRepository userLikeRepository;
 
     // 로그인한 상태의 User가 해당 그룹에 소속된 사람인지 확인하는 검증코드
     public void validateGroupMembership(Integer userId, Integer groupId) {
@@ -60,6 +65,9 @@ public class GroupMemberService {
         }
         if (requestDto.getProjectGoal() != null) {
             groupMember.setProjectGoal(requestDto.getProjectGoal());
+        }
+        if (requestDto.getProjectPurpose() != null) {
+            groupMember.setProjectPurpose(requestDto.getProjectPurpose());
         }
         if (requestDto.getUrl() != null) {
             groupMember.setUrl(requestDto.getUrl());
@@ -102,7 +110,7 @@ public class GroupMemberService {
     }
 
 
-    public GroupMemberProfileResponseDto getMemberProfile(Integer targetUserId) {
+    public GroupMemberProfileResponseDto getMemberProfileMini(Integer targetUserId) {
         GroupMember member = groupMemberRepository.findTopByUserIdAndIsAcceptedTrue(targetUserId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 유저의 그룹 프로필이 없습니다."));
 
@@ -124,32 +132,120 @@ public class GroupMemberService {
                 .build();
     }
 
+    public GroupMemberMiniProfileResponseDto getMemberMiniProfile(Integer userId) {
+        // 그룹 멤버 엔티티를 userId로 조회
+        GroupMember groupMember = groupMemberRepository.findByUserId(userId)
+                .orElseThrow(() -> new NoSuchElementException("그룹 멤버 정보를 찾을 수 없습니다."));
+
+
+        // 관련된 유저 정보도 함께 조회 (예: 유저 이름, 이미지 등)
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("사용자 정보를 찾을 수 없습니다."));
+
+        Integer cardId = user.getCardId1();
+
+        return GroupMemberMiniProfileResponseDto.builder()
+                .userId(user.getId())
+                .userName(user.getUserName())
+                .imageUrl(user.getProfileImgUrl())
+                .position(groupMember.getPosition())
+                .teamStatus(groupMember.getTeamStatus()) // 마감, 모집중
+                .teamId(groupMember.getTeamId())
+                .projectGoal(groupMember.getProjectGoal())
+                .cardId(cardId)
+                .build();
+    }
+
+
+    public GroupMemberProfileResponseDto getMemberProfile(Integer memberId) {
+        GroupMember member = groupMemberRepository.findByIdAndIsAcceptedTrue(memberId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 유저의 그룹 프로필이 없습니다."));
+
+        User user = userRepository.findById(member.getUserId())
+                .orElseThrow(() -> new IllegalArgumentException("해당 유저 정보가 없습니다."));
+
+        return GroupMemberProfileResponseDto.builder()
+                .cardId(user.getCardId1())
+                .numEI(user.getNumEI())
+                .numPD(user.getNumPD())
+                .numVA(user.getNumVA())
+                .numCL(user.getNumCL())
+
+                .workHistory(member.getWorkHistory())
+                .projectGoal(member.getProjectGoal())
+                .projectPurpose(member.getProjectPurpose())
+                .url(member.getUrl())
+                .introduction(member.getIntroduction())
+                .build();
+    }
+
+
     @Transactional(readOnly = true)
     public boolean isUserInGroup(Integer groupId, Integer userId) {
         return groupMemberRepository.existsByGroupIdAndUserId(groupId, userId);
     }
 
+    // userLike 하고, 마감된 으로 정렬해야함.
     @Transactional(readOnly = true)
-    public List<GroupMemberResponseDto> getGroupMembers(Integer groupId) {
+    public List<GroupMemberResponseDto> getGroupMembers(Integer userId, Integer groupId) {
         List<GroupMember> groupMembers = groupMemberRepository.findByGroupId(groupId);
         List<GroupMemberResponseDto> result = new ArrayList<>();
 
         for (GroupMember member : groupMembers) {
             if (Boolean.TRUE.equals(member.getIsAccepted())) {
-                User user = userRepository.findById(member.getUserId())
+                User targetUser = userRepository.findById(member.getUserId())
                         .orElseThrow(() -> new NoSuchElementException("유저 정보를 찾을 수 없습니다."));
 
-                GroupMemberResponseDto dto = new GroupMemberResponseDto(
-                        user.getId(),
-                        user.getUserName(),
-                        user.getCardId1(),
-                        member.getTeamStatus(),
-                        member.getPosition()
-                );
+                // likeId 조회
+                Integer likeId = userLikeRepository.findBySenderIdAndReceiverIdAndGroupId(userId, targetUser.getId(), groupId)
+                        .map(UserLike::getId)
+                        .orElse(null);
+
+                GroupMemberResponseDto dto = GroupMemberResponseDto.builder()
+                        .memberId(member.getId())
+                        .userId(targetUser.getId())
+                        .userName(targetUser.getUserName())
+                        .profileImageUrl(targetUser.getProfileImgUrl())
+                        .cardId1(targetUser.getCardId1())
+                        .teamStatus(member.getTeamStatus())
+                        .position(member.getPosition())
+                        .teamId(member.getTeamId())
+                        .likeId(likeId)
+                        .build();
 
                 result.add(dto);
             }
         }
+
+        // 정렬 우선순위:
+        result.sort(Comparator
+                .comparing((GroupMemberResponseDto dto) -> dto.getLikeId() == null)  // false 먼저
+                .thenComparing(dto -> "마감".equals(dto.getTeamStatus()))             // false 먼저
+        );
+
         return result;
     }
+
+
+    @Transactional(readOnly = true)
+    public GroupMemberResponseDto getMygroupMemberData(Integer userId,Integer groupId) {
+        GroupMember member = groupMemberRepository.findByGroupIdAndUserId(groupId, userId)
+                .orElseThrow(() -> new IllegalArgumentException("초대 내역이 존재하지 않습니다."));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("유저 정보를 찾을 수 없습니다."));
+
+        return GroupMemberResponseDto.builder()
+                .memberId(member.getId())
+                .userId(user.getId())
+                .userName(user.getUserName())
+                .profileImageUrl(user.getProfileImgUrl())
+                .cardId1(user.getCardId1())
+                .teamStatus(member.getTeamStatus())
+                .position(member.getPosition())
+                .teamId(member.getTeamId())
+                .build();
+
+    }
+
+
 }

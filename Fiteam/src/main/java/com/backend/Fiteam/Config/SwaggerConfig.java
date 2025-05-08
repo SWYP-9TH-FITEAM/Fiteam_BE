@@ -12,6 +12,7 @@ import io.swagger.v3.oas.models.info.Info;
 public class SwaggerConfig {
     //http://localhost:8080/swagger-ui/index.html
     //http://223.130.131.155:8080/swagger-ui/index.html
+    // https://fiteam.shop/swagger-ui/index.html
     @Bean
     public OpenAPI customOpenAPI() {
         // 보안 스킴 정의

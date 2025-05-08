@@ -8,7 +8,7 @@ import lombok.Getter;
 @Builder
 public class GroupMemberProfileResponseDto {
 
-    @Schema(description = "경력(개월 수)", example = "12")
+    @Schema(description = "직군", example = "PM, DS, FE, BE 등등")
     private String position;
 
     @Schema(description = "경력(개월 수)", example = "12")

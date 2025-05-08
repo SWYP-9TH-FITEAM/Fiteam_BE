@@ -24,9 +24,12 @@ import java.util.List;
 public class SecurityConfig {
     private static final List<String> ALLOWED_ORIGINS = List.of(
             "http://localhost:3000",
+            "http://localhost:5173",
             "http://localhost:8080",
             "https://swyp-9th-fiteam.github.io",
-            "http://223.130.131.155:8080"
+
+            "https://fiteam.shop",
+            "https://www.fiteam.shop"
             // https 프론트나 다른 서버 작성
     );
 
@@ -53,6 +56,7 @@ public class SecurityConfig {
             // Character (인증 없이)
             "/v1/card/*",
             "/v1/question/all",
+            "/v1/question/unauth/test-result",
 
             // Chat
             "/v1/chat/room",
@@ -67,10 +71,14 @@ public class SecurityConfig {
             "/v1/group/invite",
             "/v1/group/*/members",
 
-            // GroupMember
-            "/v1/member/*/positions",
-            "/v1/member/groupprofile/*",
-            "/v1/member/member/*/profile",
+            // GroupMemberController 관련 허용 API 경로
+            "/v1/member/{groupId}/positions",
+            "/v1/member/profile/{groupMemberId}",
+            "/v1/member/myprofile/mini",
+            "/v1/member/profile/my",
+            "/v1/member/profile/{memberId}",
+            "/v1/member/{groupId}/members",
+            "/v1/member/my",
 
             // Notification
             "/v1/noti/notifications",
@@ -86,12 +94,14 @@ public class SecurityConfig {
 
             // User
             "/v1/user/savecard",
-            "/v1/user/test-result",
+            "/v1/user/mini-result",
             "/v1/user/card",
-            "/v1/user/name/img",
-            "/v1/user/accept/*",
+            "/v1/user/name-img-job",
+            "/v1/user/accept/**",
             "/v1/user/groups/accepted",
             "/v1/user/groups/pending",
+            "/v1/user/settings",
+            "/v1/user/settings",
 
             // UserLike
             "/v1/like/add",
