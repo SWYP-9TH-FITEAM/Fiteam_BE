@@ -53,6 +53,11 @@ public class GroupService {
 
     @Transactional
     public void createGroup(Integer managerId, CreateGroupRequestDto requestDto) {
+        // 중복 그룹 이름 검증 (같은 매니저가 동일 이름으로 생성했는지)
+        if (projectGroupRepository.existsByManagerIdAndName(managerId, requestDto.getName())) {
+            throw new IllegalArgumentException("이미 동일한 이름의 그룹이 존재합니다.");
+        }
+
         ProjectGroup projectGroup = ProjectGroup.builder()
                 .managerId(managerId)
                 .name(requestDto.getName())
@@ -159,7 +164,6 @@ public class GroupService {
 
     @Transactional
     public void updateGroup(ProjectGroup projectGroup, UpdateGroupRequestDto requestDto) {
-        // null 체크 후 값이 있을 때만 업데이트
         if (requestDto.getName() != null) {
             projectGroup.setName(requestDto.getName());
         }
@@ -192,7 +196,7 @@ public class GroupService {
         // 수락된 멤버 목록 가져오기
         List<GroupMember> acceptedMembers = groupMemberRepository.findAllByGroupIdAndIsAcceptedTrue(projectGroup.getId());
 
-        // 랜덤 팀빌딩 로직 수행 (구현 예정)
+        // 랜덤 팀빌딩 로직 수행
         executeRandomTeamBuilding(groupId, acceptedMembers, teamType);
     }
 
@@ -317,9 +321,6 @@ public class GroupService {
         // 3) 차단 처리: 수락 취소 + ban 플래그 설정
         gm.setIsAccepted(false);
         gm.setBan(true);
-
-        // 4) 변경 저장
-        groupMemberRepository.save(gm);
     }
 
     @Transactional

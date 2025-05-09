@@ -7,4 +7,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ManagerRepository extends JpaRepository<Manager, Integer> {
 
     Optional<Manager> findByEmail(String email);
+
 }

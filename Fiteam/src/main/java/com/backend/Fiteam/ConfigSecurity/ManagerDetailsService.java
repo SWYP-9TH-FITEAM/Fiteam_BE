@@ -7,24 +7,22 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-import org.springframework.security.core.userdetails.User;
 
 @Service
 @RequiredArgsConstructor
 public class ManagerDetailsService implements UserDetailsService {
-
     private final ManagerRepository managerRepository;
 
     @Override
-    public UserDetails loadUserByUsername(String id) throws UsernameNotFoundException {
-        // id 기반으로 조회
-        Manager manager = managerRepository.findById(Integer.parseInt(id))
-                .orElseThrow(() -> new UsernameNotFoundException("존재하지 않는 매니저입니다: " + id));
+    public UserDetails loadUserByUsername(String id) {
+        Manager m = managerRepository.findById(Integer.parseInt(id))
+                .orElseThrow(() -> new UsernameNotFoundException("존재하지 않는 매니저: "+id));
 
-        return User.builder()
-                .username(id)  // JWT에서 꺼낸 subject = id
-                .password(manager.getPassword())
+        return org.springframework.security.core.userdetails.User.builder()
+                .username(m.getId().toString())
+                .password(m.getPassword())
+                .roles("Manager")       // ← ROLE_MANAGER 권한 명시
                 .build();
     }
-
 }
+

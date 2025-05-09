@@ -5,8 +5,11 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -62,10 +65,19 @@ public class JwtAuthFilter extends OncePerRequestFilter{
                     userDetails = userDetailsService.loadUserByUsername(String.valueOf(userId));
                 }
 
+                // 4) 권한 리스트 생성 ("Manager" 또는 "User")
+                List<GrantedAuthority> authorities;
+                if ("manager".equals(userType)) {
+                    authorities = List.of(new SimpleGrantedAuthority("Manager"));
+                } else {
+                    authorities = List.of(new SimpleGrantedAuthority("User"));
+                }
+
+                // 5) Authentication 객체 생성 및 SecurityContext에 등록
                 UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        new UsernamePasswordAuthenticationToken(userDetails, null, authorities);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+
             } catch (ExpiredJwtException e) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.getWriter().write("{\"message\": \"세션이 만료되었습니다. 다시 로그인하세요.\"}");

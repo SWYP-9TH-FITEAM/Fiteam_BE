@@ -26,7 +26,7 @@ public class ManagerController {
     /*
     1. 매니저가 그룹 생성
     2. 매니저가 그룹의 팀 구성 방식을 설정함.
-    3. 매니저가 이메일로 유저 초대(1~N명)
+    3. 매니저가 이메일로 그룹에 유저 초대(1~N명)
     4. 그룹 정보 수정하기
     5. 랜덤 자동 팀빌딩 지원. teamtype-positionbased = false 일 때
     7. 매니저가 그룹 멤버 Ban 하기
@@ -39,6 +39,13 @@ public class ManagerController {
 
     // UserDetails 같은 경우 매니져가 로그인한 상태이면 managerId 로 생각하면 된다.
 
+    private void authorizeManager(UserDetails userDetails) {
+        boolean isManager = userDetails.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("Manager"));
+        if (!isManager) {
+            throw new IllegalArgumentException("매니저 권한이 없습니다.");
+        }
+    }
     private void authorizeManager(Integer groupId, Integer managerId) {
         ProjectGroup group = groupService.getProjectGroup(groupId);
         if (!group.getManagerId().equals(managerId)) {
@@ -47,27 +54,33 @@ public class ManagerController {
     }
 
     //1. 매니저가 그룹 생성
+    @Operation(summary = "1. 매니저가 그룹 생성", description = "매니저 권한이 있는 사용자가 새로운 프로젝트 그룹을 생성합니다. " +
+            "같은 매니저가 이미 생성한 그룹 중 동일한 이름이 있을 경우 400 에러를 반환합니다.")
     @PostMapping("/create")
-    public ResponseEntity<?> createGroup(
+    public ResponseEntity<String> createGroup(
             @AuthenticationPrincipal UserDetails userDetails, @RequestBody CreateGroupRequestDto requestDto) {
         try {
+            // 1) 매니저 여부 확인
+            authorizeManager(userDetails);
             Integer managerId = Integer.valueOf(userDetails.getUsername());  // Manager 테이블의 id
 
             groupService.createGroup(managerId, requestDto);  // Manager id 넘기기
-            return ResponseEntity.ok().build();
+            return ResponseEntity.ok().body("그룹을 생성했습니다.");
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
     }
 
     // 2. 매니저가 그룹의 팀 구성 방식을 설정함.
-    @Operation(summary = "팀 빌딩 타입 설정", description = "특정 그룹에 팀 빌딩 방식을 설정합니다.")
+    @Operation(summary = "2. 매니저가 그룹의 팀 구성 방식을 설정함.", description = "특정 그룹에 팀 빌딩 방식을 설정합니다.")
     @PostMapping("/set-teamtype/{groupId}")
-    public ResponseEntity<?> setTeamType(
+    public ResponseEntity<String> setTeamType(
             @AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer groupId, @RequestBody GroupTeamTypeSettingDto requestDto) {
         try {
+            // 1) 매니저 권한 확인
+            authorizeManager(userDetails);
             Integer managerId = Integer.valueOf(userDetails.getUsername());
             authorizeManager(groupId, managerId);
 
@@ -76,7 +89,7 @@ public class ManagerController {
 
             return ResponseEntity.ok().build();
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(e.getMessage());
         } catch (NoSuchElementException e) {
             return ResponseEntity.badRequest().body("존재하지 않는 그룹입니다.");
         } catch (Exception e) {
@@ -85,15 +98,14 @@ public class ManagerController {
     }
 
     // 3. 매니저가 이메일로 유저 초대(1~N명)
-    @Operation(summary = "그룹에 이메일로 유저 초대 (1~N명 가능)", description = "Manager가 여러 사용자를 프로젝트 그룹에 초대합니다.")
+    @Operation(summary = "3. 매니저가 이메일로 그룹에 유저 초대(1~N명)", description = "Manager가 여러 사용자를 프로젝트 그룹에 초대합니다.")
     @PostMapping("/invite")
     public ResponseEntity<?> inviteUsersToGroup(
             @AuthenticationPrincipal UserDetails userDetails, @RequestBody GroupInviteRequestDto requestDto) {
         try {
+            authorizeManager(userDetails);
             Integer managerId = Integer.valueOf(userDetails.getUsername());
-
-            ProjectGroup group = groupService.getProjectGroup(requestDto.getGroupId());
-            authorizeManager(group.getId(), managerId);
+            authorizeManager(requestDto.getGroupId(), managerId);
 
             GroupInvitedResponseDto responseDto = groupService.inviteUsersToGroup(requestDto.getGroupId(), requestDto.getEmails());
             return ResponseEntity.ok(responseDto);
@@ -105,22 +117,19 @@ public class ManagerController {
     }
 
     // 4. 그룹 정보 수정하기
-    @Operation(summary = "그룹 정보 수정", description = "매니저가 그룹 정보를 수정합니다. (수정하지 않는 필드는 null로 전달)")
+    @Operation(summary = "4. 그룹 정보 수정", description = "매니저가 그룹 정보를 수정합니다. (수정하지 않는 필드는 null로 전달)")
     @PatchMapping("/{groupId}/update")
-    public ResponseEntity<?> updateGroupInfo(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @PathVariable Integer groupId,
-            @RequestBody UpdateGroupRequestDto requestDto) {
+    public ResponseEntity<String> updateGroupInfo(
+            @AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer groupId, @RequestBody UpdateGroupRequestDto requestDto) {
         try {
+            authorizeManager(userDetails);
             Integer managerId = Integer.valueOf(userDetails.getUsername());
             authorizeManager(groupId, managerId);
 
-
             ProjectGroup projectGroup = groupService.getProjectGroup(groupId);
-
             groupService.updateGroup(projectGroup, requestDto);
 
-            return ResponseEntity.ok().build();
+            return ResponseEntity.ok().body("그룹 정보가 수정되었습니다.");
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (NoSuchElementException e) {
@@ -130,12 +139,13 @@ public class ManagerController {
         }
     }
 
-    // 5. 랜덤 자동 팀빌딩 지원 -> 대규모 테스트 필요
-    @Operation(summary = "랜덤 자동 팀빌딩 지원", description = "랜덤 팀 빌딩 방식으로 설정된 그룹의 팀 빌딩을 시작시간에 수행합니다.")
+    // 5. 랜덤 자동 팀빌딩 지원 -> 시작시간 설정 대규모 테스트 필요
+    @Operation(summary = "5. 랜덤 자동 팀빌딩 지원(미완성)", description = "시작시간 설정 대규모 테스트 필요함")
     @PostMapping("/{groupId}/random-team-building")
     public ResponseEntity<?> randomTeamBuilding(
             @AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer groupId) {
         try {
+            authorizeManager(userDetails);
             Integer managerId = Integer.valueOf(userDetails.getUsername());
             authorizeManager(groupId, managerId);
 
@@ -153,18 +163,18 @@ public class ManagerController {
     }
 
     // 6. 매니저가 그룹 멤버 Ban 하기
-    @Operation(summary = "그룹 멤버 차단", description = "매니저 권한이 있는 사용자가 그룹 멤버를 Ban 처리합니다.")
+    @Operation(summary = "6. 매니저가 그룹 멤버 Ban 하기", description = "매니저 권한이 있는 사용자가 그룹 멤버를 Ban 처리합니다.")
     @PatchMapping("/{groupId}/member/{groupMemberId}/ban")
-    public ResponseEntity<?> banGroupMember(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @PathVariable Integer groupId, @PathVariable Integer groupMemberId) {
+    public ResponseEntity<String> banGroupMember(
+            @AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer groupId, @PathVariable Integer groupMemberId) {
         try {
+            authorizeManager(userDetails);
             Integer managerId = Integer.valueOf(userDetails.getUsername());
             authorizeManager(groupId, managerId);
 
             // 2) 차단 로직 실행
             groupService.banGroupMember(groupId, groupMemberId);
-            return ResponseEntity.ok().build();
+            return ResponseEntity.ok().body("차단했습니다.");
 
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -176,26 +186,24 @@ public class ManagerController {
     }
 
     // 7. 매니저가 요청한 그룹 참여 취소하기(잘못 입력하거나 할때)
-    @Operation(summary = "그룹 초대 취소 (이메일 기준)", description = "매니저 권한이 있는 사용자가 아직 수락되지 않은 초대를 사용자 이메일로 취소합니다.")
+    @Operation(summary = "7. 매니저가 요청한 그룹 참여 취소하기(잘못 입력하거나 할때)", description = "매니저 권한이 있는 사용자가 아직 수락되지 않은 초대를 사용자 이메일로 취소합니다.")
     @DeleteMapping("/{groupId}/member/cancel")
-    public ResponseEntity<?> cancelGroupInvitationByEmail(
+    public ResponseEntity<String> cancelGroupInvitationByEmail(
             @AuthenticationPrincipal UserDetails userDetails,
-            @PathVariable Integer groupId,
-            @RequestParam String email) {
+            @PathVariable Integer groupId, @RequestParam String email) {
         try {
+            authorizeManager(userDetails);
             Integer managerId = Integer.valueOf(userDetails.getUsername());
             authorizeManager(groupId, managerId);
 
             // 이메일 기준 취소 로직
             groupService.cancelGroupInvitationByEmail(groupId, email);
-            return ResponseEntity.ok().build();
+            return ResponseEntity.ok().body("사용자 초대를 취소했습니다.");
 
         } catch (NoSuchElementException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
-
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
-
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
@@ -208,9 +216,8 @@ public class ManagerController {
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable Integer groupId) {
         try {
+            authorizeManager(userDetails);
             Integer managerId = Integer.valueOf(userDetails.getUsername());
-
-            // → 매니저 권한 검증
             authorizeManager(groupId, managerId);
 
             // 삭제 로직 실행

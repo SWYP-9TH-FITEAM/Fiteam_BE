@@ -42,6 +42,15 @@ public class JwtTokenProvider {
                 .compact();
     }
 
+    // 토큰에서 email 추출
+    public String getEmailFromToken(String token) {
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(secretKey)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+        return claims.getSubject();
+    }
 
     // 토큰에서 ID 추출
     public Integer getIdFromToken(String token) {

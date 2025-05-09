@@ -54,6 +54,14 @@ public class UserController {
     9.마이페이지 내정보 조회
     */
 
+    private void authorizeUser(UserDetails userDetails) {
+        boolean isUser = userDetails.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_User"));
+        if (!isUser) {
+            throw new IllegalArgumentException("유저가 아닙니다.");
+        }
+    }
+
     // 1.테스트 결과 저장	POST
     @Operation(
             summary = "1. 테스트 결과 저장 (성향검사 응답 → 결과)",
@@ -64,13 +72,14 @@ public class UserController {
     public ResponseEntity<?> saveTestResult(
             @AuthenticationPrincipal UserDetails userDetails, @RequestBody List<Map<String, Integer>> answers) {
         try{
+            authorizeUser(userDetails);
             Integer userId = Integer.parseInt(userDetails.getUsername());
 
             // 질문에 대한 답변을 받아서 연산후 성향 점수를 저장함.
             userService.saveCharacterTestResult(userId, answers);
             return ResponseEntity.ok("테스트 결과가 성공적으로 저장되었습니다.");
         }catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
