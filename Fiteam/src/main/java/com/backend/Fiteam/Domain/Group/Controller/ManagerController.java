@@ -4,11 +4,20 @@ import com.backend.Fiteam.Domain.Group.Dto.CreateGroupRequestDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupInviteRequestDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupInvitedResponseDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupTeamTypeSettingDto;
+import com.backend.Fiteam.Domain.Group.Dto.ManagerGroupResponseDto;
+import com.backend.Fiteam.Domain.Group.Dto.ManagerGroupStatusDto;
+import com.backend.Fiteam.Domain.Group.Dto.ManagerProfileResponseDto;
 import com.backend.Fiteam.Domain.Group.Dto.UpdateGroupRequestDto;
 import com.backend.Fiteam.Domain.Group.Entity.ProjectGroup;
 import com.backend.Fiteam.Domain.Group.Service.GroupService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.List;
 import java.util.NoSuchElementException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -237,6 +246,57 @@ public class ManagerController {
             }
             return ResponseEntity.badRequest().body(e.getMessage());
 
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // 9. 로그인한 매니저의 이름과 이 매니저가 관리하는 그룹 정보를 반환합니다.
+    @Operation(summary = "매니저 기본 정보 조회", description = "로그인한 매니저의 ID와 이름을 반환합니다.")
+    @GetMapping("/manager/name")
+    public ResponseEntity<ManagerProfileResponseDto> getManagerBasicProfile(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            authorizeManager(userDetails);
+            Integer managerId = Integer.valueOf(userDetails.getUsername());
+            ManagerProfileResponseDto basic = groupService.getManagerBasicProfile(managerId);
+            return ResponseEntity.ok(basic);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // 10. 로그인한 매니저가 관리하는 그룹 정보를 반환합니다.
+    @Operation(summary = "매니저 관리 그룹 목록 조회", description = "로그인한 매니저가 관리 중인(팀 빌딩 종료 전) 그룹 목록을 반환합니다.",
+            responses = {@ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = ManagerGroupResponseDto.class))))})
+    @GetMapping("/manager/groups")
+    public ResponseEntity<List<ManagerGroupResponseDto>> getManagedGroups(@AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            authorizeManager(userDetails);
+            Integer managerId = Integer.valueOf(userDetails.getUsername());
+            List<ManagerGroupResponseDto> groups = groupService.getManagedGroups(managerId);
+            return ResponseEntity.ok(groups);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // 11. 로그인한 매니저가 관리하는 그룹 정보를 반환합니다.
+    @Operation(summary = "매니저 관리 그룹 상태 조회", description = "로그인한 매니저가 관리 중인 그룹의 이름, 참여자 수, 팀 빌딩 타입, 현재 진행 상태를 반환합니다.",
+            responses = {@ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = ManagerGroupStatusDto.class))))})
+    @GetMapping("/manager/groups/status")
+    public ResponseEntity<List<ManagerGroupStatusDto>> getManagedGroupStatuses(@AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            authorizeManager(userDetails);
+            Integer managerId = Integer.valueOf(userDetails.getUsername());
+            List<ManagerGroupStatusDto> statuses = groupService.getManagedGroupStatuses(managerId);
+            return ResponseEntity.ok(statuses);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
