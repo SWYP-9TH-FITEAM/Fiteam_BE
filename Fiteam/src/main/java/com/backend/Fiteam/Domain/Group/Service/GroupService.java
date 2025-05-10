@@ -55,6 +55,7 @@ public class GroupService {
     private final TeamTypeRepository teamTypeRepository;
     private final CharacterCardRepository characterCardRepository;
     private final TeamService teamService;
+    private final TeamRepository teamRepository;
 
     @Transactional(readOnly = true)
     public ProjectGroup getProjectGroup(Integer groupId) {
@@ -91,12 +92,14 @@ public class GroupService {
         TeamType teamType;
 
         // configJson을 문자열로 변환
-        String configJsonStr;
-        try {
-            ObjectMapper objectMapper = new ObjectMapper();
-            configJsonStr = objectMapper.writeValueAsString(requestDto.getConfigJson());
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("configJson 직렬화 실패", e);
+        String configJsonStr=null;
+        if(requestDto.getPositionBased()==true) {
+            try {
+                ObjectMapper objectMapper = new ObjectMapper();
+                configJsonStr = objectMapper.writeValueAsString(requestDto.getConfigJson());
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException("configJson 직렬화 실패", e);
+            }
         }
 
         if (teamTypeId == null) {
@@ -129,7 +132,16 @@ public class GroupService {
             teamType.setPositionBased(requestDto.getPositionBased());
             teamType.setConfigJson(configJsonStr);
             teamTypeRepository.save(teamType);
+
+            // 현재 그룹의 팀 maxMembers 값 일괄 업데이트
+            List<Team> teams = teamRepository.findByGroupId(groupId);
+            for (Team team : teams) {
+                team.setMaxMembers(requestDto.getMaxMembers());
+            }
+            teamRepository.saveAll(teams);
         }
+
+
     }
 
 

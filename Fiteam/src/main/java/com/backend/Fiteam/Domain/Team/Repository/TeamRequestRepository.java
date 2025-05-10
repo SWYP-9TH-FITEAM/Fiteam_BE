@@ -16,5 +16,7 @@ public interface TeamRequestRepository extends JpaRepository<TeamRequest, Intege
     List<TeamRequest> findByTeamId(Integer secondaryTeamId);
 
     void deleteAllByTeamId(Integer id);
+
+    Optional<TeamRequest> findBySenderIdAndReceiverIdAndGroupId(Integer senderId, Integer receiverId, Integer groupId);
 }
 

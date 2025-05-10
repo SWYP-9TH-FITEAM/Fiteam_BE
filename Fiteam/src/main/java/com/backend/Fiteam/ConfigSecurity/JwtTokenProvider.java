@@ -20,7 +20,7 @@ public class JwtTokenProvider {
     * */
 
     private final Key secretKey;
-    private final long tokenValidity = 1000L * 60 * 90; // 유효시간 15분
+    private final long tokenValidity = 1000L * 60 * 90 * 4; // 유효시간 60분
     private final long refreshThreshold = 1000L * 60 * 30; // 10분 이하 시 갱신
     private static final Logger logger = LoggerFactory.getLogger(JwtTokenProvider.class);
 

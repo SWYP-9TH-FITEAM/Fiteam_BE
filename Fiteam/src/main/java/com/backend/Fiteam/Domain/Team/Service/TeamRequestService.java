@@ -110,19 +110,16 @@ public class TeamRequestService {
     }
 
 
-    public void acceptTeamRequest(Integer receiverId, TeamRequestResponseDto reqdto) {
+    public void acceptTeamRequest(Integer receiverId, Integer senderId, Integer groupId) {
         // 1) 요청 엔티티 확인
         TeamRequest request = teamRequestRepository
-                .findBySenderIdAndReceiverId(reqdto.getSenderId(), receiverId)
+                .findBySenderIdAndReceiverIdAndGroupId(senderId, receiverId, groupId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 요청입니다."));
 
         // 2) 이미 처리된 요청인지 체크
         if (!"대기중".equals(request.getStatus())) {
             throw new IllegalArgumentException("이미 처리된 요청입니다.");
         }
-
-        Integer senderId = reqdto.getSenderId();
-        Integer groupId  = reqdto.getGroupId();
 
         // 3) sender, receiver 는 그룹에 속해 있고 teamId 가 세팅된 상태
         GroupMember senderMember = groupMemberRepository
@@ -142,7 +139,7 @@ public class TeamRequestService {
         // 5) 채팅 메시지 추가
         chatService.sendTeamAcceptMessage(senderId, receiverId);
 
-        // 6) 항상 두 팀(1인 팀)을 병합
+        // 6) 항상 두 팀(1인 팀 포함)을 병합
         mergeTeams(senderMember.getTeamId(), receiverMember.getTeamId());
 
         // 7) 요청 상태 업데이트
@@ -188,10 +185,10 @@ public class TeamRequestService {
         teamRepository.delete(secondary);
     }
 
-    public void rejectTeamRequest(Integer receiverId, TeamRequestResponseDto reqdto) {
+    public void rejectTeamRequest(Integer receiverId, Integer senderId, Integer groupId) {
         // 1) 요청 엔티티 조회
         TeamRequest request = teamRequestRepository
-                .findBySenderIdAndReceiverId(reqdto.getSenderId(), receiverId)
+                .findBySenderIdAndReceiverIdAndGroupId(senderId, receiverId, groupId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 요청입니다."));
 
         // 2) 이미 처리된 요청인지 검사

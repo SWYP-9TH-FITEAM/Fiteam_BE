@@ -115,15 +115,14 @@ public class TeamController {
     }
 
     // 4. 팀 참가 요청 수락
-    @Operation(summary = "4. 팀 참가 요청 수락", description = "특정 사용자가 보낸 팀 요청을 수락합니다.",
-            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    content = @Content(schema = @Schema(implementation = TeamRequestResponseDto.class))))
-    @PostMapping("/request/accept/{senderId}")
+    @Operation(summary = "4. 팀 참가 요청 수락", description = "특정 사용자가 보낸 팀 요청을 수락합니다. (로그인한 수락자 기준)")
+    @PostMapping("/request/accept/{groupId}/{senderId}")
     public ResponseEntity<?> acceptTeamRequest(
-            @AuthenticationPrincipal UserDetails userDetails, @RequestBody TeamRequestResponseDto reqdto) {
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Integer groupId, @PathVariable Integer senderId) {
         try {
             Integer receiverId = Integer.parseInt(userDetails.getUsername());
-            teamRequestService.acceptTeamRequest(receiverId, reqdto);
+            teamRequestService.acceptTeamRequest(receiverId, senderId, groupId);
             return ResponseEntity.ok("팀 요청이 수락되었습니다.");
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -132,15 +131,17 @@ public class TeamController {
         }
     }
 
+
     // 4. 팀 참가 요청 거절 - 요청을 삭제하는 방식으로 일단 했음.
-    @Operation(summary = "4. 팀 참가 요청 거절 - 요청을 삭제하는 방식으로 일단 했음.", description = "특정 사용자가 보낸 팀 요청을 거절합니다.",
-            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @Content(schema = @Schema(implementation = TeamRequestResponseDto.class))))
-    @PostMapping("/request/reject/{senderId}")
+    @Operation(summary = "4. 팀 참가 요청 거절", description = "특정 사용자가 보낸 팀 요청을 거절합니다. (요청 삭제 방식)")
+    @DeleteMapping("/request/reject/{groupId}/{senderId}")
     public ResponseEntity<?> rejectTeamRequest(
-            @AuthenticationPrincipal UserDetails userDetails, @RequestBody TeamRequestResponseDto reqdto) {
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Integer groupId,
+            @PathVariable Integer senderId) {
         try {
             Integer receiverId = Integer.parseInt(userDetails.getUsername());
-            teamRequestService.rejectTeamRequest(receiverId, reqdto);
+            teamRequestService.rejectTeamRequest(receiverId, senderId, groupId);
             return ResponseEntity.ok("팀 요청이 거절되었습니다.");
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
