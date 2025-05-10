@@ -3,8 +3,10 @@ package com.backend.Fiteam.Domain.Group.Service;
 import com.backend.Fiteam.Domain.Character.Entity.CharacterCard;
 import com.backend.Fiteam.Domain.Character.Repository.CharacterCardRepository;
 import com.backend.Fiteam.Domain.Group.Dto.CreateGroupRequestDto;
+import com.backend.Fiteam.Domain.Group.Dto.GroupDetailResponseDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupInvitedResponseDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupTeamTypeSettingDto;
+import com.backend.Fiteam.Domain.Group.Dto.ManagerGroupListDto;
 import com.backend.Fiteam.Domain.Group.Dto.ManagerGroupResponseDto;
 import com.backend.Fiteam.Domain.Group.Dto.ManagerGroupStatusDto;
 import com.backend.Fiteam.Domain.Group.Dto.ManagerProfileResponseDto;
@@ -23,6 +25,8 @@ import com.backend.Fiteam.Domain.Team.Repository.TeamTypeRepository;
 import com.backend.Fiteam.Domain.Team.Service.TeamService;
 import com.backend.Fiteam.Domain.User.Entity.User;
 import com.backend.Fiteam.Domain.User.Repository.UserRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -51,8 +55,6 @@ public class GroupService {
     private final TeamTypeRepository teamTypeRepository;
     private final CharacterCardRepository characterCardRepository;
     private final TeamService teamService;
-    private final ManagerRepository managerRepository;
-
 
     @Transactional(readOnly = true)
     public ProjectGroup getProjectGroup(Integer groupId) {
@@ -81,13 +83,25 @@ public class GroupService {
 
     @Transactional
     public void setTeamType(Integer groupId, GroupTeamTypeSettingDto requestDto) {
-        // 1. 그룹 조회
+        // 1) 그룹 조회
         ProjectGroup projectGroup = projectGroupRepository.findById(groupId)
                 .orElseThrow(() -> new NoSuchElementException("존재하지 않는 그룹입니다."));
 
-        if (projectGroup.getTeamMakeType() == null) {
-            // 팀타입이 없는 경우 → 새로 생성
-            TeamType newTeamType = TeamType.builder()
+        Integer teamTypeId = projectGroup.getTeamMakeType();
+        TeamType teamType;
+
+        // configJson을 문자열로 변환
+        String configJsonStr;
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            configJsonStr = objectMapper.writeValueAsString(requestDto.getConfigJson());
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("configJson 직렬화 실패", e);
+        }
+
+        if (teamTypeId == null) {
+            // A) 새 TeamType 생성
+            teamType = TeamType.builder()
                     .name(requestDto.getName())
                     .description(requestDto.getDescription())
                     .startDatetime(requestDto.getStartDatetime())
@@ -95,27 +109,30 @@ public class GroupService {
                     .minMembers(requestDto.getMinMembers())
                     .maxMembers(requestDto.getMaxMembers())
                     .positionBased(requestDto.getPositionBased())
-                    .configJson(requestDto.getConfigJson())
+                    .configJson(configJsonStr)
                     .build();
-            teamTypeRepository.save(newTeamType);
+            teamType = teamTypeRepository.save(teamType);
 
-            // 그룹에 연결
-            projectGroup.setTeamMakeType(newTeamType.getId());
+            // 그룹에 FK 연결 & 저장
+            projectGroup.setTeamMakeType(teamType.getId());
+            projectGroupRepository.save(projectGroup);
         } else {
-            // 팀타입이 이미 존재하는 경우 → 수정
-            TeamType existingTeamType = teamTypeRepository.findById(projectGroup.getTeamMakeType())
+            // B) 기존 TeamType 수정
+            teamType = teamTypeRepository.findById(teamTypeId)
                     .orElseThrow(() -> new NoSuchElementException("존재하지 않는 TeamType입니다."));
-
-            existingTeamType.setName(requestDto.getName());
-            existingTeamType.setDescription(requestDto.getDescription());
-            existingTeamType.setStartDatetime(requestDto.getStartDatetime());
-            existingTeamType.setEndDatetime(requestDto.getEndDatetime());
-            existingTeamType.setMinMembers(requestDto.getMinMembers());
-            existingTeamType.setMaxMembers(requestDto.getMaxMembers());
-            existingTeamType.setPositionBased(requestDto.getPositionBased());
-            existingTeamType.setConfigJson(requestDto.getConfigJson());
+            teamType.setName(requestDto.getName());
+            teamType.setDescription(requestDto.getDescription());
+            teamType.setStartDatetime(requestDto.getStartDatetime());
+            teamType.setEndDatetime(requestDto.getEndDatetime());
+            teamType.setMinMembers(requestDto.getMinMembers());
+            teamType.setMaxMembers(requestDto.getMaxMembers());
+            teamType.setPositionBased(requestDto.getPositionBased());
+            teamType.setConfigJson(configJsonStr);
+            teamTypeRepository.save(teamType);
         }
     }
+
+
 
     @Transactional
     public GroupInvitedResponseDto inviteUsersToGroup(Integer groupId, List<String> emails) {
@@ -377,71 +394,40 @@ public class GroupService {
     }
 
     @Transactional(readOnly = true)
-    public ManagerProfileResponseDto getManagerBasicProfile(Integer managerId) {
-        Manager manager = managerRepository.findById(managerId)
-                .orElseThrow(() -> new NoSuchElementException("존재하지 않는 매니저입니다."));
-        return new ManagerProfileResponseDto(
-                manager.getId(),
-                manager.getManagerName()
+    public GroupDetailResponseDto getGroupDetail(Integer groupId) {
+        // 1) ProjectGroup 조회
+        ProjectGroup pg = projectGroupRepository.findById(groupId)
+                .orElseThrow(() -> new NoSuchElementException("존재하지 않는 그룹입니다."));
+
+        // 2) 관련 TeamType 조회 (teamMakeType 필드가 없다면 예외 또는 null 처리)
+        Integer ttId = pg.getTeamMakeType();
+        if (ttId == null) {
+            throw new NoSuchElementException("팀 빌딩 타입이 설정되지 않았습니다.");
+        }
+        TeamType tt = teamTypeRepository.findById(ttId)
+                .orElseThrow(() -> new NoSuchElementException("등록된 팀 빌딩 타입이 없습니다."));
+
+        // 3) DTO 생성 및 반환
+        return new GroupDetailResponseDto(
+                pg.getId(),
+                pg.getName(),
+                pg.getDescription(),
+                pg.getMaxUserCount(),
+                pg.getContactPolicy(),
+                pg.getCreatedAt(),
+
+                tt.getId(),
+                tt.getName(),
+                tt.getDescription(),
+                tt.getStartDatetime(),
+                tt.getEndDatetime(),
+                tt.getMinMembers(),
+                tt.getMaxMembers(),
+                tt.getPositionBased(),
+                tt.getConfigJson()
         );
     }
 
-    @Transactional(readOnly = true)
-    public List<ManagerGroupResponseDto> getManagedGroups(Integer managerId) {
-        LocalDateTime now = LocalDateTime.now();
-
-        return projectGroupRepository.findAllByManagerId(managerId).stream()
-                .flatMap(pg -> {
-                    Integer typeId = pg.getTeamMakeType();
-                    if (typeId == null) return Stream.empty();
-                    return teamTypeRepository.findById(typeId)
-                            .filter(tt -> tt.getEndDatetime().isAfter(now))
-                            .map(tt -> new ManagerGroupResponseDto(
-                                    pg.getId(),
-                                    pg.getName(),
-                                    pg.getDescription(),
-                                    pg.getCreatedAt(),
-                                    tt.getEndDatetime()
-                            ))
-                            .stream();
-                })
-                .collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
-    public List<ManagerGroupStatusDto> getManagedGroupStatuses(Integer managerId) {
-        // 1) 매니저가 생성한 모든 그룹 조회
-        List<ProjectGroup> groups = projectGroupRepository.findAllByManagerId(managerId);
-        LocalDateTime now = LocalDateTime.now();
-        return groups.stream()
-                .map(pg -> {
-                    // 2) 현재 수락된 멤버 수 조회
-                    int memberCount = groupMemberRepository.countByGroupIdAndIsAcceptedTrue(pg.getId());
-
-                    // 3) 연결된 TeamType 조회
-                    TeamType tt = teamTypeRepository.findById(pg.getTeamMakeType())
-                            .orElseThrow(() -> new NoSuchElementException("TeamType이 설정되지 않았습니다: " + pg.getTeamMakeType()));
-
-                    // 4) DTO 반환
-                    return ManagerGroupStatusDto.builder()
-                            .groupId(pg.getId())
-                            .groupName(pg.getName())
-                            .memberCount(memberCount)
-                            .positionBased(tt.getPositionBased())
-                            .status(calculateStatus(tt, now))
-                            .build();
-                })
-                .collect(Collectors.toList());
-    }
-    private String calculateStatus(TeamType tt, LocalDateTime now) {
-        if (now.isBefore(tt.getStartDatetime())) {
-            return "PENDING";
-        } else if (now.isAfter(tt.getEndDatetime())) {
-            return "ENDED";
-        } else {
-            return "ONGOING";
-        }
-    }
 
 
 }

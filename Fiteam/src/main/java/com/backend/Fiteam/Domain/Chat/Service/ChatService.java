@@ -14,8 +14,10 @@ import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Pageable;
 
 import java.sql.Timestamp;
 import java.util.Comparator;
@@ -83,19 +85,18 @@ public class ChatService {
                 .collect(Collectors.toList());
     }
 
-    public List<ChatMessageResponseDto> getMessagesForRoom(Integer chatRoomId) {
-        // DB에서 찾을때 asc를 하는 것과 데이터를 가져와서 sort 하는 방식중 어떤것이 더 좋을지 고민
-        List<ChatMessage> messages = chatMessageRepository.findByChatRoomIdOrderBySentAtAsc(chatRoomId);
+    public Page<ChatMessageResponseDto> getMessagesForRoomPaged(Integer chatRoomId, Pageable pageable) {
+        Page<ChatMessage> messages = chatMessageRepository.findByChatRoomIdOrderBySentAtDesc(chatRoomId, pageable);
 
-        return messages.stream().map(msg -> ChatMessageResponseDto.builder()
+        return messages.map(msg -> ChatMessageResponseDto.builder()
                 .id(msg.getId())
                 .chatRoomId(msg.getChatRoomId())
                 .senderId(msg.getSenderId())
+                .messageType(msg.getMessageType())
                 .content(msg.getContent())
                 .isRead(msg.getIsRead())
                 .sentAt(msg.getSentAt())
-                .build()
-        ).collect(Collectors.toList());
+                .build());
     }
 
     // TeamService에서 사용함
@@ -147,4 +148,8 @@ public class ChatService {
             throw new AccessDeniedException("채팅방 접근 권한이 없습니다.");
         }
     }
+
+
+
+
 }

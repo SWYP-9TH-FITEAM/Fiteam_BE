@@ -79,19 +79,19 @@ public class AuthController {
     // -- DTO
     @Getter
     @Setter
-    public class EmailRequestDto {
+    public static class EmailRequestDto {
         private String email;
     }
 
     @Getter
     @Setter
-    public class EmailVerifyDto {
+    public static class EmailVerifyDto {
         private String email;
         private String code;
     }
 
     @Getter @Setter
-    public class PasswordResetRequestDto {
+    public static class PasswordResetRequestDto {
         private String email;
         private String code;
         private String newPassword;

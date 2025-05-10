@@ -7,4 +7,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ProjectGroupRepository extends JpaRepository<ProjectGroup, Integer> {
     boolean existsByManagerIdAndName(Integer managerId, String name);
     List<ProjectGroup> findAllByManagerId(Integer managerId);
+
 }

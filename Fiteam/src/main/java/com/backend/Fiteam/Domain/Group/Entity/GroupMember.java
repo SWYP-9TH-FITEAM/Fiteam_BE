@@ -30,7 +30,7 @@ public class GroupMember {
     @Column(name = "invited_at")
     private Timestamp invitedAt;
 
-    @Column(name = "team_status", length = 20)
+    @Column(name = "team_status", length = 30)
     private String teamStatus;
 
     @Column(name = "team_id")

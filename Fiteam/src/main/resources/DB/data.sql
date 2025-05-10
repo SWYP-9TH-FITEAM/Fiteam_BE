@@ -89,3 +89,41 @@ INSERT INTO CharacterQuestion (id, dimension, question, type_a, type_b) VALUES
 
 INSERT INTO Manager (email, password, manager_name, organization)
 VALUES ('manager1@test.com', '$2a$10$w4HTPPceVHVu4M2NSz/g.uB1usPkoL5LkSHiqr61BBS2PvEWFap9i', '김매니저', '스위프9기');
+
+
+-- 4. User (10명: aa ~ jj)
+INSERT INTO User (
+    email, password, user_name, profile_img_url, phone_number, kakao_id,
+    job, major, introduction, url, card_id1, card_id2,
+    details, num_EI, num_PD, num_VA, num_CL, created_at)
+VALUES
+    ('aa@test.com', '$2a$10$w4HTPPceVHVu4M2NSz/g.uB1usPkoL5LkSHiqr61BBS2PvEWFap9i', 'aa', 'https://example.com/aa.jpg', '010-0000-0000', 'kakao_aa',
+     'Developer', 'CS', '안녕하세요, 저는 aa입니다.', 'https://github.com/aa', 1, 2,
+     'ISTP 유형의 적극적인 사람입니다.', 7, 3, 5, 8, NOW()),
+    ('bb@test.com', '$2a$10$w4HTPPceVHVu4M2NSz/g.uB1usPkoL5LkSHiqr61BBS2PvEWFap9i', 'bb', 'https://example.com/bb.jpg', '010-0000-0001', 'kakao_bb',
+     'Developer', 'CS', '안녕하세요, 저는 bb입니다.', 'https://github.com/bb', 1, 2,
+     'ESTJ 유형의 분석적인 사람입니다.', 6, 4, 4, 7, NOW()),
+    ('cc@test.com', '$2a$10$w4HTPPceVHVu4M2NSz/g.uB1usPkoL5LkSHiqr61BBS2PvEWFap9i', 'cc', 'https://example.com/cc.jpg', '010-0000-0002', 'kakao_cc',
+     'Developer', 'CS', '안녕하세요, 저는 cc입니다.', 'https://github.com/cc', 1, 2,
+     'INFP 유형의 창의적인 사람입니다.', 5, 5, 6, 6, NOW()),
+    ('dd@test.com', '$2a$10$w4HTPPceVHVu4M2NSz/g.uB1usPkoL5LkSHiqr61BBS2PvEWFap9i', 'dd', 'https://example.com/dd.jpg', '010-0000-0003', 'kakao_dd',
+     'Developer', 'CS', '안녕하세요, 저는 dd입니다.', 'https://github.com/dd', 1, 2,
+     'ENTP 유형의 호기심 많은 사람입니다.', 8, 2, 7, 5, NOW()),
+    ('ee@test.com', '$2a$10$w4HTPPceVHVu4M2NSz/g.uB1usPkoL5LkSHiqr61BBS2PvEWFap9i', 'ee', 'https://example.com/ee.jpg', '010-0000-0004', 'kakao_ee',
+     'Developer', 'CS', '안녕하세요, 저는 ee입니다.', 'https://github.com/ee', 1, 2,
+     'ISFJ 유형의 섬세한 사람입니다.', 4, 6, 5, 7, NOW()),
+    ('ff@test.com', '$2a$10$w4HTPPceVHVu4M2NSz/g.uB1usPkoL5LkSHiqr61BBS2PvEWFap9i', 'ff', 'https://example.com/ff.jpg', '010-0000-0005', 'kakao_ff',
+     'Developer', 'CS', '안녕하세요, 저는 ff입니다.', 'https://github.com/ff', 1, 2,
+     'ENFJ 유형의 사회적인 사람입니다.', 7, 4, 6, 6, NOW()),
+    ('gg@test.com', '$2a$10$w4HTPPceVHVu4M2NSz/g.uB1usPkoL5LkSHiqr61BBS2PvEWFap9i', 'gg', 'https://example.com/gg.jpg', '010-0000-0006', 'kakao_gg',
+     'Developer', 'CS', '안녕하세요, 저는 gg입니다.', 'https://github.com/gg', 1, 2,
+     'ISTJ 유형의 논리적인 사람입니다.', 6, 5, 4, 8, NOW()),
+    ('hh@test.com', '$2a$10$w4HTPPceVHVu4M2NSz/g.uB1usPkoL5LkSHiqr61BBS2PvEWFap9i', 'hh', 'https://example.com/hh.jpg', '010-0000-0007', 'kakao_hh',
+     'Developer', 'CS', '안녕하세요, 저는 hh입니다.', 'https://github.com/hh', 1, 2,
+     'ESFP 유형의 활발한 사람입니다.', 8, 3, 6, 5, NOW()),
+    ('ii@test.com', '$2a$10$w4HTPPceVHVu4M2NSz/g.uB1usPkoL5LkSHiqr61BBS2PvEWFap9i', 'ii', 'https://example.com/ii.jpg', '010-0000-0008', 'kakao_ii',
+     'Developer', 'CS', '안녕하세요, 저는 ii입니다.', 'https://github.com/ii', 1, 2,
+     'INFJ 유형의 통찰력 있는 사람입니다.', 5, 7, 5, 6, NOW()),
+    ('jj@test.com', '$2a$10$w4HTPPceVHVu4M2NSz/g.uB1usPkoL5LkSHiqr61BBS2PvEWFap9i', 'jj', 'https://example.com/jj.jpg', '010-0000-0009', 'kakao_jj',
+     'Developer', 'CS', '안녕하세요, 저는 jj입니다.', 'https://github.com/jj', 1, 2,
+     'ENTJ 유형의 리더십 있는 사람입니다.', 7, 5, 6, 7, NOW());

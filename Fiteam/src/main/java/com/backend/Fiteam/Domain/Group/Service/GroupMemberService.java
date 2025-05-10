@@ -170,7 +170,7 @@ public class GroupMemberService {
                 .numPD(user.getNumPD())
                 .numVA(user.getNumVA())
                 .numCL(user.getNumCL())
-
+                .position(member.getPosition())
                 .workHistory(member.getWorkHistory())
                 .projectGoal(member.getProjectGoal())
                 .projectPurpose(member.getProjectPurpose())
@@ -187,7 +187,7 @@ public class GroupMemberService {
 
     // userLike 하고, 마감된 으로 정렬해야함.
     @Transactional(readOnly = true)
-    public List<GroupMemberResponseDto> getGroupMembers(Integer userId, Integer groupId) {
+    public List<GroupMemberResponseDto> getGroupMembers(Integer userId, Integer groupId, boolean isUser) {
         List<GroupMember> groupMembers = groupMemberRepository.findByGroupId(groupId);
         List<GroupMemberResponseDto> result = new ArrayList<>();
 
@@ -196,10 +196,12 @@ public class GroupMemberService {
                 User targetUser = userRepository.findById(member.getUserId())
                         .orElseThrow(() -> new NoSuchElementException("유저 정보를 찾을 수 없습니다."));
 
-                // likeId 조회
-                Integer likeId = userLikeRepository.findBySenderIdAndReceiverIdAndGroupId(userId, targetUser.getId(), groupId)
-                        .map(UserLike::getId)
-                        .orElse(null);
+                // Manager인 경우 무조건 null, User인 경우 체크
+                Integer likeId = null;
+                if (isUser) {
+                    likeId = userLikeRepository.findBySenderIdAndReceiverIdAndGroupId(userId, targetUser.getId(), groupId)
+                            .map(UserLike::getId).orElse(null);
+                }
 
                 GroupMemberResponseDto dto = GroupMemberResponseDto.builder()
                         .memberId(member.getId())

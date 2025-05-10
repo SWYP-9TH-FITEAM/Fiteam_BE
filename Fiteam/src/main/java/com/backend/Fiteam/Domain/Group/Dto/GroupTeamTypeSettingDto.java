@@ -1,6 +1,7 @@
 package com.backend.Fiteam.Domain.Group.Dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import java.time.LocalDateTime;
@@ -29,6 +30,6 @@ public class GroupTeamTypeSettingDto {
     @Schema(description = "직무 기반 매칭 여부", example = "랜덤매칭=false, 직군별:true")
     private Boolean positionBased;
 
-    @Schema(description = "추가 설정 (JSON 문자열)", example = "{\"option\":\"value\"}")
-    private String configJson;
+    @Schema(description = "직군별 인원 구성", example = "{\"PM\":1, \"DS\":1, \"FE\":2, \"BE\":2}")
+    private Map<String, Integer> configJson;
 }

@@ -134,8 +134,8 @@ public class GroupMemberController {
         }
     }
 
-    // 5. 그룹에 참여한 전체 멤버 리스트 GET
-    @Operation(summary = "5. 그룹 전체 멤버 리스트 조회", description = "그룹에 속한 모든 멤버를 조회합니다.",
+    // 5. 유저가 그룹에 참여한 전체 멤버 리스트 GET
+    @Operation(summary = "5. 유저가 그룹 전체 멤버 리스트 조회", description = "그룹에 속한 모든 멤버를 조회합니다.",
             responses = {@ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = GroupMemberResponseDto.class))))})
     @GetMapping("/{groupId}/members")
     public ResponseEntity<?> getGroupMembers(
@@ -150,7 +150,7 @@ public class GroupMemberController {
                 throw new IllegalArgumentException("해당 그룹에 접근할 권한이 없습니다.");
             }
 
-            List<GroupMemberResponseDto> response = groupMemberService.getGroupMembers(requesterId, groupId);
+            List<GroupMemberResponseDto> response = groupMemberService.getGroupMembers(requesterId, groupId, true);
             return ResponseEntity.ok(response);
 
         } catch (IllegalArgumentException e) {

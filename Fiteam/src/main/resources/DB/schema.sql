@@ -119,7 +119,6 @@ CREATE TABLE GroupMember (
     is_accepted BOOLEAN DEFAULT FALSE,
     invited_at TIMESTAMP,
     ban BOOLEAN DEFAULT FALSE,
-    team_status VARCHAR(20),
     team_id INT,
     team_status VARCHAR(30),
     work_history INT,

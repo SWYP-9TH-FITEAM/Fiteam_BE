@@ -41,4 +41,6 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Intege
     Optional<GroupMember> findByIdAndIsAcceptedTrue(Integer memberId);
 
     int countByGroupIdAndIsAcceptedTrue(Integer id);
+
+    Optional<GroupMember> findByGroupIdAndUserIdAndIsAcceptedTrue(Integer groupId, Integer userId);
 }

@@ -13,9 +13,15 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.sql.Timestamp;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -29,12 +35,14 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.context.annotation.Lazy;
 
 @RestController
 @RequestMapping("/v1/chat")
 @RequiredArgsConstructor
+@Tag(name = "9. ChatController - 1대1 채팅")
 public class ChatController {
 
     /*
@@ -42,6 +50,7 @@ public class ChatController {
     2.채팅방 리스트 조회-대화 마지막 시간순서대로..?
     3.채팅방 메시지 조회
     4.채팅 메시지 전송	POST
+    5. 채팅 메시지 읽음 처리
     */
 
     private final ChatService chatService;
@@ -82,19 +91,20 @@ public class ChatController {
         }
     }
 
-    // 3.채팅방 메시지 조회
-    @Operation(summary     = "채팅방 메시지 조회", description = "로그인한 사용자가 해당 채팅방에 참여자인 경우에만 메시지를 시간순으로 반환합니다.")
     @GetMapping("/{roomId}/messages")
-    public ResponseEntity<List<ChatMessageResponseDto>> getMessagesForRoom(
-            @AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer roomId) {
+    public ResponseEntity<Page<ChatMessageResponseDto>> getMessagesForRoomPaged(
+            @AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer roomId,
+            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size
+    ) {
         try {
             Integer userId = Integer.parseInt(userDetails.getUsername());
 
             // 1. 권한 검사
             chatService.verifyUserInRoom(roomId, userId);
 
-            // 2. 메시지 조회
-            List<ChatMessageResponseDto> messages = chatService.getMessagesForRoom(roomId);
+            // 2. 최신 메시지부터 조회 (sentAt DESC)
+            Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "sentAt"));
+            Page<ChatMessageResponseDto> messages = chatService.getMessagesForRoomPaged(roomId, pageable);
             return ResponseEntity.ok(messages);
 
         } catch (IllegalArgumentException e) {
@@ -109,20 +119,33 @@ public class ChatController {
     // 4.채팅 메시지 전송	STOMP 방식
     @MessageMapping("/chat.sendMessage")
     public void handleChatMessage(ChatMessageDto dto) {
+        try {
+            // 1. 유효성 검사
+            if (dto.getChatRoomId() == null || dto.getSenderId() == null || dto.getContent() == null) {
+                throw new IllegalArgumentException("필수 값 누락");
+            }
 
-        ChatMessage message = ChatMessage.builder()
-                .chatRoomId(dto.getChatRoomId())
-                .senderId(dto.getSenderId())
-                .messageType(dto.getMessageType() != null ? dto.getMessageType() : "TEXT")
-                .content(dto.getContent())
-                .isRead(false)
-                .sentAt(new Timestamp(System.currentTimeMillis()))
-                .build();
+            // 2. 메시지 생성 및 저장
+            ChatMessage message = ChatMessage.builder()
+                    .chatRoomId(dto.getChatRoomId())
+                    .senderId(dto.getSenderId())
+                    .messageType(dto.getMessageType() != null ? dto.getMessageType() : "TEXT")
+                    .content(dto.getContent())
+                    .isRead(false)
+                    .sentAt(new Timestamp(System.currentTimeMillis()))
+                    .build();
 
-        ChatMessage saved = chatMessageRepository.save(message);
+            ChatMessage saved = chatMessageRepository.save(message);
 
-        // 구독자에게 브로드캐스트
-        messagingTemplate.convertAndSend("/topic/chatroom." + dto.getChatRoomId(), saved);
+            // 3. 메시지 브로드캐스트
+            messagingTemplate.convertAndSend("/topic/chatroom." + dto.getChatRoomId(), saved);
+
+        } catch (Exception e) {
+            // 4. 에러 로그
+            System.err.println("채팅 메시지 전송 실패: " + e.getMessage());
+            // 5. 실패 응답 (해당 유저의 개인 큐로)
+            messagingTemplate.convertAndSend("/queue/errors/" + dto.getSenderId(), "메시지 전송 실패: " + e.getMessage());
+        }
     }
 
 
@@ -141,16 +164,4 @@ public class ChatController {
         }
     }
 
-    /*
-    @Operation(summary = "유저 온라인 여부 조회", description = "해당 유저가 현재 WebSocket 세션에 연결되어 있는지 반환합니다.",
-            responses = {@ApiResponse(responseCode = "200", description  = "유저 접속 상태 DTO 반환",
-                    content = @Content(schema = @Schema(implementation = UserPresenceDto.class)))})
-    @GetMapping("/presence/{userId}")
-    public ResponseEntity<UserPresenceDto> getUserPresence(
-            @PathVariable Integer userId
-    ) {
-        boolean online = presenceRegistry.isOnline(userId);
-        return ResponseEntity.ok(new UserPresenceDto(userId, online));
-    }
-     */
 }

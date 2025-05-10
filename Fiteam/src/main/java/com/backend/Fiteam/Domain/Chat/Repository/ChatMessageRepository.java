@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, Integer> {
 
@@ -21,4 +23,5 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Intege
     @Query("UPDATE ChatMessage m SET m.isRead = true WHERE m.chatRoomId = :chatRoomId AND m.senderId <> :userId AND m.isRead = false")
     void markAllAsRead(@Param("chatRoomId") Integer chatRoomId, @Param("userId") Integer userId);
 
+    Page<ChatMessage> findByChatRoomIdOrderBySentAtDesc(Integer chatRoomId, Pageable pageable);
 }

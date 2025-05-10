@@ -29,8 +29,11 @@ public class SecurityConfig {
             "https://swyp-9th-fiteam.github.io",
 
             "https://fiteam.shop",
-            "https://www.fiteam.shop"
+            "https://www.fiteam.shop",
             // https 프론트나 다른 서버 작성
+
+            "https://fiteam-prod.netlify.app",
+            "https://fiteam-dev.netlify.app"
     );
 
     // API endponit 허용할거 작성.
@@ -50,65 +53,19 @@ public class SecurityConfig {
             "/v1/auth/test",
             "/v1/auth/login",
             "/v1/auth/register",
-            "/v1/auth/verify-email",
+            "/v1/auth/send-verification-code",
+            "/v1/auth/verify-code",
             "/v1/auth/reset-password",
 
-            // Character (인증 없이)
+            // Character
             "/v1/card/*",
             "/v1/question/all",
             "/v1/question/unauth/test-result",
 
-            // Chat
-            "/v1/chat/room",
-            "/v1/chat/list",
-            "/v1/chat/*/messages",
             // WebSocket STOMP
-            "/ws/chat/**",
-
-            // ProjectGroup
-            "/v1/group/create",
-            "/v1/group/set-teamtype/*",
-            "/v1/group/invite",
-            "/v1/group/*/members",
-
-            // GroupMemberController 관련 허용 API 경로
-            "/v1/member/{groupId}/positions",
-            "/v1/member/profile/{groupMemberId}",
-            "/v1/member/myprofile/mini",
-            "/v1/member/profile/my",
-            "/v1/member/profile/{memberId}",
-            "/v1/member/{groupId}/members",
-            "/v1/member/my",
-
-            // Notification
-            "/v1/noti/notifications",
-
-            // Team
-            "/v1/team/request",
-            "/v1/team/requests/received",
-            "/v1/team/request/from/*",
-            "/v1/team/request/accept/*",
-            "/v1/team/request/reject/*",
-            "/v1/team/myteam",
-            "/v1/team/teambuildingstatus",
-
-            // User
-            "/v1/user/savecard",
-            "/v1/user/mini-result",
-            "/v1/user/card",
-            "/v1/user/name-img-job",
-            "/v1/user/accept/**",
-            "/v1/user/groups/accepted",
-            "/v1/user/groups/pending",
-            "/v1/user/settings",
-            "/v1/user/settings",
-
-            // UserLike
-            "/v1/like/add",
-            "/v1/like/unlike/*",
-            "/v1/like/likelist",
-            "/v1/like/memo/*",
+            "/ws/chat/**"
     };
+
 
 
     @Bean
