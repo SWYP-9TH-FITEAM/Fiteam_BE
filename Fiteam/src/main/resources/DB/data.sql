@@ -93,9 +93,7 @@ VALUES ('manager1@test.com', '$2a$10$w4HTPPceVHVu4M2NSz/g.uB1usPkoL5LkSHiqr61BBS
 
 -- 4. User (10명: aa ~ jj)
 INSERT INTO User (
-    email, password, user_name, profile_img_url, phone_number, kakao_id,
-    job, major, introduction, url, card_id1, card_id2,
-    details, num_EI, num_PD, num_VA, num_CL, created_at)
+    email, password, user_name, profile_img_url, phone_number, kakao_id,job, major, introduction, url, card_id1, card_id2,details, num_EI, num_PD, num_VA, num_CL, created_at)
 VALUES
     ('aa@test.com', '$2a$10$w4HTPPceVHVu4M2NSz/g.uB1usPkoL5LkSHiqr61BBS2PvEWFap9i', 'aa', 'https://example.com/aa.jpg', '010-0000-0000', 'kakao_aa',
      'Developer', 'CS', '안녕하세요, 저는 aa입니다.', 'https://github.com/aa', 1, 2,
@@ -127,3 +125,43 @@ VALUES
     ('jj@test.com', '$2a$10$w4HTPPceVHVu4M2NSz/g.uB1usPkoL5LkSHiqr61BBS2PvEWFap9i', 'jj', 'https://example.com/jj.jpg', '010-0000-0009', 'kakao_jj',
      'Developer', 'CS', '안녕하세요, 저는 jj입니다.', 'https://github.com/jj', 1, 2,
      'ENTJ 유형의 리더십 있는 사람입니다.', 7, 5, 6, 7, NOW());
+
+
+-- 2) 팀 타입 (직군별 구성) 하나
+INSERT INTO TeamType (id, name, description,start_datetime, end_datetime,min_members, max_members,position_based, is_building_done, config_json)
+VALUES
+(1,'직군별 구성','직무에 따라 팀을 구성하는 방식','2025-05-11 9:30:00','2025-06-01 00:00:00',4, 6,FALSE, FALSE, NULL);
+
+-- 3) 프로젝트 그룹 하나 (매니저1이 만든 샘플 그룹)
+INSERT INTO ProjectGroup (id, manager_id, name, description,max_user_count, team_make_type, contact_policy)
+VALUES
+(1,1,'샘플 그룹','초기 샘플 그룹입니다.',20,1,'EMAIL');
+
+
+-- 5) 각 유저별로 1인 1팀씩 생성 (팀 ID 1~10)
+INSERT INTO Team (id, group_id, team_id, master_user_id,name, max_members, description, status)
+VALUES
+    (1,  1, 1,  1,  'Team 1', 6, '초기 1인 팀', 'ACTIVE'),
+    (2,  1, 2,  2,  'Team 2', 6, '초기 1인 팀', 'ACTIVE'),
+    (3,  1, 3,  3,  'Team 3', 6, '초기 1인 팀', 'ACTIVE'),
+    (4,  1, 4,  4,  'Team 4', 6, '초기 1인 팀', 'ACTIVE'),
+    (5,  1, 5,  5,  'Team 5', 6, '초기 1인 팀', 'ACTIVE'),
+    (6,  1, 6,  6,  'Team 6', 6, '초기 1인 팀', 'ACTIVE'),
+    (7,  1, 7,  7,  'Team 7', 6, '초기 1인 팀', 'ACTIVE'),
+    (8,  1, 8,  8,  'Team 8', 6, '초기 1인 팀', 'ACTIVE'),
+    (9,  1, 9,  9,  'Team 9', 6, '초기 1인 팀', 'ACTIVE'),
+    (10, 1, 10, 10, 'Team 10',6, '초기 1인 팀', 'ACTIVE');
+
+-- 6) 모든 유저 초대 → 수락하여 GroupMember, 각각 1인 팀에 배정
+INSERT INTO GroupMember (id, group_id, user_id,is_accepted, invited_at, ban,team_id, team_status)
+VALUES
+    (1,  1,  1, TRUE, '2025-05-10 00:00:00', FALSE, 1,  'JOINED'),
+    (2,  1,  2, TRUE, '2025-05-10 00:00:00', FALSE, 2,  'JOINED'),
+    (3,  1,  3, TRUE, '2025-05-10 00:00:00', FALSE, 3,  'JOINED'),
+    (4,  1,  4, TRUE, '2025-05-10 00:00:00', FALSE, 4,  'JOINED'),
+    (5,  1,  5, TRUE, '2025-05-10 00:00:00', FALSE, 5,  'JOINED'),
+    (6,  1,  6, TRUE, '2025-05-10 00:00:00', FALSE, 6,  'JOINED'),
+    (7,  1,  7, TRUE, '2025-05-10 00:00:00', FALSE, 7,  'JOINED'),
+    (8,  1,  8, TRUE, '2025-05-10 00:00:00', FALSE, 8,  'JOINED'),
+    (9,  1,  9, TRUE, '2025-05-10 00:00:00', FALSE, 9,  'JOINED'),
+    (10, 1, 10, TRUE, '2025-05-10 00:00:00', FALSE, 10, 'JOINED');

@@ -66,6 +66,9 @@ dependencies {
 	// 9. WebSocket-STOMP 방식의 채팅구현
 	implementation 'org.springframework.boot:spring-boot-starter-websocket'
 	implementation 'org.springframework:spring-messaging'
+
+	// 10. 시간예약 quartz
+	implementation 'org.springframework.boot:spring-boot-starter-quartz'
 }
 
 tasks.named('test') {

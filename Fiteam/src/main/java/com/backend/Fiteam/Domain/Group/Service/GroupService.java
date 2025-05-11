@@ -1,5 +1,6 @@
 package com.backend.Fiteam.Domain.Group.Service;
 
+import com.backend.Fiteam.ConfigQuartz.TeamBuildingSchedulerService;
 import com.backend.Fiteam.Domain.Character.Entity.CharacterCard;
 import com.backend.Fiteam.Domain.Character.Repository.CharacterCardRepository;
 import com.backend.Fiteam.Domain.Group.Dto.CreateGroupRequestDto;
@@ -38,9 +39,8 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
+import org.quartz.SchedulerException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -56,6 +56,8 @@ public class GroupService {
     private final CharacterCardRepository characterCardRepository;
     private final TeamService teamService;
     private final TeamRepository teamRepository;
+    private final TeamBuildingSchedulerService schedulerService;
+
 
     @Transactional(readOnly = true)
     public ProjectGroup getProjectGroup(Integer groupId) {
@@ -83,7 +85,7 @@ public class GroupService {
     }
 
     @Transactional
-    public void setTeamType(Integer groupId, GroupTeamTypeSettingDto requestDto) {
+    public void setTeamType(Integer groupId, GroupTeamTypeSettingDto requestDto) throws SchedulerException {
         // 1) 그룹 조회
         ProjectGroup projectGroup = projectGroupRepository.findById(groupId)
                 .orElseThrow(() -> new NoSuchElementException("존재하지 않는 그룹입니다."));
@@ -91,12 +93,11 @@ public class GroupService {
         Integer teamTypeId = projectGroup.getTeamMakeType();
         TeamType teamType;
 
-        // configJson을 문자열로 변환
-        String configJsonStr=null;
-        if(requestDto.getPositionBased()==true) {
+        // configJson을 문자열로 변환 (positionBased=true인 경우에만)
+        String configJsonStr = null;
+        if (Boolean.TRUE.equals(requestDto.getPositionBased())) {
             try {
-                ObjectMapper objectMapper = new ObjectMapper();
-                configJsonStr = objectMapper.writeValueAsString(requestDto.getConfigJson());
+                configJsonStr = new ObjectMapper().writeValueAsString(requestDto.getConfigJson());
             } catch (JsonProcessingException e) {
                 throw new RuntimeException("configJson 직렬화 실패", e);
             }
@@ -141,9 +142,11 @@ public class GroupService {
             teamRepository.saveAll(teams);
         }
 
-
+        // ─────────── Quartz 스케줄러 등록 ───────────
+        // TeamType.startDatetime 기준으로 자동 팀빌딩 예약
+        // (이미 등록된 Job이 있으면 덮어쓰도록 구현되어 있음)
+        schedulerService.scheduleTeamBuilding(projectGroup);
     }
-
 
 
     @Transactional

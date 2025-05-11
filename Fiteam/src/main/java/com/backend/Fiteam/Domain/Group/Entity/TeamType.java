@@ -41,4 +41,7 @@ public class TeamType {
 
     @Column(name = "config_json", columnDefinition = "TEXT")
     private String configJson;
+
+    @Column(name = "is_building_done", columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean buildingDone = false;
 }

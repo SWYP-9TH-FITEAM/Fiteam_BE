@@ -81,6 +81,7 @@ CREATE TABLE TeamType (
     min_members INT,
     max_members INT,
     position_based BOOLEAN DEFAULT FALSE,
+    is_building_done BOOLEAN DEFAULT FALSE,
     config_json TEXT
 );
 
