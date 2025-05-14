@@ -1,6 +1,8 @@
 package com.backend.Fiteam.Domain.User.Controller;
 
 
+import com.backend.Fiteam.Domain.Group.Dto.GroupMemberProfileResponseDto;
+import com.backend.Fiteam.Domain.Group.Dto.ManagerGroupResponseDto;
 import com.backend.Fiteam.Domain.User.Dto.TestResultResponseDto;
 import com.backend.Fiteam.Domain.User.Dto.UserCardResponseDto;
 
@@ -69,117 +71,67 @@ public class UserController {
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @Content(examples = @ExampleObject(
                     value = "[{\"E\": 4, \"I\": 1}, {\"P\": 2, \"D\": 3}, " + "{\"V\": 3, \"A\": 2}, {\"C\": 4, \"L\": 1}]"))))
     @PostMapping("/savecard")
-    public ResponseEntity<?> saveTestResult(
+    public ResponseEntity<String> saveTestResult(
             @AuthenticationPrincipal UserDetails userDetails, @RequestBody List<Map<String, Integer>> answers) {
-        try{
-            authorizeUser(userDetails);
-            Integer userId = Integer.parseInt(userDetails.getUsername());
 
-            // 질문에 대한 답변을 받아서 연산후 성향 점수를 저장함.
-            userService.saveCharacterTestResult(userId, answers);
-            return ResponseEntity.ok("테스트 결과가 성공적으로 저장되었습니다.");
-        }catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        authorizeUser(userDetails);
+        Integer userId = Integer.parseInt(userDetails.getUsername());
+        userService.saveCharacterTestResult(userId, answers);
+        return ResponseEntity.ok("테스트 결과가 성공적으로 저장되었습니다.");
     }
 
     // 2.성향검사 결과 조회 (Mini 모달용)
     @Operation(summary = "2. 성향검사 결과 조회 (Mini 모달용)", description = "유저의 성향검사 결과를 조회합니다.")
     @GetMapping("/mini-result")
-    public ResponseEntity<TestResultResponseDto> getTestResult(@AuthenticationPrincipal UserDetails userDetails){
-        try {
-            Integer userId = Integer.parseInt(userDetails.getUsername());
-
-            TestResultResponseDto response = userService.getTestResult(userId);
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+    public ResponseEntity<TestResultResponseDto> getTestResult(@AuthenticationPrincipal UserDetails userDetails) {
+        Integer userId = Integer.parseInt(userDetails.getUsername());
+        TestResultResponseDto response = userService.getTestResult(userId);
+        return ResponseEntity.ok(response);
     }
 
     // 3.나의 테스트 결과(캐릭터카드, 점수)+AI분석 보기
     @Operation(summary = "3. 나의 테스트 결과(캐릭터카드, 점수)+AI분석 보기", description = "JWT를 통해 인증된 사용자 본인의 프로필카드를 조회합니다.")
     @GetMapping("/card")
     public ResponseEntity<UserCardResponseDto> getUserProfileCard(@AuthenticationPrincipal UserDetails userDetails) {
-        try {
-            Integer userId = Integer.parseInt(userDetails.getUsername());
-            UserCardResponseDto profileCard = userService.getUserProfileCard(userId);
-
-            return ResponseEntity.ok(profileCard);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        Integer userId = Integer.parseInt(userDetails.getUsername());
+        UserCardResponseDto profileCard = userService.getUserProfileCard(userId);
+        return ResponseEntity.ok(profileCard);
     }
 
     // 4. get 마이페이지에서 유저사진과 유저 이름 가져오기
     @Operation(summary = "4. 마이페이지에서 유저사진과 유저 이름 가져오기", description = "JWT를 통해 사용자 이름과 프로필 이미지 그리고 직업을 조회합니다.")
     @GetMapping("/name-img-job")
     public ResponseEntity<UserProfileDto> getUserInfo(@AuthenticationPrincipal UserDetails userDetails) {
-        try {
-            Integer userId = Integer.parseInt(userDetails.getUsername());
-            UserProfileDto profile = userService.getUserProfile(userId);
-            return ResponseEntity.ok(profile);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        Integer userId = Integer.parseInt(userDetails.getUsername());
+        UserProfileDto profile = userService.getUserProfile(userId);
+        return ResponseEntity.ok(profile);
     }
 
     // 5. 초대받은 그룹에 참여하기
     @Operation(summary = "5. 초대받은 그룹에 참여하기", description = "그룹 ID 정보가 '알림' 에 담겨서 넘어올 수 있음. 팀빌딩 페이지 에서도 확인 가능")
     @PatchMapping("/accept/{groupId}")
-    public ResponseEntity<?> acceptInvitation(
-            @AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer groupId) {
-        try {
-            Integer userId = Integer.parseInt(userDetails.getUsername());
-            userService.acceptGroupInvitation(groupId, userId);
-            return ResponseEntity.ok().build();
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+    public ResponseEntity<String> acceptInvitation(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer groupId) {
+        Integer userId = Integer.parseInt(userDetails.getUsername());
+        userService.acceptGroupInvitation(groupId, userId);
+        return ResponseEntity.ok("그룹에 참여했습니다.");
     }
 
     // 6. 참여중인 그룹 목록 조회
-    @Operation(summary = "6. 참여중인 그룹 목록 조회", description = "JWT 인증된 사용자가 현재 참여중인 그룹 리스트를 반환합니다.",
-            responses = {@ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = UserGroupStatusDto.class)))),})
+    @Operation(summary = "6. 참여중인 그룹 목록 조회", description = "JWT 인증된 사용자가 현재 참여중인 그룹 리스트를 반환합니다.")
     @GetMapping("/groups/accepted")
     public ResponseEntity<List<UserGroupStatusDto>> getAcceptedGroups(@AuthenticationPrincipal UserDetails userDetails) {
-        try {
-            Integer userId = Integer.parseInt(userDetails.getUsername());
-            List<UserGroupStatusDto> list = userService.getUserGroupsByStatus(userId, true);
-            return ResponseEntity.ok(list);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        Integer userId = Integer.parseInt(userDetails.getUsername());
+        List<UserGroupStatusDto> list = userService.getUserGroupsByStatus(userId, true);
+        return ResponseEntity.ok(list);
     }
 
     // 7. 초대받은(유저가 수락하기 전) 그룹 목록 조회
-    @Operation(
-            summary = "7. 초대받은(유저가 수락하기 전) 그룹 목록 조회",
-            description = "6번 API와 구조 동일",
-            responses = {@ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = UserGroupStatusDto.class))))})
+    @Operation(summary = "7. 초대받은(유저가 수락하기 전) 그룹 목록 조회", description = "6번 API와 구조 동일")
     @GetMapping("/groups/pending")
     public ResponseEntity<List<UserGroupStatusDto>> getPendingGroups(@AuthenticationPrincipal UserDetails userDetails) {
-        try {
-            Integer userId = Integer.parseInt(userDetails.getUsername());
-            List<UserGroupStatusDto> list = userService.getUserGroupsByStatus(userId, false);
-            return ResponseEntity.ok(list);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        Integer userId = Integer.parseInt(userDetails.getUsername());
+        List<UserGroupStatusDto> list = userService.getUserGroupsByStatus(userId, false);
+        return ResponseEntity.ok(list);
     }
 
     // 8.마이페이지 내정보 변경하기(프로필 이미지나 등등)
@@ -190,29 +142,18 @@ public class UserController {
                     content = @Content(schema = @Schema(implementation = UserSettingsRequestDto.class)))
     )
     @PatchMapping("/settings")
-    public ResponseEntity<?> updateUserSettings(
-            @AuthenticationPrincipal UserDetails userDetails, @RequestBody UserSettingsRequestDto dto) {
-        try {
-            Integer userId = Integer.valueOf(userDetails.getUsername());
-            userService.updateUserSettings(userId, dto);
-            return ResponseEntity.ok().build();
-
-        } catch (NoSuchElementException | IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+    public ResponseEntity<Void> updateUserSettings(@AuthenticationPrincipal UserDetails userDetails, @RequestBody UserSettingsRequestDto dto) {
+        Integer userId = Integer.parseInt(userDetails.getUsername());
+        userService.updateUserSettings(userId, dto);
+        return ResponseEntity.ok().build();
     }
 
     // 9. 마이페이지 내정보 조회
-    @Operation(
-            summary = "9. 마이페이지 내정보 조회",
-            description = "로그인한 사용자의 전화번호, 카카오 ID, 직업, 전공, 소개, URL을 반환합니다.",
-            responses = {@ApiResponse(content = @Content(schema = @Schema(implementation = UserSettingsResponseDto.class))),})
+    @Operation(summary = "9. 마이페이지 내정보 조회", description = "로그인한 사용자의 전화번호, 카카오 ID, 직업, 전공, 소개, URL을 반환합니다.")
     @GetMapping("/settings")
-    public ResponseEntity<UserSettingsResponseDto> getUserSettings(@AuthenticationPrincipal UserDetails userDetails) {
-        Integer userId = Integer.valueOf(userDetails.getUsername());
+    public ResponseEntity<UserSettingsResponseDto> getUserSettings(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Integer userId = Integer.parseInt(userDetails.getUsername());
         UserSettingsResponseDto dto = userService.getUserSettings(userId);
         return ResponseEntity.ok(dto);
     }

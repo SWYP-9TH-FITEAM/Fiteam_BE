@@ -10,44 +10,55 @@ import jakarta.transaction.Transactional;
 import java.sql.Timestamp;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
 public class NotificationService {
     private final NotificationRepository notificationRepository;
-    private final UserService userService;                 // 그룹 수락 호출
-    private final TeamRequestService teamRequestService;   // 팀 수락 호출
-    private final GroupMemberService groupMemberService;   // 그룹 멤버 조회/삭제
+    private final SimpMessagingTemplate messagingTemplate;
 
 
-    /**
-     * 새 알림 생성
-     * @param recipientId  알림 수신자 User ID
-     * @param senderId     알림 발신자 ID (유저/매니저 등)
-     * @param senderType   발신자 타입 (e.g. "user", "manager")
-     * @param type         알림 유형 (e.g. "Group invite", "Team request")
-     * @param tableId      관련 테이블 PK (e.g. groupId or teamRequestId)
-     * @param content      알림 메시지 내용
-     * @return 생성된 Notification 엔티티
-     */
     @Transactional
-    public Notification createNotification(Integer recipientId, Integer senderId, String senderType,
-            String type, Integer tableId, String content) {
-        Notification notification = Notification.builder()
-                .userId(recipientId)          // 수신자 ID
-                .senderId(senderId)           // 발신자 ID
-                .senderType(senderType)       // 발신자 타입
-                .type(type)                   // 알림 유형
-                .tableId(tableId)             // 연관된 테이블
-                .content(content)             // 알림 내용
-                .isRead(false)                // 기본 읽음
+    public Notification createAndPushNotification(Integer recipientId, Integer senderId, String senderType, String type, Integer tableId, String content) {
+        // 1) DB에 알림 저장
+        Notification notice = Notification.builder()
+                .userId(recipientId)
+                .senderId(senderId)
+                .senderType(senderType)
+                .type(type)
+                .tableId(tableId)
+                .content(content)
+                .isRead(false)
                 .createdAt(new Timestamp(System.currentTimeMillis()))
                 .build();
+        Notification saved = notificationRepository.save(notice);
 
-        return notificationRepository.save(notification);
+        // 2) DTO 변환 (FE에 전달할 형태)
+        UserNotifyDto dto = UserNotifyDto.builder()
+                .id(saved.getId())
+                .senderType(saved.getSenderType())
+                .senderId(saved.getSenderId())
+                .type(saved.getType())
+                .tableId(saved.getTableId())
+                .content(saved.getContent())
+                .isRead(saved.getIsRead())
+                .createdAt(saved.getCreatedAt())
+                .build();
+
+        // 3) WebSocket 푸시 (유저 전용 큐)
+        //    클라이언트는 '/user/queue/notifications'를 subscribe 해야 합니다.
+        messagingTemplate.convertAndSendToUser(
+                recipientId.toString(),
+                "/queue/notifications",
+                dto
+        );
+
+        return saved;
     }
 
+    @Transactional
     public List<UserNotifyDto> getUserNotifications(Integer userId) {
         return notificationRepository.findByUserId(userId).stream()
                 .sorted((n1, n2) -> n2.getCreatedAt().compareTo(n1.getCreatedAt()))

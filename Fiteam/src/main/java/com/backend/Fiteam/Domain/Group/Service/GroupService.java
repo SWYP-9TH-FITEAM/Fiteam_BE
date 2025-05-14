@@ -19,6 +19,7 @@ import com.backend.Fiteam.Domain.Group.Repository.GroupMemberRepository;
 import com.backend.Fiteam.Domain.Group.Repository.ManagerRepository;
 import com.backend.Fiteam.Domain.Group.Repository.ProjectGroupRepository;
 import com.backend.Fiteam.Domain.Group.Entity.TeamType;
+import com.backend.Fiteam.Domain.Notification.Service.NotificationService;
 import com.backend.Fiteam.Domain.Team.Entity.Team;
 import com.backend.Fiteam.Domain.Team.Repository.TeamRepository;
 import com.backend.Fiteam.Domain.Team.Repository.TeamRequestRepository;
@@ -28,6 +29,7 @@ import com.backend.Fiteam.Domain.User.Entity.User;
 import com.backend.Fiteam.Domain.User.Repository.UserRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -57,6 +59,7 @@ public class GroupService {
     private final TeamService teamService;
     private final TeamRepository teamRepository;
     private final TeamBuildingSchedulerService schedulerService;
+    private final NotificationService notificationService;
 
 
     @Transactional(readOnly = true)
@@ -105,6 +108,7 @@ public class GroupService {
 
         if (teamTypeId == null) {
             // A) 새 TeamType 생성
+
             teamType = TeamType.builder()
                     .name(requestDto.getName())
                     .description(requestDto.getDescription())
@@ -114,6 +118,7 @@ public class GroupService {
                     .maxMembers(requestDto.getMaxMembers())
                     .positionBased(requestDto.getPositionBased())
                     .configJson(configJsonStr)
+                    .buildingDone(false)
                     .build();
             teamType = teamTypeRepository.save(teamType);
 
@@ -132,6 +137,7 @@ public class GroupService {
             teamType.setMaxMembers(requestDto.getMaxMembers());
             teamType.setPositionBased(requestDto.getPositionBased());
             teamType.setConfigJson(configJsonStr);
+            teamType.setBuildingDone(false);
             teamTypeRepository.save(teamType);
 
             // 현재 그룹의 팀 maxMembers 값 일괄 업데이트
@@ -148,9 +154,29 @@ public class GroupService {
         schedulerService.scheduleTeamBuilding(projectGroup);
     }
 
+    @Transactional
+    protected boolean isValidDatetimeRange(
+            LocalDateTime requestStart,
+            LocalDateTime requestEnd,
+            LocalDateTime existingStart,
+            LocalDateTime existingEnd
+    ) {
+        LocalDateTime now = LocalDateTime.now();
+
+        LocalDateTime start = (requestStart != null) ? requestStart : existingStart;
+        LocalDateTime end   = (requestEnd != null)   ? requestEnd   : existingEnd;
+
+        if (start == null || end == null) {
+            return false;
+        }
+
+        return now.isBefore(start) && start.isBefore(end);
+    }
+
+
 
     @Transactional
-    public GroupInvitedResponseDto inviteUsersToGroup(Integer groupId, List<String> emails) {
+    public GroupInvitedResponseDto inviteUsersToGroup(Integer groupId, List<String> emails, Integer managerId) {
         List<String> alreadyInGroupEmails = new ArrayList<>();
         List<String> notFoundEmails = new ArrayList<>();
         int successCount = 0;
@@ -191,6 +217,16 @@ public class GroupService {
                 groupMemberRepository.save(groupMember);
                 successCount++;
 
+                // —— 여기서 알림 생성 & 푸시 호출 ——
+                notificationService.createAndPushNotification(
+                        user.getId(),                                              // 수신자
+                        managerId,                                                 // 발신자 (매니저)
+                        "manager",                                                 // 발신자 타입
+                        "Group invite",                                            // 알림 유형
+                        groupId,                                                   // 관련 테이블 PK (groupId)
+                        projectGroup.getName() + "에 초대되었습니다."              // 알림 내용
+                );
+
             } else {
                 notFoundEmails.add(email);
             }
@@ -223,129 +259,147 @@ public class GroupService {
 
     @Transactional
     public void RandomTeamBuilding(ProjectGroup projectGroup) {
-        int groupId = projectGroup.getId();
+        Integer groupId = projectGroup.getId();
 
-        // 팀타입 조회
+        // 1) TeamType 조회 & 검증
         TeamType teamType = teamTypeRepository.findById(projectGroup.getTeamMakeType())
                 .orElseThrow(() -> new NoSuchElementException("팀 빌딩 설정이 없습니다."));
-
-        // PositionBased가 false인지 확인
         if (Boolean.TRUE.equals(teamType.getPositionBased())) {
-            throw new IllegalArgumentException("이 API는 positionBase=false 일 때만 사용 가능합니다.");
+            throw new IllegalArgumentException("랜덤 팀빌딩은 positionBased=false 일 때만 사용 가능합니다.");
         }
 
-        // 수락된 멤버 목록 가져오기
-        List<GroupMember> acceptedMembers = groupMemberRepository.findAllByGroupIdAndIsAcceptedTrue(projectGroup.getId());
+        // 2) 기존 팀 삭제 및 멤버 초기화
+        List<Team> oldTeams = teamRepository.findByGroupId(groupId);
+        if (!oldTeams.isEmpty()) {
+            // 2-1) 멤버의 teamId, teamStatus 초기화
+            List<GroupMember> allAccepted = groupMemberRepository
+                    .findAllByGroupIdAndIsAcceptedTrue(groupId);
+            allAccepted.forEach(gm -> {
+                gm.setTeamId(null);
+                gm.setTeamStatus(null);
+            });
+            groupMemberRepository.saveAll(allAccepted);
 
-        // 랜덤 팀빌딩 로직 수행
+            // 2-2) 팀 삭제
+            teamRepository.deleteAll(oldTeams);
+        }
+
+        // 3) 수락된 멤버 목록 재조회
+        List<GroupMember> acceptedMembers = groupMemberRepository
+                .findAllByGroupIdAndIsAcceptedTrue(groupId);
+
+        // 4) 랜덤 팀빌딩 수행
         executeRandomTeamBuilding(groupId, acceptedMembers, teamType);
     }
 
+
     @Transactional
-    protected void executeRandomTeamBuilding(Integer groupId, List<GroupMember> members, TeamType teamType) {
-        int minMembers = teamType.getMinMembers();
-        int maxMembers = teamType.getMaxMembers();
+    protected void executeRandomTeamBuilding(Integer groupId,
+            List<GroupMember> members,
+            TeamType teamType) {
+        int minMembers   = teamType.getMinMembers();
+        int maxMembers   = teamType.getMaxMembers();
         int totalMembers = members.size();
 
-        // 팀 개수 및 인원 배정
-        int numTeams = totalMembers / minMembers;
-        int remainder = totalMembers % minMembers;
-
+        // 1) 팀 개수 및 기본 크기 계산
+        int numTeams   = totalMembers / minMembers;
+        int remainder  = totalMembers % minMembers;
         List<Integer> teamSizes = new ArrayList<>();
-        for (int i = 0; i < numTeams; i++) {
-            teamSizes.add(minMembers);
-        }
-
-        int idx = 0;
-        while (remainder > 0) {
+        for (int i = 0; i < numTeams; i++) teamSizes.add(minMembers);
+        // 남은 인원 분배
+        for (int idx = 0; remainder > 0; idx = (idx + 1) % teamSizes.size()) {
             if (teamSizes.get(idx) < maxMembers) {
                 teamSizes.set(idx, teamSizes.get(idx) + 1);
                 remainder--;
             }
-            idx = (idx + 1) % teamSizes.size();
         }
 
-        // userId → CharacterCard code 맵핑
-        Map<Integer, String> userCharacterMap = new HashMap<>();
-        Map<String, CharacterCard> characterCardMap = new HashMap<>();
-
+        // 2) 셔플 & 최적화 로직
+        Collections.shuffle(members);
+        Map<Integer,String> userChar = new HashMap<>();
+        Map<String, CharacterCard> cardMap = new HashMap<>();
         for (GroupMember gm : members) {
             User user = userRepository.findById(gm.getUserId())
                     .orElseThrow(() -> new NoSuchElementException("User Not Found"));
             CharacterCard card = characterCardRepository.findById(user.getCardId1())
                     .orElseThrow(() -> new NoSuchElementException("Card Not Found"));
-            userCharacterMap.put(gm.getUserId(), card.getCode());
-            characterCardMap.put(card.getCode(), card);
+            userChar.put(gm.getUserId(), card.getCode());
+            cardMap.put(card.getCode(), card);
         }
-
-        // 팀 목록 초기화
         List<List<GroupMember>> teams = new ArrayList<>();
-        for (int size : teamSizes) {
+        for (int sz : teamSizes)
             teams.add(new ArrayList<>());
-        }
-
-        // 최적화 팀 구성 로직
         Set<Integer> assigned = new HashSet<>();
-
-        // 우선 랜덤 셔플로 시작
-        Collections.shuffle(members);
 
         for (GroupMember gm : members) {
             if (assigned.contains(gm.getUserId())) continue;
+            String code  = userChar.get(gm.getUserId());
+            CharacterCard card = cardMap.get(code);
 
-            String code = userCharacterMap.get(gm.getUserId());
-            CharacterCard card = characterCardMap.get(code);
-
-            // best_match_code를 찾기
-            String best1 = card.getBestMatchCode1();
-            String best2 = card.getBestMatchCode2();
+            // best/worst 코드 조회
+            String best1  = card.getBestMatchCode1();
+            String best2  = card.getBestMatchCode2();
             String worst1 = card.getWorstMatchCode1();
             String worst2 = card.getWorstMatchCode2();
 
-            boolean assignedToTeam = false;
-
-            // 기존 팀 중 best-match가 가장 많은 팀 찾기
-            int bestTeamIndex = -1;
-            int bestTeamScore = -1;
-
+            int bestIdx = -1, bestScore = Integer.MIN_VALUE;
+            // 점수 계산
             for (int i = 0; i < teams.size(); i++) {
-                List<GroupMember> team = teams.get(i);
-                if (team.size() >= teamSizes.get(i)) continue;
-
+                List<GroupMember> t = teams.get(i);
+                if (t.size() >= teamSizes.get(i)) continue;
                 int score = 0;
-                for (GroupMember member : team) {
-                    String memberCode = userCharacterMap.get(member.getUserId());
-                    if (memberCode.equals(best1) || memberCode.equals(best2)) score += 2;
-                    if (memberCode.equals(worst1) || memberCode.equals(worst2)) score -= 3;
+                for (GroupMember member : t) {
+                    String mcode = userChar.get(member.getUserId());
+                    if (mcode.equals(best1) || mcode.equals(best2)) score += 2;
+                    if (mcode.equals(worst1) || mcode.equals(worst2)) score -= 3;
                 }
-
-                if (score > bestTeamScore) {
-                    bestTeamScore = score;
-                    bestTeamIndex = i;
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestIdx   = i;
                 }
             }
-
-            // 적절한 팀 찾으면 배정
-            if (bestTeamIndex != -1) {
-                teams.get(bestTeamIndex).add(gm);
+            // 매칭
+            if (bestIdx != -1) {
+                teams.get(bestIdx).add(gm);
                 assigned.add(gm.getUserId());
-                assignedToTeam = true;
-            }
-
-            // 적절한 팀 못 찾으면 가장 인원이 적은 팀에 배정
-            if (!assignedToTeam) {
+            } else {
                 teams.stream()
                         .filter(t -> t.size() < maxMembers)
                         .min(Comparator.comparingInt(List::size))
-                        .ifPresent(team -> {
-                            team.add(gm);
+                        .ifPresent(t -> {
+                            t.add(gm);
                             assigned.add(gm.getUserId());
                         });
             }
         }
 
-        // Team 생성 로직을 분리된 TeamService를 통해 호출
-        teamService.createTeams(groupId, teams);
+        // 3) 새 팀 생성 & 멤버 재배치
+        for (int i = 0; i < teams.size(); i++) {
+            List<GroupMember> tmembers = teams.get(i);
+            if (tmembers.isEmpty()) continue;
+
+            // 마스터는 첫 번째 멤버
+            Integer masterId = tmembers.get(0).getUserId();
+
+            Team newTeam = Team.builder()
+                    .groupId(groupId)
+                    .masterUserId(masterId)
+                    .name("Team " + (i + 1))
+                    .maxMembers(tmembers.size())
+                    .description("랜덤 팀빌딩 결과")
+                    .status("모집종료")
+                    .createdAt(new Timestamp(System.currentTimeMillis()))
+                    .build();
+            newTeam = teamRepository.save(newTeam);
+
+            // 멤버들 teamId, teamStatus 업데이트
+            Team finalNewTeam = newTeam;
+            tmembers.forEach(gm -> {
+                gm.setTeamId(finalNewTeam.getId());
+                gm.setTeamStatus("JOINED");
+            });
+            groupMemberRepository.saveAll(tmembers);
+        }
     }
 
     @Transactional

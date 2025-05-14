@@ -99,6 +99,18 @@ CREATE TABLE ProjectGroup (
     FOREIGN KEY (team_make_type) REFERENCES TeamType(id)
 );
 
+-- ========== 그룹 공지(Group Notice) ==========
+CREATE TABLE IF NOT EXISTS GroupNotice (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    manager_id INT NOT NULL,
+    group_id INT NOT NULL,
+    title VARCHAR(100) NOT NULL,
+    context TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (manager_id) REFERENCES User(id),
+    FOREIGN KEY (group_id)   REFERENCES ProjectGroup(id)
+);
+
 CREATE TABLE Team (
     id INT AUTO_INCREMENT PRIMARY KEY,
     group_id INT,

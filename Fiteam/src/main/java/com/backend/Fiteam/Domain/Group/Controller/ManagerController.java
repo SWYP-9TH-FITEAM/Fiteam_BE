@@ -1,13 +1,16 @@
 package com.backend.Fiteam.Domain.Group.Controller;
 
 import com.backend.Fiteam.Domain.Group.Dto.GroupMemberResponseDto;
+import com.backend.Fiteam.Domain.Group.Dto.GroupNoticeRequestDto;
 import com.backend.Fiteam.Domain.Group.Dto.ManagerGroupListDto;
 import com.backend.Fiteam.Domain.Group.Dto.ManagerGroupResponseDto;
 import com.backend.Fiteam.Domain.Group.Dto.ManagerGroupStatusDto;
 import com.backend.Fiteam.Domain.Group.Dto.ManagerProfileResponseDto;
+import com.backend.Fiteam.Domain.Group.Entity.GroupNotice;
 import com.backend.Fiteam.Domain.Group.Entity.ProjectGroup;
 import com.backend.Fiteam.Domain.Group.Repository.ProjectGroupRepository;
 import com.backend.Fiteam.Domain.Group.Service.GroupMemberService;
+import com.backend.Fiteam.Domain.Group.Service.GroupNoticeService;
 import com.backend.Fiteam.Domain.Group.Service.GroupService;
 import com.backend.Fiteam.Domain.Group.Service.ManagerService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -23,8 +26,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -38,12 +45,16 @@ public class ManagerController {
     private final ManagerService managerService;
     private final ProjectGroupRepository projectGroupRepository;
     private final GroupMemberService groupMemberService;
+    private final GroupNoticeService groupNoticeService;
+
     /*
     1. 로그인한 매니저의 ID, 이름 반환
     2. 로그인한 매니저가 관리하는 그룹 정보를 반환합니다.
     3. 로그인한 매니저가 관리하는 그룹 정보를 전체 반환합니다.
+    4. 매니저 관리 그룹 ID·이름 리스트 조회
+    5. 매니저가 그룹 멤버 리스트 조회
+    6.
      */
-
 
     private void authorizeManager(UserDetails userDetails) {
         boolean isManager = userDetails.getAuthorities().stream()
@@ -64,16 +75,10 @@ public class ManagerController {
     @Operation(summary = "1. 로그인한 매니저의 ID, 이름 반환", description = "로그인한 매니저의 ID와 이름을 반환합니다.")
     @GetMapping("/name")
     public ResponseEntity<ManagerProfileResponseDto> getManagerBasicProfile(@AuthenticationPrincipal UserDetails userDetails) {
-        try {
-            authorizeManager(userDetails);
-            Integer managerId = Integer.valueOf(userDetails.getUsername());
-            ManagerProfileResponseDto basic = managerService.getManagerBasicProfile(managerId);
-            return ResponseEntity.ok(basic);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        authorizeManager(userDetails);
+        Integer managerId = Integer.valueOf(userDetails.getUsername());
+        ManagerProfileResponseDto basic = managerService.getManagerBasicProfile(managerId);
+        return ResponseEntity.ok(basic);
     }
 
     // 2. 로그인한 매니저가 관리하는 진행중인 그룹 정보를 반환합니다.
@@ -81,16 +86,10 @@ public class ManagerController {
             responses = {@ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = ManagerGroupResponseDto.class))))})
     @GetMapping("/groups/process")
     public ResponseEntity<List<ManagerGroupResponseDto>> getManagedGroups(@AuthenticationPrincipal UserDetails userDetails) {
-        try {
-            authorizeManager(userDetails);
-            Integer managerId = Integer.valueOf(userDetails.getUsername());
-            List<ManagerGroupResponseDto> groups = managerService.getManagedGroups(managerId);
-            return ResponseEntity.ok(groups);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        authorizeManager(userDetails);
+        Integer managerId = Integer.valueOf(userDetails.getUsername());
+        List<ManagerGroupResponseDto> groups = managerService.getManagedGroups(managerId);
+        return ResponseEntity.ok(groups);
     }
 
     // 3. 로그인한 매니저가 관리하는 그룹 정보를 전체 반환합니다.
@@ -98,16 +97,10 @@ public class ManagerController {
             responses = {@ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = ManagerGroupStatusDto.class))))})
     @GetMapping("/groups/all")
     public ResponseEntity<List<ManagerGroupStatusDto>> getManagedGroupStatuses(@AuthenticationPrincipal UserDetails userDetails) {
-        try {
-            authorizeManager(userDetails);
-            Integer managerId = Integer.valueOf(userDetails.getUsername());
-            List<ManagerGroupStatusDto> statuses = managerService.getManagedGroupStatuses(managerId);
-            return ResponseEntity.ok(statuses);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        authorizeManager(userDetails);
+        Integer managerId = Integer.valueOf(userDetails.getUsername());
+        List<ManagerGroupStatusDto> statuses = managerService.getManagedGroupStatuses(managerId);
+        return ResponseEntity.ok(statuses);
     }
 
     // 4. 매니저 관리 그룹 ID·이름 리스트 조회
@@ -117,16 +110,10 @@ public class ManagerController {
     @GetMapping("/groups/id-name")
     public ResponseEntity<List<ManagerGroupListDto>> getManagerGroupList(
             @AuthenticationPrincipal UserDetails userDetails) {
-        try {
-            authorizeManager(userDetails);
-            Integer managerId = Integer.valueOf(userDetails.getUsername());
-            List<ManagerGroupListDto> list = managerService.getManagerGroupList(managerId);
-            return ResponseEntity.ok(list);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        authorizeManager(userDetails);
+        Integer managerId = Integer.valueOf(userDetails.getUsername());
+        List<ManagerGroupListDto> list = managerService.getManagerGroupList(managerId);
+        return ResponseEntity.ok(list);
     }
 
     // 5. 매니저가 그룹 멤버 리스트 조회
@@ -134,25 +121,52 @@ public class ManagerController {
     @ApiResponses({@ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(array = @ArraySchema(
                             schema = @Schema(implementation = GroupMemberResponseDto.class))))})
     @GetMapping("/{groupId}/members")
-    public ResponseEntity<List<GroupMemberResponseDto>> getGroupMembersByManager(
-            @AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer groupId) {
-        try {
-            // 1) 매니저 권한 및 그룹 관리 권한 검증
-            authorizeManager(userDetails);
-            Integer managerId = Integer.valueOf(userDetails.getUsername());
-            authorizeManager(groupId, managerId);
+    public ResponseEntity<List<GroupMemberResponseDto>> getGroupMembersByManager(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer groupId) {
+        // 1) 매니저 권한 및 그룹 관리 권한 검증
+        authorizeManager(userDetails);
+        Integer managerId = Integer.valueOf(userDetails.getUsername());
+        authorizeManager(groupId, managerId);
 
-            List<GroupMemberResponseDto> response =
-                    groupMemberService.getGroupMembers(managerId, groupId, false);
+        List<GroupMemberResponseDto> response =
+                groupMemberService.getGroupMembers(managerId, groupId, false);
 
-            return ResponseEntity.ok(response);
-
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(403).build();
-        } catch (NoSuchElementException e) {
-            return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        return ResponseEntity.ok(response);
     }
+
+    // 6. 공지 생성
+    @Operation(summary = "공지 생성", description = "로그인한 매니저가 자신이 관리하는 그룹에 새 공지를 작성합니다.")
+    @PostMapping("/new-notice")
+    public ResponseEntity<GroupNotice> createNotice(
+            @AuthenticationPrincipal UserDetails userDetails, @RequestBody GroupNoticeRequestDto dto) {
+        authorizeManager(userDetails);
+        Integer managerId = Integer.valueOf(userDetails.getUsername());
+        authorizeManager(dto.getGroupId(), managerId);
+
+        GroupNotice saved = groupNoticeService.createNotice(managerId, dto);
+        return ResponseEntity.ok(saved);
+    }
+
+    // 7. 공지 수정
+    @Operation(summary = "공지 수정", description = "로그인한 매니저가 자신이 작성한 공지를 수정합니다.")
+    @PatchMapping("/notices/{noticeId}")
+    public ResponseEntity<GroupNotice> updateNotice(@AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Integer noticeId, @RequestBody GroupNoticeRequestDto dto) {
+        authorizeManager(userDetails);
+        Integer managerId = Integer.valueOf(userDetails.getUsername());
+
+        GroupNotice updated = groupNoticeService.updateNotice(managerId, noticeId, dto);
+        return ResponseEntity.ok(updated);
+    }
+
+    // 8. 공지 삭제
+    @Operation(summary = "공지 삭제", description = "로그인한 매니저가 자신이 작성한 공지를 삭제합니다.")
+    @DeleteMapping("/notices/{noticeId}")
+    public ResponseEntity<Void> deleteNotice(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer noticeId) {
+        authorizeManager(userDetails);
+        Integer managerId = Integer.valueOf(userDetails.getUsername());
+
+        groupNoticeService.deleteNotice(managerId, noticeId);
+        return ResponseEntity.ok().build();
+    }
+
 }

@@ -5,15 +5,19 @@ import com.backend.Fiteam.Domain.Group.Entity.ProjectGroup;
 import com.backend.Fiteam.Domain.Group.Entity.TeamType;
 import com.backend.Fiteam.Domain.Group.Repository.GroupMemberRepository;
 import com.backend.Fiteam.Domain.Group.Repository.ProjectGroupRepository;
+import com.backend.Fiteam.Domain.Notification.Service.NotificationService;
 import com.backend.Fiteam.Domain.Team.Dto.TeamContactResponseDto;
 import com.backend.Fiteam.Domain.Team.Entity.Team;
 import com.backend.Fiteam.Domain.Team.Repository.TeamRepository;
 import com.backend.Fiteam.Domain.Team.Repository.TeamRequestRepository;
 import com.backend.Fiteam.Domain.Team.Repository.TeamTypeRepository;
+import com.backend.Fiteam.Domain.User.Entity.User;
+import com.backend.Fiteam.Domain.User.Repository.UserRepository;
 import com.backend.Fiteam.Domain.User.Service.UserService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.sql.Timestamp;
+import java.util.NoSuchElementException;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -30,6 +34,8 @@ public class TeamService {
     private final UserService userService;
     private final ProjectGroupRepository projectGroupRepository;
     private final TeamTypeRepository teamTypeRepository;
+    private final NotificationService notificationService;
+    private final UserRepository userRepository;
 
     @Transactional
     public void createTeams(Integer groupId, List<List<GroupMember>> teams) {
@@ -84,12 +90,27 @@ public class TeamService {
 
         team.setMasterUserId(new_master_id);
         teamRepository.save(team);
+
+        // 팀장 변경하고, 새로운 팀장한테 알림 보내기
+
+        User prevLeader = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다."));
+        String content = prevLeader.getUserName() + "님이 당신에게 팀장 권한을 넘겼습니다.";
+
+        notificationService.createAndPushNotification(
+                new_master_id,
+                userId,
+                "user",
+                "leader_change",
+                teamId,
+                content
+        );
     }
 
     @Transactional(readOnly = true)
     public List<TeamContactResponseDto> getTeamContacts(Integer teamId, Integer currentUserId) {
         Team team = teamRepository.findById(teamId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 팀입니다."));         // :contentReference[oaicite:2]{index=2}:contentReference[oaicite:3]{index=3}
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 팀입니다."));
         if (!team.getMasterUserId().equals(currentUserId)) {
             throw new IllegalArgumentException("팀장만 접근할 수 있습니다.");
         }

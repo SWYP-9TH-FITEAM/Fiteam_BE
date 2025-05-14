@@ -36,33 +36,19 @@ public class UserLikeController {
     // 1.그룹 내 다른 유저에게 좋아요 표시
     @Operation(summary = "1.그룹 내 다른 유저에게 좋아요 표시", description = "JWT 인증된 사용자가 같은 그룹의 다른 유저에게 좋아요를 남깁니다.")
     @PostMapping("/add")
-    public ResponseEntity<String> likeUser(
-            @AuthenticationPrincipal UserDetails userDetails, @RequestBody UserLikeRequestDto dto) {
-        try {
-            Integer senderId = Integer.parseInt(userDetails.getUsername());
-            userLikeService.likeUser(senderId, dto);
-            return ResponseEntity.ok("좋아요가 등록되었습니다.");
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("서버 오류가 발생했습니다.");
-        }
+    public ResponseEntity<String> likeUser(@AuthenticationPrincipal UserDetails userDetails, @RequestBody UserLikeRequestDto dto) {
+        Integer senderId = Integer.parseInt(userDetails.getUsername());
+        userLikeService.likeUser(senderId, dto);
+        return ResponseEntity.ok("좋아요가 등록되었습니다.");
     }
 
     // 2.좋아요 취소
     @Operation(summary = "2.좋아요 취소. 좋아요한 유저 List get에서 UserLikeID 값을 넣어주세요")
     @DeleteMapping("/unlike/{likeId}")
-    public ResponseEntity<String> unlikeUser(
-            @AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer likeId) {
-        try {
-            Integer senderId = Integer.parseInt(userDetails.getUsername());
-            userLikeService.unlikeUser(senderId, likeId);
-            return ResponseEntity.ok("좋아요가 취소되었습니다.");
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("서버 오류가 발생했습니다.");
-        }
+    public ResponseEntity<String> unlikeUser(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer likeId) {
+        Integer senderId = Integer.parseInt(userDetails.getUsername());
+        userLikeService.unlikeUser(senderId, likeId);
+        return ResponseEntity.ok("좋아요가 취소되었습니다.");
     }
 
     // 3.좋아요한 유저 List get

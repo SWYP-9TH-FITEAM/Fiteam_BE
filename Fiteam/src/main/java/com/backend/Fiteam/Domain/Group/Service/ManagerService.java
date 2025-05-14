@@ -96,6 +96,7 @@ public class ManagerService {
                 })
                 .collect(Collectors.toList());
     }
+
     private String calculateStatus(TeamType tt, LocalDateTime now) {
         if (now.isBefore(tt.getStartDatetime())) {
             return "PENDING";

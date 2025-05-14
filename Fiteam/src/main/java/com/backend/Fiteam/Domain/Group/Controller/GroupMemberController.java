@@ -48,8 +48,7 @@ public class GroupMemberController {
     private final GroupMemberService groupMemberService;
 
     // 1. 직무 유형 리스트 GET (PM,디자이너 등)
-    @Operation(
-            summary = "1. 직무 유형 리스트 GET (PM,디자이너 등)",
+    @Operation(summary = "1. 직무 유형 리스트 GET (PM,디자이너 등)",
             description = "teamMakeType 기준으로 TeamType의 configJson을 파싱하여 직무(position) 리스트를 반환합니다.",
             responses = {@ApiResponse(content = @Content(examples = @ExampleObject(value = "[\"PM\", \"DS\", \"FE\", \"BE\"]")))})
     @GetMapping("/{groupId}/positions")
@@ -60,29 +59,19 @@ public class GroupMemberController {
 
             List<String> positions = groupMemberService.getPositionListForGroup(groupId);
             return ResponseEntity.ok(positions);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build(); // 바디 없이 상태만 전달
         } catch (JsonProcessingException e) {
             return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
         }
     }
 
     // 2. 해당그룹 프로필 작성 (경력/목표/목적/URL/소개 작성)
     @Operation(summary = "2. 해당그룹 프로필 작성. (경력/목표/목적/URL/소개 작성)그룹멤버 프로필 수정", description = "초대 수락 후에 그룹 멤버가 자신의 프로필 정보를 수정합니다. (수정 안하는 필드는 null로 입력해주세요")
     @PatchMapping("/profile/{groupMemberId}")
-    public ResponseEntity<?> updateGroupMemberProfile(
-            @AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer groupMemberId, @RequestBody UserGroupProfileDto requestDto) {
-        try {
-            Integer userId = Integer.parseInt(userDetails.getUsername());
-            groupMemberService.updateGroupMemberProfile(groupMemberId, userId, requestDto);
-            return ResponseEntity.ok().build();
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+    public ResponseEntity<?> updateGroupMemberProfile(@AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Integer groupMemberId, @RequestBody UserGroupProfileDto requestDto) {
+        Integer userId = Integer.parseInt(userDetails.getUsername());
+        groupMemberService.updateGroupMemberProfile(groupMemberId, userId, requestDto);
+        return ResponseEntity.ok().build();
     }
 
     // 3-1. 현재 그룹에서 내가 작성한 프로필 Mini GET
@@ -90,15 +79,9 @@ public class GroupMemberController {
             responses = {@ApiResponse(content = @Content(schema = @Schema(implementation = GroupMemberMiniProfileResponseDto.class)))})
     @GetMapping("/myprofile/mini")
     public ResponseEntity<?> getMiniSelfMemberProfile(@AuthenticationPrincipal UserDetails userDetails) {
-        try {
-            Integer userId = Integer.parseInt(userDetails.getUsername());
-            GroupMemberMiniProfileResponseDto profile = groupMemberService.getMemberMiniProfile(userId);
-            return ResponseEntity.ok(profile);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        Integer userId = Integer.parseInt(userDetails.getUsername());
+        GroupMemberMiniProfileResponseDto profile = groupMemberService.getMemberMiniProfile(userId);
+        return ResponseEntity.ok(profile);
     }
 
     // 3. 현재 그룹에서 내가 작성한 프로필 GET
@@ -106,15 +89,9 @@ public class GroupMemberController {
             responses = {@ApiResponse(content = @Content(schema = @Schema(implementation = GroupMemberProfileResponseDto.class)))})
     @GetMapping("/profile/my")
     public ResponseEntity<?> getSelfMemberProfile(@AuthenticationPrincipal UserDetails userDetails) {
-        try {
-            Integer userId = Integer.parseInt(userDetails.getUsername());
-            GroupMemberProfileResponseDto profile = groupMemberService.getMemberProfile(userId);
-            return ResponseEntity.ok(profile);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        Integer userId = Integer.parseInt(userDetails.getUsername());
+        GroupMemberProfileResponseDto profile = groupMemberService.getMemberProfile(userId);
+        return ResponseEntity.ok(profile);
     }
 
     // 4. 그룹 다른멤버 프로필 조회
@@ -122,16 +99,10 @@ public class GroupMemberController {
             responses = {@ApiResponse(content = @Content(schema = @Schema(implementation = GroupMemberProfileResponseDto.class)))})
     @GetMapping("/profile/{memberId}")
     public ResponseEntity<?> getOtherMemberProfile(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer memberId) {
-        try {
-            Integer requesterId = Integer.parseInt(userDetails.getUsername());
+        Integer requesterId = Integer.parseInt(userDetails.getUsername());
 
-            GroupMemberProfileResponseDto profile = groupMemberService.getMemberProfile(memberId);
-            return ResponseEntity.ok(profile);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        GroupMemberProfileResponseDto profile = groupMemberService.getMemberProfile(memberId);
+        return ResponseEntity.ok(profile);
     }
 
     // 5. 유저가 그룹에 참여한 전체 멤버 리스트 GET
@@ -140,24 +111,16 @@ public class GroupMemberController {
     @GetMapping("/{groupId}/members")
     public ResponseEntity<?> getGroupMembers(
             @AuthenticationPrincipal UserDetails userDetails,  @PathVariable Integer groupId) {
-        try {
-            Integer requesterId = Integer.valueOf(userDetails.getUsername());
+        Integer requesterId = Integer.valueOf(userDetails.getUsername());
 
-            // 요청자가 이 그룹에 속한 사용자 인지 확인
-            boolean isMember = groupMemberService.isUserInGroup(groupId, requesterId);
-
-            if (!isMember) {
-                throw new IllegalArgumentException("해당 그룹에 접근할 권한이 없습니다.");
-            }
-
-            List<GroupMemberResponseDto> response = groupMemberService.getGroupMembers(requesterId, groupId, true);
-            return ResponseEntity.ok(response);
-
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
+        // 요청자가 이 그룹에 속한 사용자 인지 확인
+        boolean isMember = groupMemberService.isUserInGroup(groupId, requesterId);
+        if (!isMember) {
+            throw new IllegalArgumentException("해당 그룹에 접근할 권한이 없습니다.");
         }
+
+        List<GroupMemberResponseDto> response = groupMemberService.getGroupMembers(requesterId, groupId, true);
+        return ResponseEntity.ok(response);
     }
 
 }

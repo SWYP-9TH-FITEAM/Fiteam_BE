@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +36,7 @@ public class TeamRequestService {
     private final UserRepository          userRepository;
     private final ChatService             chatService;
 
+    @Transactional
     public void sendTeamRequest(Integer senderId, Integer receiverId, Integer groupId) {
         // 1) 이미 보낸 요청 여부
         if (teamRequestRepository.existsBySenderIdAndReceiverIdAndGroupId(senderId, receiverId, groupId)) {
@@ -75,6 +77,7 @@ public class TeamRequestService {
         chatService.sendTeamRequestMessage(senderId, receiverId);
     }
 
+    @Transactional
     public List<TeamRequestResponseDto> getReceivedTeamRequests(Integer receiverId) {
         List<TeamRequest> requests = teamRequestRepository.findAllByReceiverId(receiverId);
         return requests.stream()
@@ -93,6 +96,7 @@ public class TeamRequestService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
     public TeamRequestResponseDto getRequestFromUser(Integer senderId, Integer receiverId) {
         TeamRequest req = teamRequestRepository
                 .findBySenderIdAndReceiverId(senderId, receiverId)
@@ -109,7 +113,7 @@ public class TeamRequestService {
                 .build();
     }
 
-
+    @Transactional
     public void acceptTeamRequest(Integer receiverId, Integer senderId, Integer groupId) {
         // 1) 요청 엔티티 확인
         TeamRequest request = teamRequestRepository
@@ -148,7 +152,8 @@ public class TeamRequestService {
     }
 
     // '수락 API 에서 팀을 합치는 로직
-    private void mergeTeams(Integer primaryTeamId, Integer secondaryTeamId) {
+    @Transactional
+    protected void mergeTeams(Integer primaryTeamId, Integer secondaryTeamId) {
         if (primaryTeamId.equals(secondaryTeamId)) {
             throw new IllegalArgumentException("이미 같은 팀입니다.");
         }
@@ -185,6 +190,7 @@ public class TeamRequestService {
         teamRepository.delete(secondary);
     }
 
+    @Transactional
     public void rejectTeamRequest(Integer receiverId, Integer senderId, Integer groupId) {
         // 1) 요청 엔티티 조회
         TeamRequest request = teamRequestRepository
@@ -200,6 +206,7 @@ public class TeamRequestService {
         teamRequestRepository.delete(request);
     }
 
+    @Transactional
     public List<TeamMemberDto> getMyTeamMembers(Integer userId) {
         // 1) 내 GroupMember 조회
         GroupMember me = groupMemberRepository.findByUserIdAndIsAcceptedTrueAndTeamIdNotNull(userId)
@@ -231,12 +238,22 @@ public class TeamRequestService {
                 .collect(Collectors.toList());
     }
 
-    public List<List<TeamMemberDto>> getGroupTeamStatus(Integer userId) {
-        // 1) 내 그룹+팀 확인
-        GroupMember me = groupMemberRepository
-                .findByUserIdAndIsAcceptedTrueAndTeamIdNotNull(userId)
-                .orElseThrow(() -> new IllegalArgumentException("팀에 속해 있지 않습니다."));
-        Integer groupId = me.getGroupId();
+    @Transactional
+    public List<List<TeamMemberDto>> getGroupTeamStatus(Integer userId, Integer groupId, boolean isManager) {
+        // 1) 권한 체크
+        /*
+        if (isManager) {
+            var group = projectGroupRepository.findById(groupId)
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 그룹입니다."));
+            if (!group.getManagerId().equals(userId)) {
+                throw new IllegalArgumentException("해당 그룹을 관리할 권한이 없습니다.");
+            }
+        } else {
+            groupMemberRepository
+                    .findByGroupIdAndUserIdAndIsAcceptedTrue(userId, groupId)
+                    .orElseThrow(() -> new IllegalArgumentException("해당 그룹에 속한 팀원이 아닙니다."));
+        }
+         */
 
         // 2) 그룹의 전체 멤버 조회
         List<GroupMember> all = groupMemberRepository.findAllByGroupIdAndIsAcceptedTrue(groupId);
@@ -273,7 +290,7 @@ public class TeamRequestService {
                 .collect(Collectors.toList());
     }
 
-
+    @Transactional
     public List<TeamMemberDto> getTeamOfSender(Integer senderId, Integer groupId) {
         // 1) sender가 그룹에 속해 있어야 함
         GroupMember senderMember = groupMemberRepository.findByUserIdAndGroupId(senderId, groupId)
