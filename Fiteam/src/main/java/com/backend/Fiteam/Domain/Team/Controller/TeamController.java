@@ -4,6 +4,7 @@ package com.backend.Fiteam.Domain.Team.Controller;
 import com.backend.Fiteam.Domain.Team.Dto.TeamContactResponseDto;
 import com.backend.Fiteam.Domain.Team.Dto.TeamMemberDto;
 import com.backend.Fiteam.Domain.Team.Dto.TeamRequestResponseDto;
+import com.backend.Fiteam.Domain.Team.Dto.TeamStatusDto;
 import com.backend.Fiteam.Domain.Team.Service.TeamRequestService;
 import com.backend.Fiteam.Domain.Team.Service.TeamService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -70,10 +71,11 @@ public class TeamController {
     // 2. 유저가 받은 요청 List로 받기
     @Operation(summary = "2. 유저가 받은 요청 List로 받기", description = "로그인한 사용자가 받은 모든 팀 요청 목록을 조회합니다.",
             responses = {@ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = TeamRequestResponseDto.class))))})
-    @GetMapping("/requests/received")
-    public ResponseEntity<?> getReceivedRequests(@AuthenticationPrincipal UserDetails userDetails) {
+    @GetMapping("/requests/received/{groupId}")
+    public ResponseEntity<List<TeamRequestResponseDto>> getReceivedRequests(@AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Integer groupId) {
         Integer receiverId = Integer.parseInt(userDetails.getUsername());
-        List<TeamRequestResponseDto> requests = teamRequestService.getReceivedTeamRequests(receiverId);
+        List<TeamRequestResponseDto> requests = teamRequestService.getReceivedTeamRequests(receiverId, groupId);
         return ResponseEntity.ok(requests);
     }
 
@@ -113,13 +115,13 @@ public class TeamController {
     }
 
     // 5. 내 팀 구성 현황
-    @Operation(summary = "5. 내 팀 구성 현황", description = "로그인한 사용자가 속한 팀의 멤버 리스트를 반환합니다.",
-            responses = {@ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = TeamMemberDto.class))))})
-    @GetMapping("/myteam")
-    public ResponseEntity<List<TeamMemberDto>> getMyTeam(@AuthenticationPrincipal UserDetails userDetails) {
+    @Operation(summary = "5. 내 팀 구성 현황", description = "로그인한 사용자가 속한 팀의 정보와 멤버 리스트를 반환합니다.",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = TeamStatusDto.class))))
+    @GetMapping("/myteam/{groupId}")
+    public ResponseEntity<TeamStatusDto> getMyTeam(@AuthenticationPrincipal UserDetails userDetails,@PathVariable Integer groupId) {
         Integer userId = Integer.parseInt(userDetails.getUsername());
-        List<TeamMemberDto> members = teamRequestService.getMyTeamMembers(userId);
-        return ResponseEntity.ok(members);
+        TeamStatusDto response = teamRequestService.getMyTeamMembers(userId, groupId);
+        return ResponseEntity.ok(response);
     }
 
     // 5-1. 나한테 팀참가 요청 보낸 사람의 팀 구성 보기. -> 특정 유저가 소속한 팀 정보 보기(같은 그룹에서)
@@ -134,14 +136,10 @@ public class TeamController {
 
     // 6. 전체 팀 구성 현황 보기(임시팀, 확정팀 둘다)
     @Operation(summary = "6. 전체 팀 구성 현황 조회", description = "로그인한 사용자의 그룹에 속한 모든 팀의 멤버 리스트(2차원 배열) 를 반환합니다.",
-            responses = {@ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = TeamMemberDto.class))))})
+            responses = {@ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = TeamStatusDto.class))))})
     @GetMapping("/teambuildingstatus/{groupId}")
-    public ResponseEntity<List<List<TeamMemberDto>>> getGroupTeams(@AuthenticationPrincipal UserDetails userDetails,@PathVariable Integer groupId) {
-        Integer userId = Integer.parseInt(userDetails.getUsername());
-        boolean isManager = userDetails.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_Manager"));
-
-        List<List<TeamMemberDto>> status = teamRequestService.getGroupTeamStatus(userId, groupId,isManager);
+    public ResponseEntity<List<TeamStatusDto>> getGroupTeams(@AuthenticationPrincipal UserDetails userDetails,@PathVariable Integer groupId) {
+        List<TeamStatusDto> status = teamRequestService.getGroupTeamStatus(groupId);
         return ResponseEntity.ok(status);
     }
 
@@ -169,7 +167,6 @@ public class TeamController {
         teamService.leaveTeam(teamId, userId);
         return ResponseEntity.ok("팀을 성공적으로 탈퇴했습니다.");
     }
-
 
     @Operation(summary = "9. 팀 확정 신청", description = "로그인한 팀장이 해당 팀을 확정 상태로 변경합니다.",
             responses = {@ApiResponse(content = @Content(schema = @Schema(implementation = String.class)))})

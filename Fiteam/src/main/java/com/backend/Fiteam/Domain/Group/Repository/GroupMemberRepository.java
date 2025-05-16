@@ -17,14 +17,10 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Intege
 
     boolean existsByGroupIdAndUserIdAndIsAcceptedTrue(Integer groupId, Integer userId);
 
-    Optional<GroupMember> findTopByUserIdAndIsAcceptedTrue(Integer targetUserId);
-
-
     long countByTeamId(Integer primaryTeamId);
 
     List<GroupMember> findAllByTeamId(Integer secondaryTeamId);
 
-    Optional<GroupMember> findByUserIdAndIsAcceptedTrueAndTeamIdNotNull(Integer userId);
 
     List<GroupMember> findAllByGroupId(Integer groupId);
 
@@ -36,11 +32,16 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Intege
 
     Optional<GroupMember> findByUserIdAndTeamId(Integer userId, Integer teamId);
 
-    Optional<GroupMember> findByUserId(Integer userId);
-
-    Optional<GroupMember> findByIdAndIsAcceptedTrue(Integer memberId);
 
     int countByGroupIdAndIsAcceptedTrue(Integer id);
 
     Optional<GroupMember> findByGroupIdAndUserIdAndIsAcceptedTrue(Integer groupId, Integer userId);
+
+    Optional<GroupMember> findByUserIdAndGroupIdAndIsAcceptedTrueAndTeamIdNotNull(Integer userId, Integer groupId);
+
+    List<GroupMember> findAllByGroupIdAndTeamId(Integer groupId, Integer teamId);
+
+    Optional<GroupMember> findByUserIdAndGroupIdAndIsAcceptedTrue(Integer userId, Integer groupId);
+
+    Optional<GroupMember> findByIdAndIsAcceptedTrue(Integer memberId);
 }

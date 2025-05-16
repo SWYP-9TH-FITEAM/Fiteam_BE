@@ -13,6 +13,9 @@ public class UserCardResponseDto {
     @Schema(description = "캐릭터 코드", example = "INTJ")
     private final String code;
 
+    @Schema(description = "캐릭터 사진 url", example = "https://~~")
+    private final String imgUrl;
+
     @Schema(description = "캐릭터 이름", example = "전략가")
     private final String name;
 

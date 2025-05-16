@@ -145,6 +145,7 @@ public class UserService {
 
         return UserCardResponseDto.builder()
                 .code(card.getCode())
+                .imgUrl(card.getImgUrl())
                 .name(card.getName())
                 .keyword(card.getKeyword())
                 .summary(card.getSummary())
@@ -195,7 +196,6 @@ public class UserService {
         // 1인 팀 생성
         Team newTeam = Team.builder()
                 .groupId(groupId)
-                .teamId(groupMember.getId()) // groupMember id → teamId로 사용
                 .masterUserId(userId)
                 .name("temp_" + user.getUserName())  // 예: temp_김철수
                 .maxMembers(teamType.getMaxMembers())
@@ -204,11 +204,13 @@ public class UserService {
                 .createdAt(new Timestamp(System.currentTimeMillis()))
                 .build();
 
-        teamRepository.save(newTeam);
+        Team savedTeam = teamRepository.save(newTeam);
+        savedTeam.setTeamId(savedTeam.getId());
 
         // GroupMember 테이블에도 팀 정보 반영
-        groupMember.setTeamId(newTeam.getTeamId());
+        groupMember.setTeamId(savedTeam.getId());
         groupMember.setTeamStatus("대기중");
+        groupMemberRepository.save(groupMember);
     }
 
 

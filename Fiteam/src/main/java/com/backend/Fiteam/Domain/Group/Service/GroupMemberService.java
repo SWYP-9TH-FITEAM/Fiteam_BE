@@ -48,9 +48,9 @@ public class GroupMemberService {
     }
 
     @Transactional
-    public void updateGroupMemberProfile(Integer groupMemberId, Integer userId, UserGroupProfileDto requestDto) {
-        GroupMember groupMember = groupMemberRepository.findById(groupMemberId)
-                .orElseThrow(() -> new IllegalArgumentException("그룹 멤버를 찾을 수 없습니다."));
+    public void updateGroupMemberProfile(Integer groupId, Integer userId, UserGroupProfileDto requestDto) {
+        GroupMember groupMember = groupMemberRepository.findByUserIdAndGroupIdAndIsAcceptedTrue(userId, groupId)
+                .orElseThrow(() -> new IllegalArgumentException("본인의 그룹 멤버 정보만 수정할 수 있습니다."));
 
         if (!groupMember.getUserId().equals(userId)) {
             throw new IllegalArgumentException("본인의 그룹 멤버 정보만 수정할 수 있습니다.");
@@ -109,59 +109,37 @@ public class GroupMemberService {
         return positions;
     }
 
-
-    public GroupMemberProfileResponseDto getMemberProfileMini(Integer targetUserId) {
-        GroupMember member = groupMemberRepository.findTopByUserIdAndIsAcceptedTrue(targetUserId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 유저의 그룹 프로필이 없습니다."));
-
-        User user = userRepository.findById(targetUserId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 유저 정보가 없습니다."));
-
-        return GroupMemberProfileResponseDto.builder()
-                .cardId(user.getCardId1())
-                .numEI(user.getNumEI())
-                .numPD(user.getNumPD())
-                .numVA(user.getNumVA())
-                .numCL(user.getNumCL())
-
-                .workHistory(member.getWorkHistory())
-                .projectGoal(member.getProjectGoal())
-                .projectPurpose(member.getProjectPurpose())
-                .url(member.getUrl())
-                .introduction(member.getIntroduction())
-                .build();
-    }
-
-    public GroupMemberMiniProfileResponseDto getMemberMiniProfile(Integer userId) {
-        // 그룹 멤버 엔티티를 userId로 조회
-        GroupMember groupMember = groupMemberRepository.findByUserId(userId)
+    @Transactional(readOnly = true)
+    public GroupMemberMiniProfileResponseDto getMemberMiniProfile(Integer groupId, Integer userId) {
+        // 1) groupId + userId 로 승인된 GroupMember 조회
+        GroupMember gm = groupMemberRepository
+                .findByUserIdAndGroupIdAndIsAcceptedTrue(userId, groupId)
                 .orElseThrow(() -> new NoSuchElementException("그룹 멤버 정보를 찾을 수 없습니다."));
 
-
-        // 관련된 유저 정보도 함께 조회 (예: 유저 이름, 이미지 등)
+        // 2) User 정보 조회
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("사용자 정보를 찾을 수 없습니다."));
-
-        Integer cardId = user.getCardId1();
 
         return GroupMemberMiniProfileResponseDto.builder()
                 .userId(user.getId())
                 .userName(user.getUserName())
                 .imageUrl(user.getProfileImgUrl())
-                .position(groupMember.getPosition())
-                .teamStatus(groupMember.getTeamStatus()) // 마감, 모집중
-                .teamId(groupMember.getTeamId())
-                .projectGoal(groupMember.getProjectGoal())
-                .cardId(cardId)
+                .position(gm.getPosition())
+                .teamStatus(gm.getTeamStatus())
+                .teamId(gm.getTeamId())
+                .projectGoal(gm.getProjectGoal())
+                .cardId(user.getCardId1())
                 .build();
     }
 
-
-    public GroupMemberProfileResponseDto getMemberProfile(Integer memberId) {
-        GroupMember member = groupMemberRepository.findByIdAndIsAcceptedTrue(memberId)
+    @Transactional(readOnly = true)
+    public GroupMemberProfileResponseDto getMemberProfile(Integer groupId, Integer userId) {
+        // 1) groupId + userId 로 승인된 GroupMember 조회
+        GroupMember gm = groupMemberRepository
+                .findByUserIdAndGroupIdAndIsAcceptedTrue(userId, groupId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 유저의 그룹 프로필이 없습니다."));
 
-        User user = userRepository.findById(member.getUserId())
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 유저 정보가 없습니다."));
 
         return GroupMemberProfileResponseDto.builder()
@@ -170,15 +148,39 @@ public class GroupMemberService {
                 .numPD(user.getNumPD())
                 .numVA(user.getNumVA())
                 .numCL(user.getNumCL())
-                .position(member.getPosition())
-                .workHistory(member.getWorkHistory())
-                .projectGoal(member.getProjectGoal())
-                .projectPurpose(member.getProjectPurpose())
-                .url(member.getUrl())
-                .introduction(member.getIntroduction())
+                .position(gm.getPosition())
+                .workHistory(gm.getWorkHistory())
+                .projectGoal(gm.getProjectGoal())
+                .projectPurpose(gm.getProjectPurpose())
+                .url(gm.getUrl())
+                .introduction(gm.getIntroduction())
                 .build();
     }
 
+    @Transactional(readOnly = true)
+    public GroupMemberProfileResponseDto getMemberProfile(Integer memberId) {
+        // 1) groupId + userId 로 승인된 GroupMember 조회
+        GroupMember gm = groupMemberRepository
+                .findByIdAndIsAcceptedTrue(memberId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 유저의 그룹 프로필이 없습니다."));
+
+        User user = userRepository.findById(gm.getUserId())
+                .orElseThrow(() -> new IllegalArgumentException("해당 유저 정보가 없습니다."));
+
+        return GroupMemberProfileResponseDto.builder()
+                .cardId(user.getCardId1())
+                .numEI(user.getNumEI())
+                .numPD(user.getNumPD())
+                .numVA(user.getNumVA())
+                .numCL(user.getNumCL())
+                .position(gm.getPosition())
+                .workHistory(gm.getWorkHistory())
+                .projectGoal(gm.getProjectGoal())
+                .projectPurpose(gm.getProjectPurpose())
+                .url(gm.getUrl())
+                .introduction(gm.getIntroduction())
+                .build();
+    }
 
     @Transactional(readOnly = true)
     public boolean isUserInGroup(Integer groupId, Integer userId) {

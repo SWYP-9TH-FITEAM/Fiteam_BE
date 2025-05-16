@@ -1,9 +1,11 @@
-CREATE DATABASE IF NOT EXISTS Fiteam DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE fiteam;
+
+-- CREATE DATABASE IF NOT EXISTS Fiteam DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- USE fiteam;
 
 -- ========== 성향검사 & 캐릭터 카드 ==========
 CREATE TABLE CharacterCard (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    img_url VARCHAR(100) NOT NULL ,
     code VARCHAR(4) NOT NULL UNIQUE,
     name VARCHAR(30),
     keyword VARCHAR(50),
@@ -164,7 +166,6 @@ CREATE TABLE UserLike (
     sender_id INT,
     receiver_id INT,
     group_id INT,
-    status VARCHAR(30) DEFAULT '대기중',
     number INT,
     memo TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -202,7 +203,6 @@ CREATE TABLE Notification (
     sender_type  ENUM('USER','MANAGER','ADMIN') NOT NULL,
     user_id INT  NOT NULL,
     type VARCHAR(30),
-    table_id INT,
     content TEXT,
     is_read BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

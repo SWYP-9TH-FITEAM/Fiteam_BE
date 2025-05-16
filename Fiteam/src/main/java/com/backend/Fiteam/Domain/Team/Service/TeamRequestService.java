@@ -7,6 +7,7 @@ import com.backend.Fiteam.Domain.Group.Repository.GroupMemberRepository;
 import com.backend.Fiteam.Domain.Group.Repository.ProjectGroupRepository;
 import com.backend.Fiteam.Domain.Team.Dto.TeamMemberDto;
 import com.backend.Fiteam.Domain.Team.Dto.TeamRequestResponseDto;
+import com.backend.Fiteam.Domain.Team.Dto.TeamStatusDto;
 import com.backend.Fiteam.Domain.Team.Entity.Team;
 import com.backend.Fiteam.Domain.Team.Entity.TeamRequest;
 import com.backend.Fiteam.Domain.Group.Entity.TeamType;
@@ -45,14 +46,13 @@ public class TeamRequestService {
 
         // 2) 반대로 받은 요청이 있는 경우 → 추후 수락 처리로 연결
         if (teamRequestRepository.existsBySenderIdAndReceiverIdAndGroupId(receiverId, senderId, groupId)) {
-            return; // 이미 받은 요청이 있으면 여기서 처리(수락) 로직으로 연결될 수 있습니다.
+            acceptTeamRequest(receiverId, senderId, groupId);
+            return;
         }
 
         // 3) 둘 다 그룹에 정식 멤버여야 함
-        boolean bothInGroup = groupMemberRepository
-                .existsByGroupIdAndUserIdAndIsAcceptedTrue(groupId, senderId)
-                && groupMemberRepository
-                .existsByGroupIdAndUserIdAndIsAcceptedTrue(groupId, receiverId);
+        boolean bothInGroup = groupMemberRepository.existsByGroupIdAndUserIdAndIsAcceptedTrue(groupId, senderId)
+                && groupMemberRepository.existsByGroupIdAndUserIdAndIsAcceptedTrue(groupId, receiverId);
         if (!bothInGroup) {
             throw new IllegalArgumentException("같은 그룹 멤버가 아닙니다.");
         }
@@ -61,6 +61,28 @@ public class TeamRequestService {
         GroupMember senderMember = groupMemberRepository.findByUserIdAndGroupId(senderId, groupId)
                 .orElseThrow(() -> new IllegalArgumentException("요청 보낸 사용자가 그룹에 속해 있지 않습니다."));
         Integer senderTeamId = senderMember.getTeamId();
+
+        // 4-1) receiver 의 현재 teamId 조회
+        GroupMember receiverMember = groupMemberRepository.findByUserIdAndGroupId(receiverId, groupId)
+                .orElseThrow(() -> new IllegalArgumentException("요청 받는 사용자가 그룹에 속해 있지 않습니다."));
+        Integer receiverTeamId = receiverMember.getTeamId();
+
+        Team receiverTeam = teamRepository.findById(receiverMember.getTeamId())
+                .orElseThrow(() -> new IllegalArgumentException("팀 정보를 찾을 수 없습니다."));
+
+        // 4-2) "대기중" 이라는건 팀 빌딩 시작 전
+        if ("대기중".equals(receiverTeam.getStatus())) {
+            throw new IllegalStateException("아직 팀 모집 기간이 아닙니다. 현재 상태: " + receiverTeam.getStatus());
+        }
+        // 4-3) "모집마감" 이란건 팀 확정상태
+        if ("모집마감".equals(receiverTeam.getStatus())) {
+            throw new IllegalStateException("이미 확정팀의 멤버입니다.: " + receiverTeam.getStatus());
+        }
+
+        // 4-3) 이미 같은 팀에 속해 있는지 체크
+        if (senderTeamId != null && senderTeamId.equals(receiverTeamId)) {
+            throw new IllegalArgumentException("이미 같은 팀에 속해 있습니다.");
+        }
 
         // 5) 요청 저장
         TeamRequest request = TeamRequest.builder()
@@ -73,13 +95,15 @@ public class TeamRequestService {
                 .build();
         teamRequestRepository.save(request);
 
-        // 메시지로 저장도 함.
+        // 6) 메시지로 저장도 함.
         chatService.sendTeamRequestMessage(senderId, receiverId);
     }
 
+
     @Transactional
-    public List<TeamRequestResponseDto> getReceivedTeamRequests(Integer receiverId) {
-        List<TeamRequest> requests = teamRequestRepository.findAllByReceiverId(receiverId);
+    public List<TeamRequestResponseDto> getReceivedTeamRequests(Integer receiverId, Integer groupId) {
+        List<TeamRequest> requests = teamRequestRepository.findAllByReceiverIdAndGroupId(receiverId, groupId);
+
         return requests.stream()
                 .map(req -> {
                     User sender = userRepository.findById(req.getSenderId())
@@ -137,6 +161,7 @@ public class TeamRequestService {
         Team receiverTeam = teamRepository.findById(receiverMember.getTeamId())
                 .orElseThrow(() -> new IllegalArgumentException("수락 사용자의 팀 정보를 찾을 수 없습니다."));
         if (!receiverTeam.getMasterUserId().equals(receiverId)) {
+            teamRequestRepository.delete(request);
             throw new IllegalArgumentException("팀 참가 요청은 팀장만 수락할 수 있습니다.");
         }
 
@@ -146,9 +171,9 @@ public class TeamRequestService {
         // 6) 항상 두 팀(1인 팀 포함)을 병합
         mergeTeams(senderMember.getTeamId(), receiverMember.getTeamId());
 
-        // 7) 요청 상태 업데이트
+        // 7) 요청 상태 업데이트 -> 사실상 삭제..
         request.setStatus("수락됨");
-        teamRequestRepository.save(request);
+        teamRequestRepository.delete(request);
     }
 
     // '수락 API 에서 팀을 합치는 로직
@@ -206,74 +231,73 @@ public class TeamRequestService {
         teamRequestRepository.delete(request);
     }
 
-    @Transactional
-    public List<TeamMemberDto> getMyTeamMembers(Integer userId) {
-        // 1) 내 GroupMember 조회
-        GroupMember me = groupMemberRepository.findByUserIdAndIsAcceptedTrueAndTeamIdNotNull(userId)
-                .orElseThrow(() -> new IllegalArgumentException("팀에 속해 있지 않습니다."));
+    @Transactional(readOnly = true)
+    public TeamStatusDto getMyTeamMembers(Integer groupId, Integer userId) {
+        // 1) 내 GroupMember 조회 (팀에 속해 있어야 함)
+        GroupMember me = groupMemberRepository
+                .findByUserIdAndGroupIdAndIsAcceptedTrueAndTeamIdNotNull(userId, groupId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 그룹에 속한 팀이 없습니다."));
 
         Integer teamId = me.getTeamId();
 
-        // 2) 해당 팀 정보 조회 (팀장 ID, 상태 등)
+        // 2) 같은 팀의 모든 멤버만 조회
+        //    (repository에 이미 정의된 메서드 사용)
+        List<GroupMember> teamMembers = groupMemberRepository.findAllByGroupIdAndTeamId(groupId, teamId);
+
+        // 3) 팀 엔티티와 리더 조회
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new IllegalArgumentException("팀 정보를 찾을 수 없습니다."));
-        Integer masterId = team.getMasterUserId();
+        Integer leaderId = team.getMasterUserId();
 
-        // 3) 같은 팀의 멤버 모두 조회
-        List<GroupMember> members = groupMemberRepository.findAllByTeamId(teamId);
-
-        // 4) DTO 변환 (필요한 4가지 필드만 매핑)
-        return members.stream()
+        // 4) TeamMemberDto 변환 (getGroupTeamStatus 참고)
+        List<TeamMemberDto> memberDtos = teamMembers.stream()
                 .map(gm -> {
                     User u = userRepository.findById(gm.getUserId())
                             .orElseThrow(() -> new IllegalArgumentException("유저 정보를 찾을 수 없습니다."));
                     return TeamMemberDto.builder()
                             .userId(u.getId())
-                            .isMaster(u.getId().equals(masterId))
                             .userName(u.getUserName())
                             .profileImgUrl(u.getProfileImgUrl())
                             .position(gm.getPosition())
+                            .isMaster(u.getId().equals(leaderId))
                             .build();
                 })
                 .collect(Collectors.toList());
+
+        // 5) 응답 DTO 빌드
+        return TeamStatusDto.builder()
+                .teamId(teamId)
+                .masterUserId(leaderId)
+                .teamStatus(team.getStatus())
+                .members(memberDtos)
+                .build();
     }
 
     @Transactional
-    public List<List<TeamMemberDto>> getGroupTeamStatus(Integer userId, Integer groupId, boolean isManager) {
-        // 1) 권한 체크
-        /*
-        if (isManager) {
-            var group = projectGroupRepository.findById(groupId)
-                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 그룹입니다."));
-            if (!group.getManagerId().equals(userId)) {
-                throw new IllegalArgumentException("해당 그룹을 관리할 권한이 없습니다.");
-            }
-        } else {
-            groupMemberRepository
-                    .findByGroupIdAndUserIdAndIsAcceptedTrue(userId, groupId)
-                    .orElseThrow(() -> new IllegalArgumentException("해당 그룹에 속한 팀원이 아닙니다."));
-        }
-         */
+    public List<TeamStatusDto> getGroupTeamStatus(Integer groupId) {
+        // 1) (권한 체크 로직)
 
-        // 2) 그룹의 전체 멤버 조회
-        List<GroupMember> all = groupMemberRepository.findAllByGroupIdAndIsAcceptedTrue(groupId);
+        // 2) 그룹의 전체 팀 배정된 멤버만 조회
+        List<GroupMember> all = groupMemberRepository.findAllByGroupIdAndIsAcceptedTrue(groupId).stream()
+                .filter(gm -> gm.getTeamId() != null)
+                .collect(Collectors.toList());
 
         // 3) teamId 별로 묶기
         Map<Integer, List<GroupMember>> byTeam = all.stream()
                 .collect(Collectors.groupingBy(GroupMember::getTeamId));
 
-        // 4) 팀별로 DTO 리스트 변환
+        // 4) 팀별로 TeamStatusDto 변환
         return byTeam.entrySet().stream()
                 .map(entry -> {
                     Integer teamId = entry.getKey();
                     List<GroupMember> gmList = entry.getValue();
 
-                    // 팀 정보 가져오기
+                    // 팀 조회 (findByTeamId 사용 시에도 동일하게 교체 가능)
                     Team team = teamRepository.findById(teamId)
                             .orElseThrow(() -> new IllegalArgumentException("팀 정보를 찾을 수 없습니다."));
                     Integer leaderId = team.getMasterUserId();
 
-                    return gmList.stream()
+                    List<TeamMemberDto> members = gmList.stream()
                             .map(gm -> {
                                 User u = userRepository.findById(gm.getUserId())
                                         .orElseThrow(() -> new IllegalArgumentException("유저 정보를 찾을 수 없습니다."));
@@ -286,9 +310,17 @@ public class TeamRequestService {
                                         .build();
                             })
                             .collect(Collectors.toList());
+
+                    return TeamStatusDto.builder()
+                            .teamId(teamId)
+                            .masterUserId(leaderId)
+                            .teamStatus(team.getStatus())
+                            .members(members)
+                            .build();
                 })
                 .collect(Collectors.toList());
     }
+
 
     @Transactional
     public List<TeamMemberDto> getTeamOfSender(Integer senderId, Integer groupId) {

@@ -36,9 +36,6 @@ public class Notification {
     @Column(name = "type")
     private String type;
 
-    @Column(name = "table_id")
-    private Integer tableId;
-
     @Column(name = "content", length = 300)
     @Schema(description = "알림 내용", example = "새로운 팀 초대가 도착했습니다.")
     private String content;

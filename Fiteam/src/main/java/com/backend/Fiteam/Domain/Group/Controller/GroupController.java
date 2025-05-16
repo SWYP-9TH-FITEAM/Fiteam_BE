@@ -126,7 +126,7 @@ public class GroupController {
     }
 
     // 5. 랜덤 자동 팀빌딩 지원 -> 시작시간 설정 대규모 테스트 필요
-    @Operation(summary = "5. 랜덤 자동 팀빌딩 지원(미완성)", description = "시작시간 설정 대규모 테스트 필요함")
+    @Operation(summary = "5. 랜덤 자동 팀빌딩 지원- 이거는 테스트 용으로, FE에서 직접호출 아닙니다", description = "시작시간 설정 대규모 테스트 필요함")
     @PostMapping("/{groupId}/random-team-building")
     public ResponseEntity<?> randomTeamBuilding(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer groupId) {
         authorizeManager(userDetails);

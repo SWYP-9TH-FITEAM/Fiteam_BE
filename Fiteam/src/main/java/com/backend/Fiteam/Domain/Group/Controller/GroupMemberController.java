@@ -66,31 +66,31 @@ public class GroupMemberController {
 
     // 2. 해당그룹 프로필 작성 (경력/목표/목적/URL/소개 작성)
     @Operation(summary = "2. 해당그룹 프로필 작성. (경력/목표/목적/URL/소개 작성)그룹멤버 프로필 수정", description = "초대 수락 후에 그룹 멤버가 자신의 프로필 정보를 수정합니다. (수정 안하는 필드는 null로 입력해주세요")
-    @PatchMapping("/profile/{groupMemberId}")
+    @PatchMapping("{groupId}/set-profile")
     public ResponseEntity<?> updateGroupMemberProfile(@AuthenticationPrincipal UserDetails userDetails,
-            @PathVariable Integer groupMemberId, @RequestBody UserGroupProfileDto requestDto) {
+            @PathVariable Integer groupId, @RequestBody UserGroupProfileDto requestDto) {
         Integer userId = Integer.parseInt(userDetails.getUsername());
-        groupMemberService.updateGroupMemberProfile(groupMemberId, userId, requestDto);
+        groupMemberService.updateGroupMemberProfile(groupId, userId, requestDto);
         return ResponseEntity.ok().build();
     }
 
     // 3-1. 현재 그룹에서 내가 작성한 프로필 Mini GET
     @Operation(summary = "3. 현재 그룹에서 내가 작성한 프로필 Mini GET", description = "내 프로필 정보",
             responses = {@ApiResponse(content = @Content(schema = @Schema(implementation = GroupMemberMiniProfileResponseDto.class)))})
-    @GetMapping("/myprofile/mini")
-    public ResponseEntity<?> getMiniSelfMemberProfile(@AuthenticationPrincipal UserDetails userDetails) {
+    @GetMapping("/{groupId}/profile/mini")
+    public ResponseEntity<?> getMiniSelfMemberProfile(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer groupId) {
         Integer userId = Integer.parseInt(userDetails.getUsername());
-        GroupMemberMiniProfileResponseDto profile = groupMemberService.getMemberMiniProfile(userId);
+        GroupMemberMiniProfileResponseDto profile = groupMemberService.getMemberMiniProfile(groupId,userId);
         return ResponseEntity.ok(profile);
     }
 
     // 3. 현재 그룹에서 내가 작성한 프로필 GET
     @Operation(summary = "3. 현재 그룹에서 내가 작성한 프로필 GET", description = "내 프로필 정보",
             responses = {@ApiResponse(content = @Content(schema = @Schema(implementation = GroupMemberProfileResponseDto.class)))})
-    @GetMapping("/profile/my")
-    public ResponseEntity<?> getSelfMemberProfile(@AuthenticationPrincipal UserDetails userDetails) {
+    @GetMapping("/{groupId}/profile/my")
+    public ResponseEntity<?> getSelfMemberProfile(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer groupId) {
         Integer userId = Integer.parseInt(userDetails.getUsername());
-        GroupMemberProfileResponseDto profile = groupMemberService.getMemberProfile(userId);
+        GroupMemberProfileResponseDto profile = groupMemberService.getMemberProfile(groupId,userId);
         return ResponseEntity.ok(profile);
     }
 

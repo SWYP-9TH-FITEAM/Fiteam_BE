@@ -67,6 +67,28 @@ public class GroupService {
         return projectGroupRepository.findById(groupId)
                 .orElseThrow(() -> new NoSuchElementException("Group not found with id: " + groupId));
     }
+    private void notifyAllGroupMembersById(Integer groupId,
+            String senderType,
+            String type,
+            String content) {
+        Integer managerId = projectGroupRepository.findById(groupId)
+                .orElseThrow(() -> new NoSuchElementException("그룹이 없습니다."))
+                .getManagerId();
+
+        List<GroupMember> members =
+                groupMemberRepository.findAllByGroupIdAndIsAcceptedTrue(groupId);
+
+        for (GroupMember gm : members) {
+            notificationService.createAndPushNotification(
+                    gm.getUserId(),
+                    managerId,
+                    senderType,
+                    type,
+                    content
+            );
+        }
+    }
+    // -------------------------
 
     @Transactional
     public void createGroup(Integer managerId, CreateGroupRequestDto requestDto) {
@@ -82,6 +104,7 @@ public class GroupService {
                 .maxUserCount(requestDto.getMaxUserCount())
                 .teamMakeType(null)
                 .contactPolicy(requestDto.getContactPolicy())
+                .createdAt(new Timestamp(System.currentTimeMillis()))
                 .build();
 
         projectGroupRepository.save(projectGroup);
@@ -108,7 +131,6 @@ public class GroupService {
 
         if (teamTypeId == null) {
             // A) 새 TeamType 생성
-
             teamType = TeamType.builder()
                     .name(requestDto.getName())
                     .description(requestDto.getDescription())
@@ -173,8 +195,6 @@ public class GroupService {
         return now.isBefore(start) && start.isBefore(end);
     }
 
-
-
     @Transactional
     public GroupInvitedResponseDto inviteUsersToGroup(Integer groupId, List<String> emails, Integer managerId) {
         List<String> alreadyInGroupEmails = new ArrayList<>();
@@ -223,7 +243,6 @@ public class GroupService {
                         managerId,                                                 // 발신자 (매니저)
                         "manager",                                                 // 발신자 타입
                         "Group invite",                                            // 알림 유형
-                        groupId,                                                   // 관련 테이블 PK (groupId)
                         projectGroup.getName() + "에 초대되었습니다."              // 알림 내용
                 );
 
@@ -290,6 +309,14 @@ public class GroupService {
 
         // 4) 랜덤 팀빌딩 수행
         executeRandomTeamBuilding(groupId, acceptedMembers, teamType);
+
+        // 5) 랜덤 빌딩 완료후 멤버들에게 알림 전송
+        notifyAllGroupMembersById(
+                groupId,
+                "MANAGER",
+                "RANDOM_TEAM_BUILDING_RESULT",
+                "그룹의 랜덤 팀빌딩이 완료되었습니다. 팀 결과를 확인해 주세요."
+        );
     }
 
 
@@ -383,11 +410,12 @@ public class GroupService {
 
             Team newTeam = Team.builder()
                     .groupId(groupId)
+                    .teamId(i+1)
                     .masterUserId(masterId)
                     .name("Team " + (i + 1))
                     .maxMembers(tmembers.size())
                     .description("랜덤 팀빌딩 결과")
-                    .status("모집종료")
+                    .status("모집완료")
                     .createdAt(new Timestamp(System.currentTimeMillis()))
                     .build();
             newTeam = teamRepository.save(newTeam);
@@ -396,7 +424,7 @@ public class GroupService {
             Team finalNewTeam = newTeam;
             tmembers.forEach(gm -> {
                 gm.setTeamId(finalNewTeam.getId());
-                gm.setTeamStatus("JOINED");
+                gm.setTeamStatus("모집완료");
             });
             groupMemberRepository.saveAll(tmembers);
         }
@@ -416,6 +444,13 @@ public class GroupService {
         // 3) 차단 처리: 수락 취소 + ban 플래그 설정
         gm.setIsAccepted(false);
         gm.setBan(true);
+
+        // 4) 소속된 팀이 있으면 삭제하고, teamId 클리어
+        Integer teamId = gm.getTeamId();
+        if (teamId != null) {
+            teamRepository.deleteById(teamId);   // 팀 자체를 삭제
+            gm.setTeamId(null);                 // 연관 필드도 비워줌
+        }
     }
 
     @Transactional
@@ -497,6 +532,19 @@ public class GroupService {
         );
     }
 
+    @Transactional
+    public void openPositionBasedRequests(ProjectGroup group) {
+        List<Team> teams = teamRepository.findAllByGroupIdAndStatus(group.getId(), "대기중");
 
+        teams.forEach(t -> t.setStatus("모집중"));
+        teamRepository.saveAll(teams);
 
+        // 팀빌딩 시작하면서 유저들에게 알림 전송
+        notifyAllGroupMembersById(
+                group.getId(),
+                "MANAGER",
+                "TEAM_BUILDING_START",
+                group.getName()+"의 팀 빌딩이 시작되었습니다."
+        );
+    }
 }

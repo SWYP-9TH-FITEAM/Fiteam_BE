@@ -32,6 +32,9 @@ public class ChatService {
     private final UserRepository userRepository;
 
     public ChatRoomResponseDto createChatRoom(Integer senderId, ChatRoomCreateRequestDto dto) {
+        if (senderId.equals(dto.getReceiverId())) {
+            throw new IllegalArgumentException("자기 자신과의 채팅방은 생성할 수 없습니다.");
+        }
         Integer user1 = Math.min(senderId, dto.getReceiverId());
         Integer user2 = Math.max(senderId, dto.getReceiverId());
 

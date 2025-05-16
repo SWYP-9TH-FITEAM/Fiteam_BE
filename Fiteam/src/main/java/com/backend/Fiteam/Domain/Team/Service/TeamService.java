@@ -102,7 +102,6 @@ public class TeamService {
                 userId,
                 "user",
                 "leader_change",
-                teamId,
                 content
         );
     }
@@ -123,7 +122,7 @@ public class TeamService {
 
     @Transactional
     public void leaveTeam(Integer teamId, Integer userId) {
-        // 1) 원팀 존재 확인
+        // 1) 원래팀 존재 확인
         Team oldTeam = teamRepository.findById(teamId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 팀입니다."));
 
@@ -150,7 +149,7 @@ public class TeamService {
         teamRepository.save(newTeam);
 
         // GroupMember 테이블에도 팀 정보 반영
-        me.setTeamId(newTeam.getTeamId());
+        me.setTeamId(newTeam.getId());
         me.setTeamStatus("대기중");
 
         groupMemberRepository.save(me);

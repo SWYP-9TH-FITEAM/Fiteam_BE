@@ -17,6 +17,10 @@ public class CharacterCard {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @Schema(example = "https://kr.object.ncloudstorage.com/fiteam-character/1.jpg")
+    @Column(nullable = false, unique = true, length = 100)
+    private String imgUrl;
+
     @Schema(example = "EPIC")
     @Column(nullable = false, unique = true, length = 4)
     private String code;

@@ -21,14 +21,13 @@ public class NotificationService {
 
 
     @Transactional
-    public Notification createAndPushNotification(Integer recipientId, Integer senderId, String senderType, String type, Integer tableId, String content) {
+    public Notification createAndPushNotification(Integer recipientId, Integer senderId, String senderType, String type, String content) {
         // 1) DB에 알림 저장
         Notification notice = Notification.builder()
                 .userId(recipientId)
                 .senderId(senderId)
                 .senderType(senderType)
                 .type(type)
-                .tableId(tableId)
                 .content(content)
                 .isRead(false)
                 .createdAt(new Timestamp(System.currentTimeMillis()))
@@ -41,7 +40,6 @@ public class NotificationService {
                 .senderType(saved.getSenderType())
                 .senderId(saved.getSenderId())
                 .type(saved.getType())
-                .tableId(saved.getTableId())
                 .content(saved.getContent())
                 .isRead(saved.getIsRead())
                 .createdAt(saved.getCreatedAt())

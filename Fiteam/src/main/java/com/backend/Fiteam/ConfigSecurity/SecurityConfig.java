@@ -33,7 +33,8 @@ public class SecurityConfig {
             // https 프론트나 다른 서버 작성
 
             "https://fiteam-prod.netlify.app",
-            "https://fiteam-dev.netlify.app"
+            "https://fiteam-dev.netlify.app",
+            "https://fiteam.swygbro.com/"
     );
 
     // API endponit 허용할거 작성.
