@@ -73,13 +73,13 @@ public class GroupController {
     @Operation(summary = "1. 매니저가 새로 그룹 생성", description = "매니저 권한이 있는 사용자가 새로운 프로젝트 그룹을 생성합니다. " +
             "같은 매니저가 이미 생성한 그룹 중 동일한 이름이 있을 경우 400 에러를 반환합니다.")
     @PostMapping("/create")
-    public ResponseEntity<String> createGroup(@AuthenticationPrincipal UserDetails userDetails, @RequestBody CreateGroupRequestDto requestDto) {
+    public ResponseEntity<Integer> createGroup(@AuthenticationPrincipal UserDetails userDetails, @RequestBody CreateGroupRequestDto requestDto) {
         // 1) 매니저 여부 확인
         authorizeManager(userDetails);
         Integer managerId = Integer.valueOf(userDetails.getUsername());
 
-        groupService.createGroup(managerId, requestDto);
-        return ResponseEntity.ok().body("그룹을 생성했습니다.");
+        Integer newGroupId = groupService.createGroup(managerId, requestDto);
+        return ResponseEntity.ok().body(newGroupId);
     }
 
     // 2. 매니저가 그룹의 팀 구성 방식을 설정함.

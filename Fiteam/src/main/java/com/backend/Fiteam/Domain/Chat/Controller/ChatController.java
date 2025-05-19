@@ -94,8 +94,7 @@ public class ChatController {
     @GetMapping("/{roomId}/messages")
     public ResponseEntity<Page<ChatMessageResponseDto>> getMessagesForRoomPaged(
             @AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer roomId,
-            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size
-    ) {
+            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
         try {
             Integer userId = Integer.parseInt(userDetails.getUsername());
 
@@ -148,7 +147,6 @@ public class ChatController {
         }
     }
 
-
     // 5. 채팅 메시지 읽음 처리
     @Operation(summary = "채팅 메시지 읽음 처리", description = "로그인한 사용자가 지정된 채팅방(roomId)에 있는 자신의 읽지 않은 메시지를 모두 읽음 처리합니다.")
     @PatchMapping("/{roomId}/read")
@@ -162,6 +160,18 @@ public class ChatController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
+    }
+
+    // 6. RoomId 가지고, 채팅방 정보 GET
+    @Operation(summary = "6. RoomId 가지고, 채팅방 정보 GET", description = "roomId를 이용해 채팅방의 user1Id, user2Id, groupId, 생성 시각을 반환합니다.")
+    @GetMapping("/{roomId}/data")
+    public ResponseEntity<ChatRoomResponseDto> getChatRoomById(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer roomId
+    ) {
+        Integer userId = Integer.parseInt(userDetails.getUsername());
+        chatService.verifyUserInRoom(roomId, userId);
+
+        ChatRoomResponseDto dto = chatService.getChatRoomInfo(roomId);
+        return ResponseEntity.ok(dto);
     }
 
 }

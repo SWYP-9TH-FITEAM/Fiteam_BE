@@ -24,6 +24,9 @@ public class ChatRoom {
     @Column(name = "user2_id")
     private Integer user2Id;
 
+    @Column(name = "group_id", nullable = false)
+    private Integer groupId;
+
     @Column(name = "created_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private Timestamp createdAt;
 }

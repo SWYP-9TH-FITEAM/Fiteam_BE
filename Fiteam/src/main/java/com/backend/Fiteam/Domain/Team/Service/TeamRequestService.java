@@ -232,7 +232,7 @@ public class TeamRequestService {
     }
 
     @Transactional(readOnly = true)
-    public TeamStatusDto getMyTeamMembers(Integer groupId, Integer userId) {
+    public TeamStatusDto getMyTeamMembers(Integer userId, Integer groupId) {
         // 1) 내 GroupMember 조회 (팀에 속해 있어야 함)
         GroupMember me = groupMemberRepository
                 .findByUserIdAndGroupIdAndIsAcceptedTrueAndTeamIdNotNull(userId, groupId)

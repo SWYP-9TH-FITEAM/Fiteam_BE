@@ -1,6 +1,7 @@
 package com.backend.Fiteam.Domain.Chat.Dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.persistence.Column;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -18,6 +19,9 @@ public class ChatRoomListResponseDto {
 
     @Schema(description = "상대방 사용자 ID", example = "2")
     private Integer otherUserId;
+
+    @Column(name = "group_id", nullable = false)
+    private Integer groupId;
 
     @Schema(description = "상대방 사용자 이름", example = "김고양이")
     private String otherUserName;

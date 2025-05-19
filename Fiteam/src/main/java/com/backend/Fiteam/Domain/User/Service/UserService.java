@@ -12,6 +12,7 @@ import com.backend.Fiteam.Domain.Group.Entity.TeamType;
 import com.backend.Fiteam.Domain.Team.Repository.TeamRepository;
 import com.backend.Fiteam.Domain.Team.Repository.TeamTypeRepository;
 import com.backend.Fiteam.Domain.User.Dto.TestResultResponseDto;
+import com.backend.Fiteam.Domain.User.Dto.UserCardHistoryDto;
 import com.backend.Fiteam.Domain.User.Dto.UserCardResponseDto;
 import com.backend.Fiteam.Domain.User.Dto.UserGroupStatusDto;
 import com.backend.Fiteam.Domain.User.Dto.UserProfileDto;
@@ -20,6 +21,7 @@ import com.backend.Fiteam.Domain.User.Dto.UserSettingsResponseDto;
 import com.backend.Fiteam.Domain.User.Entity.User;
 import com.backend.Fiteam.Domain.User.Repository.UserRepository;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -40,6 +42,8 @@ public class UserService {
     private final ProjectGroupRepository projectGroupRepository;
     private final TeamRepository teamRepository;
     private final TeamTypeRepository teamTypeRepository;
+
+
 
     @Transactional
     public void saveCharacterTestResult(Integer userId, List<Map<String, Integer>> answers) {
@@ -132,6 +136,55 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
+    public List<UserCardHistoryDto> getUserCardHistory(Integer userId) {
+        // 1) 사용자 조회
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("해당 유저를 찾을 수 없습니다. id: " + userId));
+
+        if (user.getCardId1() == null) {
+            throw new NoSuchElementException("해당 유저는 테스트 결과가 없습니다.");
+        }
+
+        List<UserCardHistoryDto> history = new ArrayList<>();
+
+        // 2) 최신 카드 (cardId1)
+        CharacterCard card1 = characterCardRepository.findById(user.getCardId1())
+                .orElseThrow(() -> new NoSuchElementException("해당 카드 정보를 찾을 수 없습니다. id: " + user.getCardId1()));
+
+        history.add(buildDto(card1, user.getDetails()));
+
+        // 3) 이전 카드 (cardId2) — null 체크
+        if (user.getCardId2() != null) {
+            CharacterCard card2 = characterCardRepository.findById(user.getCardId2())
+                    .orElseThrow(() -> new NoSuchElementException("해당 카드 정보를 찾을 수 없습니다. id: " + user.getCardId2()));
+            history.add(buildDto(card2, user.getDetails()));
+        }
+
+        return history;
+    }
+
+    private UserCardHistoryDto buildDto(CharacterCard card, String details) {
+        return UserCardHistoryDto.builder()
+                .code(card.getCode())
+                .imgUrl(card.getImgUrl())
+                .name(card.getName())
+                .keyword(card.getKeyword())
+                .summary(card.getSummary())
+                .teamStrength(card.getTeamStrength())
+                .caution(card.getCaution())
+                .bestMatchCode1(card.getBestMatchCode1())
+                .bestMatchReason1(card.getBestMatchReason1())
+                .bestMatchCode2(card.getBestMatchCode2())
+                .bestMatchReason2(card.getBestMatchReason2())
+                .worstMatchCode1(card.getWorstMatchCode1())
+                .worstMatchReason1(card.getWorstMatchReason1())
+                .worstMatchCode2(card.getWorstMatchCode2())
+                .worstMatchReason2(card.getWorstMatchReason2())
+                .details(details)
+                .build();
+    }
+
+    @Transactional(readOnly = true)
     public UserCardResponseDto getUserProfileCard(int userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("해당 유저를 찾을 수 없습니다. id: " + userId));
@@ -169,7 +222,7 @@ public class UserService {
 
     @Transactional
     public void acceptGroupInvitation(Integer groupId, Integer userId) {
-        GroupMember groupMember = groupMemberRepository.findByGroupIdAndUserId(groupId, userId)
+        GroupMember groupMember = groupMemberRepository.findByUserIdAndGroupId(userId,groupId)
                 .orElseThrow(() -> new IllegalArgumentException("초대 내역이 존재하지 않습니다."));
 
         if (Boolean.TRUE.equals(groupMember.getIsAccepted())) {
@@ -197,7 +250,7 @@ public class UserService {
         Team newTeam = Team.builder()
                 .groupId(groupId)
                 .masterUserId(userId)
-                .name("temp_" + user.getUserName())  // 예: temp_김철수
+                .name("temp_" + user.getUserName())
                 .maxMembers(teamType.getMaxMembers())
                 .description(null)
                 .status("대기중")

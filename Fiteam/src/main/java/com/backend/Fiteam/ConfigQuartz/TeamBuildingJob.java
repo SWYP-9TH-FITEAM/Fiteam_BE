@@ -5,7 +5,7 @@ import com.backend.Fiteam.Domain.Group.Entity.TeamType;
 import com.backend.Fiteam.Domain.Group.Service.GroupService;
 import com.backend.Fiteam.Domain.Group.Repository.ProjectGroupRepository;
 import com.backend.Fiteam.Domain.Team.Repository.TeamTypeRepository;
-import com.backend.Fiteam.Domain.Team.Repository.TeamTypeRepository;
+
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.*;
@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Slf4j
-@NoArgsConstructor      // ← 기본 생성자 추가
+@NoArgsConstructor
 public class TeamBuildingJob implements Job {
 
     @Autowired private GroupService groupService;

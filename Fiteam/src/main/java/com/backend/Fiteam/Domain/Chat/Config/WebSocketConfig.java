@@ -20,7 +20,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws/chat") // 클라이언트가 연결할 WebSocket URL
                 .setAllowedOriginPatterns("*") // 개발중이기에 "*" 로 설정
-                .withSockJS(); // SockJS fallback 지원 (브라우저 호환성 ↑) 엔드포인트 등록
+                .withSockJS();
     }
 
     // 메시지 브로커 구성

@@ -4,6 +4,7 @@ package com.backend.Fiteam.Domain.User.Controller;
 import com.backend.Fiteam.Domain.Group.Dto.GroupMemberProfileResponseDto;
 import com.backend.Fiteam.Domain.Group.Dto.ManagerGroupResponseDto;
 import com.backend.Fiteam.Domain.User.Dto.TestResultResponseDto;
+import com.backend.Fiteam.Domain.User.Dto.UserCardHistoryDto;
 import com.backend.Fiteam.Domain.User.Dto.UserCardResponseDto;
 
 import com.backend.Fiteam.Domain.User.Dto.UserGroupStatusDto;
@@ -96,6 +97,15 @@ public class UserController {
         Integer userId = Integer.parseInt(userDetails.getUsername());
         UserCardResponseDto profileCard = userService.getUserProfileCard(userId);
         return ResponseEntity.ok(profileCard);
+    }
+
+    // 3-1.나의 테스트 결과-id 가져오기
+    @Operation(summary = "3-1.나의 테스트 결과-id 가져오기", description = "사용자 검사결과 가져오기-최대 2개까지")
+    @GetMapping("/card-ids")
+    public ResponseEntity<List<UserCardHistoryDto>> getUserProfileCardID(@AuthenticationPrincipal UserDetails userDetails) {
+        Integer userId = Integer.parseInt(userDetails.getUsername());
+        List<UserCardHistoryDto> cardHistory = userService.getUserCardHistory(userId);
+        return ResponseEntity.ok(cardHistory);
     }
 
     // 4. get 마이페이지에서 유저사진과 유저 이름 가져오기

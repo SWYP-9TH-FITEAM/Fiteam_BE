@@ -17,6 +17,9 @@ import com.backend.Fiteam.Domain.User.Service.UserService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.sql.Timestamp;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -182,7 +185,7 @@ public class TeamService {
             );
         }
 
-        // 2-2) positionBased=true 시 configJson 기반 직군별 인원 검사
+        // 2-2) positionBased=true 시 configJson 기반 직군별 인원 검사 (정수 또는 "min~max" 허용)
         if (Boolean.TRUE.equals(type.getPositionBased())) {
             String configJson = type.getConfigJson();
             if (configJson == null || configJson.isBlank()) {
@@ -190,19 +193,36 @@ public class TeamService {
             }
             ObjectMapper mapper = new ObjectMapper();
             JsonNode root = mapper.readTree(configJson);
-            root.fields().forEachRemaining(entry -> {
+
+            for (Iterator<Entry<String, JsonNode>> it = root.fields(); it.hasNext(); ) {
+                Map.Entry<String, JsonNode> entry = it.next();
                 String position = entry.getKey();
-                int required = entry.getValue().asInt();
+                JsonNode constraint = entry.getValue();
+
+                int minReq, maxReq;
+                if (constraint.isInt()) {
+                    minReq = maxReq = constraint.asInt();
+                } else if (constraint.isTextual() && constraint.asText().contains("~")) {
+                    String[] parts = constraint.asText().split("~");
+                    minReq = Integer.parseInt(parts[0].trim());
+                    maxReq = Integer.parseInt(parts[1].trim());
+                } else {
+                    throw new IllegalArgumentException(
+                            String.format("직군 %s 의 요구값(%s) 형식이 잘못되었습니다.", position, constraint.toString())
+                    );
+                }
+
                 long actual = members.stream()
                         .filter(gm -> position.equals(gm.getPosition()))
                         .count();
-                if (actual != required) {
+
+                if (actual < minReq || actual > maxReq) {
                     throw new IllegalArgumentException(
-                            String.format("직군 %s 인원(%d명)이 요구(%d명)와 일치하지 않습니다.",
-                                    position, actual, required)
+                            String.format("직군 %s 인원(%d명)이 요구 범위[%d~%d]에 맞지 않습니다.",
+                                    position, actual, minReq, maxReq)
                     );
                 }
-            });
+            }
         }
 
         // 3) 상태 변경
@@ -212,6 +232,7 @@ public class TeamService {
         team.setStatus("모집마감");
         teamRepository.save(team);
     }
+
 
 }
 

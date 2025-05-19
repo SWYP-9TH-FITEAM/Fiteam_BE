@@ -8,10 +8,13 @@ import com.backend.Fiteam.Domain.Chat.Entity.ChatMessage;
 import com.backend.Fiteam.Domain.Chat.Entity.ChatRoom;
 import com.backend.Fiteam.Domain.Chat.Repository.ChatMessageRepository;
 import com.backend.Fiteam.Domain.Chat.Repository.ChatRoomRepository;
+import com.backend.Fiteam.Domain.User.Dto.UserProfileDto;
 import com.backend.Fiteam.Domain.User.Entity.User;
 import com.backend.Fiteam.Domain.User.Repository.UserRepository;
+import com.backend.Fiteam.Domain.User.Service.UserService;
 import jakarta.transaction.Transactional;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -30,6 +33,7 @@ public class ChatService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final UserRepository userRepository;
+    private final UserService userService;
 
     public ChatRoomResponseDto createChatRoom(Integer senderId, ChatRoomCreateRequestDto dto) {
         if (senderId.equals(dto.getReceiverId())) {
@@ -37,14 +41,16 @@ public class ChatService {
         }
         Integer user1 = Math.min(senderId, dto.getReceiverId());
         Integer user2 = Math.max(senderId, dto.getReceiverId());
+        Integer groupId = dto.getGroupId();  // 그룹 ID
 
-        Optional<ChatRoom> existing = chatRoomRepository.findByUser1IdAndUser2Id(user1, user2);
+        Optional<ChatRoom> existing = chatRoomRepository.findByUser1IdAndUser2IdAndGroupId(user1, user2,groupId);
         if (existing.isPresent()) {
             ChatRoom room = existing.get();
             return ChatRoomResponseDto.builder()
                     .chatRoomId(room.getId())
                     .user1Id(room.getUser1Id())
                     .user2Id(room.getUser2Id())
+                    .groupId(room.getGroupId())
                     .createdAt(room.getCreatedAt())
                     .build();
         }
@@ -52,14 +58,16 @@ public class ChatService {
         ChatRoom newRoom = ChatRoom.builder()
                 .user1Id(user1)
                 .user2Id(user2)
+                .groupId(groupId)
                 .build();
-        chatRoomRepository.save(newRoom);
+        ChatRoom saved = chatRoomRepository.save(newRoom);
 
         return ChatRoomResponseDto.builder()
-                .chatRoomId(newRoom.getId())
-                .user1Id(newRoom.getUser1Id())
-                .user2Id(newRoom.getUser2Id())
-                .createdAt(newRoom.getCreatedAt())
+                .chatRoomId(saved.getId())
+                .user1Id(saved.getUser1Id())
+                .user2Id(saved.getUser2Id())
+                .groupId(saved.getGroupId())
+                .createdAt(saved.getCreatedAt())
                 .build();
     }
 
@@ -75,6 +83,7 @@ public class ChatService {
                     long unreadCount = chatMessageRepository.countByChatRoomIdAndSenderIdNotAndIsReadFalse(room.getId(), userId);
                     return ChatRoomListResponseDto.builder()
                             .chatRoomId(room.getId())
+                            .groupId(room.getGroupId())
                             .userId(userId)
                             .otherUserId(otherId)
                             .otherUserName(otherUserOpt.map(User::getUserName).orElse("탈퇴한 유저"))
@@ -152,7 +161,32 @@ public class ChatService {
         }
     }
 
+    // UserProfileDto profile = userService.getUserProfile(userId);
+    public ChatRoomResponseDto getChatRoomInfo(Integer roomId) {
+        ChatRoom room = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new NoSuchElementException("존재하지 않는 채팅방입니다."));
 
+        // UserProfileDto 가져오기
+        UserProfileDto profile1 = userService.getUserProfile(room.getUser1Id());
+        UserProfileDto profile2 = userService.getUserProfile(room.getUser2Id());
 
+        return ChatRoomResponseDto.builder()
+                .chatRoomId(room.getId())
+                .user1Id(room.getUser1Id())
+                .user2Id(room.getUser2Id())
+                .groupId(room.getGroupId())
+                .createdAt(room.getCreatedAt())
+
+                // 유저1 정보
+                .user1Name(profile1.getUserName())
+                .user1ProfileImgUrl(profile1.getProfileImgUrl())
+                .user1Job(profile1.getJob())
+
+                // 유저2 정보
+                .user2Name(profile2.getUserName())
+                .user2ProfileImgUrl(profile2.getProfileImgUrl())
+                .user2Job(profile2.getJob())
+                .build();
+    }
 
 }

@@ -1,6 +1,6 @@
 
--- CREATE DATABASE IF NOT EXISTS Fiteam DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
--- USE fiteam;
+ CREATE DATABASE IF NOT EXISTS Fiteam DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+ USE fiteam;
 
 -- ========== 성향검사 & 캐릭터 카드 ==========
 CREATE TABLE CharacterCard (
@@ -179,9 +179,11 @@ CREATE TABLE ChatRoom (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user1_id INT,
     user2_id INT,
+    group_id INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user1_id) REFERENCES User(id),
-    FOREIGN KEY (user2_id) REFERENCES User(id)
+    FOREIGN KEY (user2_id) REFERENCES User(id),
+    FOREIGN KEY (group_id) REFERENCES ProjectGroup(id)
 );
 
 CREATE TABLE ChatMessage (
@@ -208,3 +210,13 @@ CREATE TABLE Notification (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES User(id)
 );
+
+-- 성능 향상을 위한 인덱싱 --
+ALTER TABLE GroupMember
+    ADD INDEX idx_gm_user                (user_id),                        -- user_id = ?
+    ADD INDEX idx_gm_group               (group_id),                       -- group_id = ?
+    ADD INDEX idx_gm_user_group          (user_id, group_id),              -- user_id = ? AND group_id = ?
+    ADD INDEX idx_gm_group_order         (group_id, id);                   -- 그룹별 기본 정렬 지원
+
+ALTER TABLE Notification
+    ADD INDEX idx_ntf_user   (user_id)

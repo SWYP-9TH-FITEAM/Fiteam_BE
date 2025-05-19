@@ -69,6 +69,8 @@ dependencies {
 
 	// 10. 시간예약 quartz
 	implementation 'org.springframework.boot:spring-boot-starter-quartz'
+
+	implementation 'org.springframework.boot:spring-boot-starter-webflux'
 }
 
 tasks.named('test') {

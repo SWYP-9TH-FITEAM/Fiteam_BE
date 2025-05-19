@@ -21,7 +21,7 @@ public class GroupTeamTypeSettingDto {
     @Schema(description = "팀 종료 날짜", example = "2025-06-01T00:00:00")
     private LocalDateTime endDatetime;
 
-    @Schema(description = "최소 팀원 수", example = "3")
+    @Schema(description = "최소 팀원 수", example = "4")
     private Integer minMembers;
 
     @Schema(description = "최대 팀원 수", example = "6")
@@ -30,6 +30,6 @@ public class GroupTeamTypeSettingDto {
     @Schema(description = "직무 기반 매칭 여부", example = "랜덤매칭=false, 직군별:true")
     private Boolean positionBased;
 
-    @Schema(description = "직군별 인원 구성", example = "{\"PM\":1, \"DS\":1, \"FE\":2, \"BE\":2}")
-    private Map<String, Integer> configJson;
+    @Schema(description = "직군별 인원 구성", example = "{\"PM\":\"1\",\"DS\":\"1\",\"FE\":\"1~2\",\"BE\":\"1~2\"}")
+    private Map<String, String> configJson;
 }

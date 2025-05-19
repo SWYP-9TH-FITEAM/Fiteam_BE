@@ -9,7 +9,6 @@ public interface TeamRequestRepository extends JpaRepository<TeamRequest, Intege
 
     boolean existsBySenderIdAndReceiverIdAndGroupId(Integer senderId, Integer receiverId, Integer groupId);
 
-    List<TeamRequest> findAllByReceiverId(Integer receiverId);
     List<TeamRequest> findAllByReceiverIdAndGroupId(Integer receiverId, Integer groupId);
 
     Optional<TeamRequest> findBySenderIdAndReceiverId(Integer senderId, Integer receiverId);

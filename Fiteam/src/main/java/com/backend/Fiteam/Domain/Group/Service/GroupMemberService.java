@@ -230,26 +230,4 @@ public class GroupMemberService {
         return result;
     }
 
-
-    @Transactional(readOnly = true)
-    public GroupMemberResponseDto getMygroupMemberData(Integer userId,Integer groupId) {
-        GroupMember member = groupMemberRepository.findByGroupIdAndUserId(groupId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("초대 내역이 존재하지 않습니다."));
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NoSuchElementException("유저 정보를 찾을 수 없습니다."));
-
-        return GroupMemberResponseDto.builder()
-                .memberId(member.getId())
-                .userId(user.getId())
-                .userName(user.getUserName())
-                .profileImageUrl(user.getProfileImgUrl())
-                .cardId1(user.getCardId1())
-                .teamStatus(member.getTeamStatus())
-                .position(member.getPosition())
-                .teamId(member.getTeamId())
-                .build();
-
-    }
-
-
 }

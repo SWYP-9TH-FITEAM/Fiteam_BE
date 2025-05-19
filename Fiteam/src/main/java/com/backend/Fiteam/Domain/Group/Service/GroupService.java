@@ -91,7 +91,7 @@ public class GroupService {
     // -------------------------
 
     @Transactional
-    public void createGroup(Integer managerId, CreateGroupRequestDto requestDto) {
+    public Integer createGroup(Integer managerId, CreateGroupRequestDto requestDto) {
         // 중복 그룹 이름 검증 (같은 매니저가 동일 이름으로 생성했는지)
         if (projectGroupRepository.existsByManagerIdAndName(managerId, requestDto.getName())) {
             throw new IllegalArgumentException("이미 동일한 이름의 그룹이 존재합니다.");
@@ -108,6 +108,7 @@ public class GroupService {
                 .build();
 
         projectGroupRepository.save(projectGroup);
+        return projectGroup.getId();
     }
 
     @Transactional
@@ -461,7 +462,7 @@ public class GroupService {
 
         // 2) GroupMember 조회 (수락 전)
         GroupMember gm = groupMemberRepository
-                .findByGroupIdAndUserId(groupId, user.getId())
+                .findByUserIdAndGroupId(user.getId(),groupId)
                 .orElseThrow(() -> new NoSuchElementException("해당 그룹에 초대된 기록이 없습니다."));
 
         if (Boolean.TRUE.equals(gm.getIsAccepted())) {

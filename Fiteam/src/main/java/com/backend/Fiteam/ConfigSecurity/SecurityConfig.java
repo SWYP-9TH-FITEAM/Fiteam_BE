@@ -34,7 +34,8 @@ public class SecurityConfig {
 
             "https://fiteam-prod.netlify.app",
             "https://fiteam-dev.netlify.app",
-            "https://fiteam.swygbro.com/"
+            "https://fiteam.swygbro.com/",
+            "https://clovastudio.stream.ntruss.com"
     );
 
     // API endponit 허용할거 작성.
@@ -64,7 +65,10 @@ public class SecurityConfig {
             "/v1/question/unauth/test-result",
 
             // WebSocket STOMP
-            "/ws/chat/**"
+            "/ws/chat/**",
+
+            "/v1/clova/completions",
+            "/v1/clova/testapp/completions/**"
     };
 
 
