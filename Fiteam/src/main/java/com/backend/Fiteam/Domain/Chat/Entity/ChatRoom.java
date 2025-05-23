@@ -13,7 +13,6 @@ import java.sql.Timestamp;
 @AllArgsConstructor
 @Builder
 public class ChatRoom {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;

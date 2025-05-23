@@ -1,10 +1,11 @@
 package com.backend.Fiteam.Domain.Chat.Service;
 
 import com.backend.Fiteam.Domain.Chat.Dto.ChatMessageResponseDto;
-import com.backend.Fiteam.Domain.Chat.Dto.ChatRoomCreateRequestDto;
+import com.backend.Fiteam.Domain.Chat.Dto.CreateUserChatRoomRequestDto;
 import com.backend.Fiteam.Domain.Chat.Dto.ChatRoomListResponseDto;
 import com.backend.Fiteam.Domain.Chat.Dto.ChatRoomResponseDto;
 import com.backend.Fiteam.Domain.Chat.Entity.ChatMessage;
+import com.backend.Fiteam.Domain.Chat.Entity.ChatMessage.SenderType;
 import com.backend.Fiteam.Domain.Chat.Entity.ChatRoom;
 import com.backend.Fiteam.Domain.Chat.Repository.ChatMessageRepository;
 import com.backend.Fiteam.Domain.Chat.Repository.ChatRoomRepository;
@@ -12,7 +13,6 @@ import com.backend.Fiteam.Domain.User.Dto.UserProfileDto;
 import com.backend.Fiteam.Domain.User.Entity.User;
 import com.backend.Fiteam.Domain.User.Repository.UserRepository;
 import com.backend.Fiteam.Domain.User.Service.UserService;
-import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
@@ -35,7 +35,7 @@ public class ChatService {
     private final UserRepository userRepository;
     private final UserService userService;
 
-    public ChatRoomResponseDto createChatRoom(Integer senderId, ChatRoomCreateRequestDto dto) {
+    public ChatRoomResponseDto createChatRoom(Integer senderId, CreateUserChatRoomRequestDto dto) {
         if (senderId.equals(dto.getReceiverId())) {
             throw new IllegalArgumentException("자기 자신과의 채팅방은 생성할 수 없습니다.");
         }
@@ -51,7 +51,7 @@ public class ChatService {
                     .user1Id(room.getUser1Id())
                     .user2Id(room.getUser2Id())
                     .groupId(room.getGroupId())
-                    .createdAt(room.getCreatedAt())
+                    .createdAt(new Timestamp(System.currentTimeMillis()))
                     .build();
         }
 
@@ -72,8 +72,12 @@ public class ChatService {
     }
 
 
-    public List<ChatRoomListResponseDto> getChatRoomsForUser(Integer userId) {
+    public List<ChatRoomListResponseDto> getChatRoomsForUser(Integer userId, Integer groupId) {
         List<ChatRoom> allRooms = chatRoomRepository.findByUser1IdOrUser2Id(userId, userId);
+
+        if(groupId != null){
+            allRooms = allRooms.stream().filter(room -> groupId.equals(room.getGroupId())).collect(Collectors.toList());
+        }
 
         return allRooms.stream().map(room -> {
                     Integer otherId = room.getUser1Id().equals(userId) ? room.getUser2Id() : room.getUser1Id();
@@ -103,6 +107,7 @@ public class ChatService {
         return messages.map(msg -> ChatMessageResponseDto.builder()
                 .id(msg.getId())
                 .chatRoomId(msg.getChatRoomId())
+                .senderType(msg.getSenderType())  // 여기는 항상 User 타입
                 .senderId(msg.getSenderId())
                 .messageType(msg.getMessageType())
                 .content(msg.getContent())
@@ -112,17 +117,23 @@ public class ChatService {
     }
 
     // TeamService에서 사용함
-    public void sendTeamRequestMessage(Integer senderId, Integer receiverId) {
+    public void sendTeamRequestMessage(Integer senderId, Integer receiverId, Integer groupId) {
         Integer user1 = Math.min(senderId, receiverId);
         Integer user2 = Math.max(senderId, receiverId);
 
-        ChatRoom room = chatRoomRepository.findByUser1IdAndUser2Id(user1, user2)
+        ChatRoom room = chatRoomRepository
+                .findByUser1IdAndUser2IdAndGroupId(user1, user2, groupId)
                 .orElseThrow(() -> new IllegalArgumentException("채팅방이 존재하지 않습니다."));
+
+        String senderName = userRepository.findById(senderId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."))
+                .getUserName();
 
         ChatMessage teamRequestMessage = ChatMessage.builder()
                 .chatRoomId(room.getId())
+                .senderType(SenderType.USER)                  // 팀요청은 User만 가능해서
                 .senderId(senderId)
-                .content("OO님이 팀 제안을 보냈습니다!")  // 프론트에서 적절히 파싱
+                .content(senderName + "님이 팀 제안을 보냈습니다!")
                 .isRead(false)
                 .sentAt(new Timestamp(System.currentTimeMillis()))
                 .messageType("TEAM_REQUEST")
@@ -132,17 +143,23 @@ public class ChatService {
     }
 
     // TeamService에서 사용함
-    public void sendTeamAcceptMessage(Integer senderId, Integer receiverId) {
+    public void sendTeamResponseMessage(Integer senderId, Integer receiverId, Integer groupId, String type) {
         Integer user1 = Math.min(senderId, receiverId);
         Integer user2 = Math.max(senderId, receiverId);
 
-        ChatRoom room = chatRoomRepository.findByUser1IdAndUser2Id(user1, user2)
+        ChatRoom room = chatRoomRepository
+                .findByUser1IdAndUser2IdAndGroupId(user1, user2, groupId)
                 .orElseThrow(() -> new IllegalArgumentException("채팅방이 존재하지 않습니다."));
+
+        String name = userRepository.findById(receiverId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."))
+                .getUserName();
 
         ChatMessage acceptMessage = ChatMessage.builder()
                 .chatRoomId(room.getId())
-                .senderId(receiverId)  // 수락한 사람(팀장)
-                .content("OO님이 팀 제안을 수락했습니다!")  // 프론트에서 카드로 보여주기
+                .senderType(SenderType.USER)                  // 팀요청은 User만 가능해서
+                .senderId(receiverId)
+                .content(name + "님이 팀 제안을 " + type + "했습니다!")
                 .isRead(false)
                 .sentAt(new Timestamp(System.currentTimeMillis()))
                 .messageType("TEAM_RESPONSE")
@@ -150,6 +167,7 @@ public class ChatService {
 
         chatMessageRepository.save(acceptMessage);
     }
+
 
 
     public void verifyUserInRoom(Integer roomId, Integer userId) {
@@ -162,18 +180,28 @@ public class ChatService {
     }
 
     // UserProfileDto profile = userService.getUserProfile(userId);
-    public ChatRoomResponseDto getChatRoomInfo(Integer roomId) {
+    public ChatRoomResponseDto getChatRoomInfo(Integer userId, Integer roomId) {
         ChatRoom room = chatRoomRepository.findById(roomId)
                 .orElseThrow(() -> new NoSuchElementException("존재하지 않는 채팅방입니다."));
 
         // UserProfileDto 가져오기
-        UserProfileDto profile1 = userService.getUserProfile(room.getUser1Id());
-        UserProfileDto profile2 = userService.getUserProfile(room.getUser2Id());
+        UserProfileDto profile1;
+        UserProfileDto profile2;
+        Integer userId2;
+        if(room.getUser1Id() == userId){
+            profile1 = userService.getUserProfile(room.getUser1Id());
+            profile2 = userService.getUserProfile(room.getUser2Id());
+            userId2 = room.getUser2Id();
+        }else{
+            profile1 = userService.getUserProfile(room.getUser2Id());
+            profile2 = userService.getUserProfile(room.getUser1Id());
+            userId2 = room.getUser1Id();
+        }
 
         return ChatRoomResponseDto.builder()
                 .chatRoomId(room.getId())
-                .user1Id(room.getUser1Id())
-                .user2Id(room.getUser2Id())
+                .user1Id(userId)
+                .user2Id(userId2)
                 .groupId(room.getGroupId())
                 .createdAt(room.getCreatedAt())
 
@@ -187,6 +215,13 @@ public class ChatService {
                 .user2ProfileImgUrl(profile2.getProfileImgUrl())
                 .user2Job(profile2.getJob())
                 .build();
+    }
+
+    public List<ChatRoomListResponseDto> searchChatRoomsForUser(Integer userId, String name) {
+        return getChatRoomsForUser(userId, null).stream()
+                .filter(dto -> dto.getOtherUserName() != null
+                        && dto.getOtherUserName().toLowerCase().contains(name.toLowerCase()))
+                .collect(Collectors.toList());
     }
 
 }

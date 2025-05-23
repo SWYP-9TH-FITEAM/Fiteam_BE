@@ -1,4 +1,4 @@
-USE Fiteam;
+USE fiteam;
 
 INSERT INTO CharacterCard (
     img_url, code, name, keyword, summary, team_strength, caution,

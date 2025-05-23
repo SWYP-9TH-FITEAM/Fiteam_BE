@@ -1,5 +1,6 @@
 package com.backend.Fiteam.Domain.Chat.Dto;
 
+import com.backend.Fiteam.Domain.Chat.Entity.ChatMessage.SenderType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
@@ -7,9 +8,11 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ChatMessageDto {
-
     @Schema(description = "채팅방 ID", example = "1")
     private Integer chatRoomId;
+
+    @Schema(description = "보낸 사람 유형", example = "USER, MANAGER")
+    private SenderType senderType;  // USER 또는 MANAGER
 
     @Schema(description = "보낸 사람 ID", example = "2")
     private Integer senderId;

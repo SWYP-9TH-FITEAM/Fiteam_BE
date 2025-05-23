@@ -1,6 +1,5 @@
-
- CREATE DATABASE IF NOT EXISTS Fiteam DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
- USE fiteam;
+CREATE DATABASE IF NOT EXISTS fiteam DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE fiteam;
 
 -- ========== 성향검사 & 캐릭터 카드 ==========
 CREATE TABLE CharacterCard (
@@ -181,22 +180,36 @@ CREATE TABLE ChatRoom (
     user2_id INT,
     group_id INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user1_id) REFERENCES User(id),
-    FOREIGN KEY (user2_id) REFERENCES User(id),
-    FOREIGN KEY (group_id) REFERENCES ProjectGroup(id)
+    FOREIGN KEY (user1_id)  REFERENCES User(id),
+    FOREIGN KEY (user2_id)  REFERENCES User(id),
+    FOREIGN KEY (group_id)  REFERENCES ProjectGroup(id),
+    UNIQUE KEY uq_user_user_group (user1_id, user2_id, group_id)
+);
+
+CREATE TABLE ManagerChatRoom (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    manager_id  INT NOT NULL,
+    user_id     INT NOT NULL,
+    group_id    INT NOT NULL,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (manager_id) REFERENCES Manager(id),
+    FOREIGN KEY (user_id)    REFERENCES User(id),
+    FOREIGN KEY (group_id)   REFERENCES ProjectGroup(id),
+    UNIQUE KEY uq_mgr_user_group (manager_id, user_id, group_id)
 );
 
 CREATE TABLE ChatMessage (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    chat_room_id INT,
-    sender_id INT,
+    chat_room_id INT         NOT NULL,
+    sender_type ENUM('USER','MANAGER') NOT NULL DEFAULT 'USER',
+    sender_id INT            NOT NULL,
     message_type VARCHAR(20),
     content TEXT,
     is_read BOOLEAN DEFAULT FALSE,
     sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (chat_room_id) REFERENCES ChatRoom(id),
-    FOREIGN KEY (sender_id) REFERENCES User(id)
+    FOREIGN KEY (chat_room_id) REFERENCES ChatRoom(id)
 );
+
 
 -- ========== 알림 ==========
 CREATE TABLE Notification (

@@ -96,7 +96,7 @@ public class TeamRequestService {
         teamRequestRepository.save(request);
 
         // 6) 메시지로 저장도 함.
-        chatService.sendTeamRequestMessage(senderId, receiverId);
+        chatService.sendTeamRequestMessage(senderId, receiverId, groupId);
     }
 
 
@@ -166,7 +166,7 @@ public class TeamRequestService {
         }
 
         // 5) 채팅 메시지 추가
-        chatService.sendTeamAcceptMessage(senderId, receiverId);
+        chatService.sendTeamResponseMessage(senderId, receiverId, groupId, "수락");
 
         // 6) 항상 두 팀(1인 팀 포함)을 병합
         mergeTeams(senderMember.getTeamId(), receiverMember.getTeamId());
@@ -227,7 +227,9 @@ public class TeamRequestService {
             throw new IllegalArgumentException("이미 처리된 요청입니다.");
         }
 
-        // 3) 요청 삭제
+        // 3) 채팅 메시지 추가
+        chatService.sendTeamResponseMessage(senderId, receiverId, groupId, "거절");
+        // 4) 요청 삭제
         teamRequestRepository.delete(request);
     }
 

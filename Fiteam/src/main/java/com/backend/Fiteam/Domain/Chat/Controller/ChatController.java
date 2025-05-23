@@ -2,18 +2,14 @@ package com.backend.Fiteam.Domain.Chat.Controller;
 
 import com.backend.Fiteam.Domain.Chat.Dto.ChatMessageDto;
 import com.backend.Fiteam.Domain.Chat.Dto.ChatMessageResponseDto;
-import com.backend.Fiteam.Domain.Chat.Dto.ChatRoomCreateRequestDto;
+import com.backend.Fiteam.Domain.Chat.Dto.CreateUserChatRoomRequestDto;
 import com.backend.Fiteam.Domain.Chat.Dto.ChatRoomListResponseDto;
 import com.backend.Fiteam.Domain.Chat.Dto.ChatRoomResponseDto;
-import com.backend.Fiteam.Domain.Chat.Dto.UserPresenceDto;
 import com.backend.Fiteam.Domain.Chat.Entity.ChatMessage;
 import com.backend.Fiteam.Domain.Chat.Repository.ChatMessageRepository;
 import com.backend.Fiteam.Domain.Chat.Service.ChatService;
+import com.backend.Fiteam.Domain.Group.Repository.ProjectGroupRepository;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.sql.Timestamp;
 import java.util.List;
@@ -40,7 +36,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.context.annotation.Lazy;
 
 @RestController
-@RequestMapping("/v1/chat")
+@RequestMapping("/v1/user-chat")
 @RequiredArgsConstructor
 @Tag(name = "9. ChatController - 1대1 채팅")
 public class ChatController {
@@ -56,14 +52,14 @@ public class ChatController {
     private final ChatService chatService;
     private final ChatMessageRepository chatMessageRepository;
     private final @Lazy SimpMessagingTemplate messagingTemplate;
+    private final ProjectGroupRepository projectGroupRepository;
     //private final PresenceRegistry presenceRegistry;
-
 
     // 1.채팅방 생성 (채팅신청하기)
     @Operation(summary = "채팅방 생성", description = "상대방과 채팅방을 생성합니다. 이미 존재하면 기존 방을 반환합니다.")
     @PostMapping("/room")
     public ResponseEntity<ChatRoomResponseDto> createChatRoom(
-            @AuthenticationPrincipal UserDetails userDetails, @RequestBody ChatRoomCreateRequestDto dto) {
+            @AuthenticationPrincipal UserDetails userDetails, @RequestBody CreateUserChatRoomRequestDto dto) {
         try {
             Integer senderId = Integer.parseInt(userDetails.getUsername());
             ChatRoomResponseDto room = chatService.createChatRoom(senderId, dto);
@@ -76,19 +72,28 @@ public class ChatController {
     }
 
     // 2.채팅방 리스트 조회-대화 마지막 시간순서대로
-    @Operation(summary = "로그인한 사용자의 채팅방 리스트 조회", description = "현재 유저가 속한 모든 채팅방을 최근 메시지 기준으로 정렬해서 반환합니다.")
+    @Operation(summary = "2. 로그인한 사용자의 채팅방 리스트 조회", description = "현재 유저가 속한 모든 채팅방을 최근 메시지 기준으로 정렬해서 반환합니다.")
     @GetMapping("/list")
     public ResponseEntity<List<ChatRoomListResponseDto>> getChatRooms(@AuthenticationPrincipal UserDetails userDetails) {
         try {
             Integer userId = Integer.parseInt(userDetails.getUsername());
 
-            List<ChatRoomListResponseDto> rooms = chatService.getChatRoomsForUser(userId);
+            List<ChatRoomListResponseDto> rooms = chatService.getChatRoomsForUser(userId, null);
             return ResponseEntity.ok(rooms);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
+    }
+
+    @Operation(summary = "2-1.그룹별 채팅방 리스트 조회", description = "로그인한 사용자가 속한 그룹(groupId)에 해당하는 채팅방만 최근 메시지 기준으로 정렬해서 반환합니다.")
+    @GetMapping("/group/{groupId}/list")
+    public ResponseEntity<List<ChatRoomListResponseDto>> getChatRoomsByGroup(
+            @AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer groupId) {
+        Integer userId = Integer.parseInt(userDetails.getUsername());
+        List<ChatRoomListResponseDto> rooms = chatService.getChatRoomsForUser(userId, groupId);
+        return ResponseEntity.ok(rooms);
     }
 
     @GetMapping("/{roomId}/messages")
@@ -120,13 +125,14 @@ public class ChatController {
     public void handleChatMessage(ChatMessageDto dto) {
         try {
             // 1. 유효성 검사
-            if (dto.getChatRoomId() == null || dto.getSenderId() == null || dto.getContent() == null) {
+            if (dto.getChatRoomId() == null || dto.getSenderId() == null || dto.getContent() == null || dto.getSenderType() == null) {
                 throw new IllegalArgumentException("필수 값 누락");
             }
 
             // 2. 메시지 생성 및 저장
             ChatMessage message = ChatMessage.builder()
                     .chatRoomId(dto.getChatRoomId())
+                    .senderType(dto.getSenderType())      // ← senderType 세팅
                     .senderId(dto.getSenderId())
                     .messageType(dto.getMessageType() != null ? dto.getMessageType() : "TEXT")
                     .content(dto.getContent())
@@ -170,8 +176,16 @@ public class ChatController {
         Integer userId = Integer.parseInt(userDetails.getUsername());
         chatService.verifyUserInRoom(roomId, userId);
 
-        ChatRoomResponseDto dto = chatService.getChatRoomInfo(roomId);
+        ChatRoomResponseDto dto = chatService.getChatRoomInfo(userId,roomId);
         return ResponseEntity.ok(dto);
+    }
+
+    // 7. 채팅방 검색
+    @Operation(summary = "7. 채팅방 검색", description = "상대방 이름으로 채팅방을 검색합니다.")
+    @GetMapping("/search/{name}")
+    public List<ChatRoomListResponseDto> searchChatRooms(@AuthenticationPrincipal UserDetails userDetails, @PathVariable String name) {
+        Integer userId = Integer.parseInt(userDetails.getUsername());
+        return chatService.searchChatRoomsForUser(userId, name);
     }
 
 }
