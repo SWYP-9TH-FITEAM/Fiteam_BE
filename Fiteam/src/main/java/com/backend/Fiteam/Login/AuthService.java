@@ -1,5 +1,6 @@
 package com.backend.Fiteam.Login;
 
+import com.backend.Fiteam.Domain.Admin.Service.VisitLogService;
 import com.backend.Fiteam.Domain.Group.Entity.Manager;
 import com.backend.Fiteam.Domain.Group.Repository.ManagerRepository;
 import com.backend.Fiteam.Domain.User.Entity.User;
@@ -8,6 +9,7 @@ import com.backend.Fiteam.ConfigSecurity.JwtTokenProvider;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import java.io.UnsupportedEncodingException;
+import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -28,6 +30,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final ManagerRepository managerRepository;
+    private final VisitLogService visitLogService;
 
     public void register(RegisterRequestDto request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
@@ -38,6 +41,8 @@ public class AuthService {
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .userName(request.getUsername())
+                .phoneNumber(request.getPhoneNumber())
+                .createdAt(new Timestamp(System.currentTimeMillis()))
                 .build();
 
         userRepository.save(user);
@@ -63,6 +68,7 @@ public class AuthService {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
 
+        visitLogService.logVisit(user.getId());
         String token = jwtTokenProvider.createToken(user.getId(), "user");
         return new LoginResponseDto(token, "user");
     }

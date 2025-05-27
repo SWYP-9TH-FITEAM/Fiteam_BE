@@ -1,5 +1,10 @@
 package com.backend.Fiteam.Domain.Group.Service;
 
+import com.backend.Fiteam.Domain.Character.Dto.CompatibilityUserInfoDto;
+import com.backend.Fiteam.Domain.Character.Entity.CharacterCard;
+import com.backend.Fiteam.Domain.Character.Service.CharacterCardService;
+import com.backend.Fiteam.Domain.Character.Service.CharacterCardService.CompatibilityResult;
+import com.backend.Fiteam.Domain.Group.Dto.CompatibilityResultDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupMemberMiniProfileResponseDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupMemberProfileResponseDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupMemberResponseDto;
@@ -38,6 +43,7 @@ public class GroupMemberService {
     private final TeamTypeRepository teamTypeRepository;
     private final UserRepository userRepository;
     private final UserLikeRepository userLikeRepository;
+    private final CharacterCardService characterCardService;
 
     // 로그인한 상태의 User가 해당 그룹에 소속된 사람인지 확인하는 검증코드
     public void validateGroupMembership(Integer userId, Integer groupId) {
@@ -229,5 +235,37 @@ public class GroupMemberService {
 
         return result;
     }
+
+    @Transactional(readOnly = true)
+    public CompatibilityResult getCompatibility(Integer myUserId, Integer otherUserId) {
+        // 1. 유저 정보 조회
+        User myUser = userRepository.findById(myUserId)
+                .orElseThrow(() -> new NoSuchElementException("내 정보를 찾을 수 없습니다."));
+        User otherUser = userRepository.findById(otherUserId)
+                .orElseThrow(() -> new NoSuchElementException("상대방 정보를 찾을 수 없습니다."));
+
+        if (myUser.getCardId1() == null || otherUser.getCardId1() == null) {
+            throw new IllegalArgumentException("두 사용자 모두 성향검사를 완료해야 합니다.");
+        }
+
+        CompatibilityUserInfoDto userA = CompatibilityUserInfoDto.builder()
+                .cardId(myUser.getCardId1())
+                .numEI(myUser.getNumEI())
+                .numPD(myUser.getNumPD())
+                .numVA(myUser.getNumVA())
+                .numCL(myUser.getNumCL())
+                .build();
+
+        CompatibilityUserInfoDto userB = CompatibilityUserInfoDto.builder()
+                .cardId(otherUser.getCardId1())
+                .numEI(otherUser.getNumEI())
+                .numPD(otherUser.getNumPD())
+                .numVA(otherUser.getNumVA())
+                .numCL(otherUser.getNumCL())
+                .build();
+
+        return characterCardService.calculateCompatibilityScore(userA, userB);
+    }
+
 
 }

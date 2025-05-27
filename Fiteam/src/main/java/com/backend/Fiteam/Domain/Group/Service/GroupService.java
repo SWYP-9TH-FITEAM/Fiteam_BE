@@ -6,6 +6,7 @@ import com.backend.Fiteam.Domain.Character.Repository.CharacterCardRepository;
 import com.backend.Fiteam.Domain.Group.Dto.CreateGroupRequestDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupDetailResponseDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupInvitedResponseDto;
+import com.backend.Fiteam.Domain.Group.Dto.GroupNoticeRequestDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupTeamTypeSettingDto;
 import com.backend.Fiteam.Domain.Group.Dto.ManagerGroupListDto;
 import com.backend.Fiteam.Domain.Group.Dto.ManagerGroupResponseDto;
@@ -60,6 +61,7 @@ public class GroupService {
     private final TeamRepository teamRepository;
     private final TeamBuildingSchedulerService schedulerService;
     private final NotificationService notificationService;
+    private final GroupNoticeService groupNoticeService;
 
 
     @Transactional(readOnly = true)
@@ -318,6 +320,14 @@ public class GroupService {
                 "RANDOM_TEAM_BUILDING_RESULT",
                 "그룹의 랜덤 팀빌딩이 완료되었습니다. 팀 결과를 확인해 주세요."
         );
+
+        // 6) 랜덤 팀빌딩 완료 공지 생성
+        GroupNoticeRequestDto noticeDto = new GroupNoticeRequestDto();
+        noticeDto.setGroupId(groupId);
+        noticeDto.setTitle("랜덤 팀빌딩 완료 안내");
+        noticeDto.setContext("그룹의 랜덤 팀빌딩이 완료되었습니다. 결과를 확인해 주세요.");
+        // projectGroup.getManagerId()가 매니저 ID 입니다
+        groupNoticeService.createNotice(projectGroup.getManagerId(), noticeDto);
     }
 
 
@@ -547,5 +557,12 @@ public class GroupService {
                 "TEAM_BUILDING_START",
                 group.getName()+"의 팀 빌딩이 시작되었습니다."
         );
+
+        GroupNoticeRequestDto noticeDto = new GroupNoticeRequestDto();
+        noticeDto.setGroupId(group.getId());
+        noticeDto.setTitle(group.getName()+"팀 빌딩 시작되었습니다.");
+        noticeDto.setContext(group.getName()+"그룹의 직군별 팀 빌딩이 시작되었습니다. 팀 빌딩을 진행해 주세요.");
+        // projectGroup.getManagerId()가 매니저 ID 입니다
+        groupNoticeService.createNotice(group.getManagerId(), noticeDto);
     }
 }

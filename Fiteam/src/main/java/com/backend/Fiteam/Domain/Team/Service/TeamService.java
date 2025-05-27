@@ -202,6 +202,8 @@ public class TeamService {
                 int minReq, maxReq;
                 if (constraint.isInt()) {
                     minReq = maxReq = constraint.asInt();
+                } else if(constraint.isTextual() && !constraint.asText().contains("~")){
+                    minReq = maxReq = Integer.parseInt(constraint.asText().trim());
                 } else if (constraint.isTextual() && constraint.asText().contains("~")) {
                     String[] parts = constraint.asText().split("~");
                     minReq = Integer.parseInt(parts[0].trim());
@@ -226,7 +228,7 @@ public class TeamService {
         }
 
         // 3) 상태 변경
-        members.forEach(gm -> gm.setTeamStatus("팀 확정"));
+        members.forEach(gm -> gm.setTeamStatus("팀확정"));
         groupMemberRepository.saveAll(members);
 
         team.setStatus("모집마감");

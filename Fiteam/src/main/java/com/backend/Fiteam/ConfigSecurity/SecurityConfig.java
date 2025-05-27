@@ -66,9 +66,15 @@ public class SecurityConfig {
 
             // WebSocket STOMP
             "/ws/chat/**",
+            "/topic/**",
+            "/queue/**",
+            "/v1/chat/rooms/subscribe",
+            "/v1/user-chat/rooms/subscribe",
 
             "/v1/clova/completions",
-            "/v1/clova/testapp/completions/**"
+            "/v1/clova/testapp/completions/**",
+            "/v1/clova/chat/completions/**",
+            "/v3/chat-completions/**"
     };
 
 

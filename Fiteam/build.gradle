@@ -71,6 +71,10 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-quartz'
 
 	implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+	// 11. // AWS SDK v2 : NCP 도 AWS SDK로 api를 호출하게 한다.
+	implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
+	implementation 'software.amazon.awssdk:s3:2.20.67'
 }
 
 tasks.named('test') {

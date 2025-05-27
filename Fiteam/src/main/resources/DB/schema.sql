@@ -64,6 +64,23 @@ CREATE TABLE Admin (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE VisitLog (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    visit_date DATE NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES User(id)
+);
+
+CREATE TABLE IF NOT EXISTS SystemNotice (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    admin_id INT       NOT NULL,
+    title VARCHAR(100) NOT NULL,
+    content TEXT       NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (admin_id) REFERENCES Admin(id)
+);
+
+
 CREATE TABLE Manager (
     id INT AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(50) NOT NULL UNIQUE,
@@ -222,6 +239,14 @@ CREATE TABLE Notification (
     is_read BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES User(id)
+);
+
+CREATE TABLE IF NOT EXISTS Admin (
+    id INT AUTO_INCREMENT PRIMARY KEY,      -- 관리자 고유 ID
+    email VARCHAR(50) NOT NULL UNIQUE,      -- 로그인용 이메일
+    password VARCHAR(100) NOT NULL,         -- 암호 (해시값 저장)
+    name VARCHAR(30) NOT NULL,              -- 관리자 이름
+    position VARCHAR(50) NOT NULL           -- 직책/역할
 );
 
 -- 성능 향상을 위한 인덱싱 --

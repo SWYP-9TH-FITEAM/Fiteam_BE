@@ -1,7 +1,9 @@
 package com.backend.Fiteam.Domain.Group.Controller;
 
 import com.backend.Fiteam.Domain.Group.Dto.GroupMemberResponseDto;
+import com.backend.Fiteam.Domain.Group.Dto.GroupNoticeDetailDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupNoticeRequestDto;
+import com.backend.Fiteam.Domain.Group.Dto.GroupNoticeSummaryDto;
 import com.backend.Fiteam.Domain.Group.Dto.ManagerGroupListDto;
 import com.backend.Fiteam.Domain.Group.Dto.ManagerGroupResponseDto;
 import com.backend.Fiteam.Domain.Group.Dto.ManagerGroupStatusDto;
@@ -169,4 +171,20 @@ public class ManagerController {
         return ResponseEntity.ok().build();
     }
 
+    // 9. 최근 공지목록 가져오기
+    @Operation(summary = "작성한 공지 목록 조회", description = "로그인한 매니저가 자신이 작성한 모든 공지를 최신 순으로 반환합니다.")
+    @GetMapping("/notices")
+    public ResponseEntity<List<GroupNoticeSummaryDto>> getMyNotices(@AuthenticationPrincipal UserDetails userDetails) {
+        Integer managerId = Integer.valueOf(userDetails.getUsername());
+        List<GroupNoticeSummaryDto> list = groupNoticeService.getNoticesByManager(managerId);
+        return ResponseEntity.ok(list);
+    }
+
+    @Operation(summary = "공지 상세 조회", description = "관리자가 작성한 특정 공지의 전체 내용을 반환합니다.")
+    @GetMapping("/notices/{noticeId}")
+    public ResponseEntity<GroupNoticeDetailDto> getNoticeById(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer noticeId) {
+        Integer managerId = Integer.valueOf(userDetails.getUsername());
+        GroupNoticeDetailDto dto = groupNoticeService.getNoticeById(managerId, noticeId);
+        return ResponseEntity.ok(dto);
+    }
 }

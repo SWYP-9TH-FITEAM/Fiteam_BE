@@ -3,36 +3,31 @@ package com.backend.Fiteam.HyperClova;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Mono;
+import reactor.core.publisher.Flux;
 
 @RestController
 @RequestMapping("/v1/clova")
 public class ClovaController {
-    private final ClovaService clovaService;
 
+    private final ClovaService clovaService;
     public ClovaController(ClovaService clovaService) {
         this.clovaService = clovaService;
     }
 
     @Operation(
-            summary     = "TestApp Completions",
-            description = "테스트 API 키로 TestApp v1 Completions 호출"
+            summary     = "HCX-003 Chat Completions (스트리밍)",
+            description = "테스트 API 키로 HCX-003 Chat Completions SSE 호출"
     )
-    @ApiResponse(responseCode = "200", description = "생성된 텍스트 반환")
+    @ApiResponse(responseCode = "200", description = "스트리밍된 챗 조각 반환")
     @PostMapping(
-            path     = "/testapp/completions/{model}",
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE
+            path     = "/chat/completions/{model}",
+            produces = MediaType.TEXT_EVENT_STREAM_VALUE
     )
-    public Mono<ResponseEntity<TestAppCompletionsResponseDto>> testappCompletions(
+    public Flux<ChatStreamEvent> chatStream(
             @PathVariable String model,
-            @RequestBody TestAppCompletionsRequestDto request
+            @RequestBody ChatCompletionRequestDto request
     ) {
-        return clovaService
-                .completeTestApp(model, request)
-                .map(ResponseEntity::ok);
+        return clovaService.streamChat(model, request);
     }
-
 }

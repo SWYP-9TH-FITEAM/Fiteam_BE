@@ -35,7 +35,8 @@ public class JwtAuthFilter extends OncePerRequestFilter{
                 path.startsWith("/auth/register") ||
                 path.startsWith("/auth/google") ||
                 path.startsWith("/oauth2/") ||
-                path.startsWith("/auth/success");
+                path.startsWith("/auth/success") ||
+                path.startsWith("/ws/chat");
     }
 
     // 요청마다 JWT 토큰을 꺼내서 검증하고, 인증 객체(SecurityContext)에 등록함.

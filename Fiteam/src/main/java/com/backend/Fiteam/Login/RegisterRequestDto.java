@@ -9,4 +9,5 @@ public class RegisterRequestDto {
     private String username;
     private String email;
     private String Password;
+    private String phoneNumber;
 }

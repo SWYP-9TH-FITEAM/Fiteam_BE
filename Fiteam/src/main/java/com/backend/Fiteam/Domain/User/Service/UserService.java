@@ -95,6 +95,7 @@ public class UserService {
         user.setCardId1(characterCard.getId());
 
         // 성향점수와 AI 분석결과 저장
+        user.setProfileImgUrl(characterCard.getImgUrl());
         user.setNumEI(numEI);
         user.setNumPD(numPD);
         user.setNumVA(numVA);

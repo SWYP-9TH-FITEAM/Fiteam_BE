@@ -78,6 +78,9 @@ public class TeamRequestService {
         if ("모집마감".equals(receiverTeam.getStatus())) {
             throw new IllegalStateException("이미 확정팀의 멤버입니다.: " + receiverTeam.getStatus());
         }
+        if("팀 확정".equals(receiverMember.getTeamStatus())){
+            throw new IllegalStateException("이미 확정팀의 멤버입니다.: " + receiverTeam.getStatus());
+        }
 
         // 4-3) 이미 같은 팀에 속해 있는지 체크
         if (senderTeamId != null && senderTeamId.equals(receiverTeamId)) {

@@ -1,5 +1,6 @@
 package com.backend.Fiteam.Domain.Chat.Controller;
 
+import com.backend.Fiteam.ConfigSecurity.JwtTokenProvider;
 import com.backend.Fiteam.Domain.Chat.Dto.ChatMessageDto;
 import com.backend.Fiteam.Domain.Chat.Dto.ChatMessageResponseDto;
 import com.backend.Fiteam.Domain.Chat.Dto.CreateUserChatRoomRequestDto;
@@ -8,9 +9,11 @@ import com.backend.Fiteam.Domain.Chat.Dto.ChatRoomResponseDto;
 import com.backend.Fiteam.Domain.Chat.Entity.ChatMessage;
 import com.backend.Fiteam.Domain.Chat.Repository.ChatMessageRepository;
 import com.backend.Fiteam.Domain.Chat.Service.ChatService;
+import com.backend.Fiteam.Domain.Chat.Service.SseEmitterService;
 import com.backend.Fiteam.Domain.Group.Repository.ProjectGroupRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.security.Principal;
 import java.sql.Timestamp;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -19,8 +22,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -34,6 +39,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 @RequestMapping("/v1/user-chat")
@@ -52,8 +59,9 @@ public class ChatController {
     private final ChatService chatService;
     private final ChatMessageRepository chatMessageRepository;
     private final @Lazy SimpMessagingTemplate messagingTemplate;
-    private final ProjectGroupRepository projectGroupRepository;
-    //private final PresenceRegistry presenceRegistry;
+    private final SseEmitterService sseService;
+    private final JwtTokenProvider jwtTokenProvider;
+
 
     // 1.채팅방 생성 (채팅신청하기)
     @Operation(summary = "채팅방 생성", description = "상대방과 채팅방을 생성합니다. 이미 존재하면 기존 방을 반환합니다.")
@@ -120,37 +128,44 @@ public class ChatController {
         }
     }
 
+    //
     // 4.채팅 메시지 전송	STOMP 방식
     @MessageMapping("/chat.sendMessage")
-    public void handleChatMessage(ChatMessageDto dto) {
+    @Operation(summary = "채팅 메시지 전송 및 실시간 알림")
+    public void handleChatMessage(
+            @Payload ChatMessageDto dto) {
         try {
             // 1. 유효성 검사
             if (dto.getChatRoomId() == null || dto.getSenderId() == null || dto.getContent() == null || dto.getSenderType() == null) {
                 throw new IllegalArgumentException("필수 값 누락");
             }
+            //Integer senderId = Integer.parseInt(userDetails.getUsername());
+            // 서비스 레이어에서 메시지 저장, 채팅방 메타데이터(createdAt) 업데이트, SSE 델타 푸시
+            ChatMessageResponseDto saved = chatService.sendMessage(dto);
 
-            // 2. 메시지 생성 및 저장
-            ChatMessage message = ChatMessage.builder()
-                    .chatRoomId(dto.getChatRoomId())
-                    .senderType(dto.getSenderType())      // ← senderType 세팅
-                    .senderId(dto.getSenderId())
-                    .messageType(dto.getMessageType() != null ? dto.getMessageType() : "TEXT")
-                    .content(dto.getContent())
-                    .isRead(false)
-                    .sentAt(new Timestamp(System.currentTimeMillis()))
-                    .build();
-
-            ChatMessage saved = chatMessageRepository.save(message);
-
-            // 3. 메시지 브로드캐스트
-            messagingTemplate.convertAndSend("/topic/chatroom." + dto.getChatRoomId(), saved);
-
+            // WebSocket 구독자에게 메시지 브로드캐스트
+            messagingTemplate.convertAndSend("/topic/chatroom." + saved.getChatRoomId(), saved);
         } catch (Exception e) {
-            // 4. 에러 로그
+            // 에러 로그
             System.err.println("채팅 메시지 전송 실패: " + e.getMessage());
-            // 5. 실패 응답 (해당 유저의 개인 큐로)
-            messagingTemplate.convertAndSend("/queue/errors/" + dto.getSenderId(), "메시지 전송 실패: " + e.getMessage());
+            // 전송 실패 알림 (개인 큐)
+            messagingTemplate.convertAndSend(
+                    "/queue/errors/" + dto.getSenderId(),
+                    "메시지 전송 실패: " + e.getMessage()
+            );
         }
+    }
+
+    @GetMapping(value = "/rooms/subscribe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter subscribeChatRoomList(@RequestParam("token") String token) {
+        // 1) 토큰 검증
+        if (!jwtTokenProvider.validateToken(token)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰");
+        }
+        // 2) 토큰에서 userId 추출
+        Integer userId = jwtTokenProvider.getIdFromToken(token);
+        // 3) SSE 구독
+        return sseService.subscribe(userId);
     }
 
     // 5. 채팅 메시지 읽음 처리

@@ -1,5 +1,6 @@
 package com.backend.Fiteam.Domain.Chat.Service;
 
+import com.backend.Fiteam.Domain.Chat.Dto.ChatMessageDto;
 import com.backend.Fiteam.Domain.Chat.Dto.ChatMessageResponseDto;
 import com.backend.Fiteam.Domain.Chat.Dto.CreateUserChatRoomRequestDto;
 import com.backend.Fiteam.Domain.Chat.Dto.ChatRoomListResponseDto;
@@ -13,12 +14,15 @@ import com.backend.Fiteam.Domain.User.Dto.UserProfileDto;
 import com.backend.Fiteam.Domain.User.Entity.User;
 import com.backend.Fiteam.Domain.User.Repository.UserRepository;
 import com.backend.Fiteam.Domain.User.Service.UserService;
+import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Pageable;
 
@@ -34,6 +38,7 @@ public class ChatService {
     private final ChatMessageRepository chatMessageRepository;
     private final UserRepository userRepository;
     private final UserService userService;
+    private final SseEmitterService sseService;
 
     public ChatRoomResponseDto createChatRoom(Integer senderId, CreateUserChatRoomRequestDto dto) {
         if (senderId.equals(dto.getReceiverId())) {
@@ -139,7 +144,28 @@ public class ChatService {
                 .messageType("TEAM_REQUEST")
                 .build();
 
-        chatMessageRepository.save(teamRequestMessage);
+        ChatMessage saved = chatMessageRepository.save(teamRequestMessage);
+
+        // -- SSE 추가하기 --
+        // 1) ChatRoom 메타데이터(createdAt을 updateAt 대신 사용) 갱신
+        room.setCreatedAt(saved.getSentAt());
+        chatRoomRepository.save(room);
+
+        // 2) 델타 DTO 생성
+        Integer otherUserId = (room.getUser1Id().equals(senderId) ? room.getUser2Id() : room.getUser1Id());
+        ChatRoomListResponseDto delta = ChatRoomListResponseDto.builder()
+                .chatRoomId(room.getId())
+                .otherUserId(otherUserId)
+                .lastMessageContent(saved.getContent()) // content 필드 이름 확인
+                .lastMessageTime(room.getCreatedAt())
+                .unreadMessageCount(
+                        chatMessageRepository.countByChatRoomIdAndSenderIdNotAndIsReadFalse(room.getId(), senderId)
+                )
+                .build();
+
+        // 3) SSE 푸시 (보낸 사람 & 받는 사람)
+        sseService.pushRoomUpdate(senderId, delta);
+        sseService.pushRoomUpdate(otherUserId, delta);
     }
 
     // TeamService에서 사용함
@@ -165,10 +191,82 @@ public class ChatService {
                 .messageType("TEAM_RESPONSE")
                 .build();
 
-        chatMessageRepository.save(acceptMessage);
+        ChatMessage saved = chatMessageRepository.save(acceptMessage);
+
+        // ——— SSE 델타 푸시 ———
+        room.setCreatedAt(saved.getSentAt());
+        chatRoomRepository.save(room);
+
+        Integer otherUserId = (room.getUser1Id().equals(senderId) ? room.getUser2Id() : room.getUser1Id());
+        ChatRoomListResponseDto delta = ChatRoomListResponseDto.builder()
+                .chatRoomId(room.getId())
+                .otherUserId(otherUserId)
+                .lastMessageContent(saved.getContent())
+                .lastMessageTime(room.getCreatedAt())
+                .unreadMessageCount(
+                        chatMessageRepository.countByChatRoomIdAndSenderIdNotAndIsReadFalse(room.getId(), senderId)
+                )
+                .build();
+
+        sseService.pushRoomUpdate(senderId, delta);
+        sseService.pushRoomUpdate(otherUserId, delta);
     }
 
+    @Transactional
+    public ChatMessageResponseDto sendMessage(ChatMessageDto dto) {
+        Integer senderId = dto.getSenderId();
+        // 1) 메시지 저장
+        ChatMessage message = ChatMessage.builder()
+                .chatRoomId(dto.getChatRoomId())
+                .senderType(dto.getSenderType()) // 여기는 무조건 User
+                .senderId(dto.getSenderId())
+                .messageType(dto.getMessageType() != null ? dto.getMessageType() : "TEXT")
+                .content(dto.getContent())
+                .isRead(false)
+                .sentAt(new Timestamp(System.currentTimeMillis()))
+                .build();
+        ChatMessage saved = chatMessageRepository.save(message);
 
+        // 2) ChatRoom 메타데이터 업데이트
+        ChatRoom room = chatRoomRepository.findById(dto.getChatRoomId())
+                .orElseThrow(() -> new NoSuchElementException("채팅방이 없습니다: " + dto.getChatRoomId()));
+        //room.setLastMessageContent(saved.getContent());
+        room.setCreatedAt(saved.getSentAt());
+        chatRoomRepository.save(room);
+
+        // 3) 델타 DTO 생성
+        Integer otherUserId = room.getUser1Id().equals(senderId) ? room.getUser2Id() : room.getUser1Id();
+        Optional<User> otherOpt = userRepository.findById(otherUserId);
+        ChatRoomListResponseDto delta = ChatRoomListResponseDto.builder()
+                .chatRoomId(room.getId())
+                .userId(senderId)
+                .otherUserId(otherUserId)
+                .otherUserName(otherOpt.map(User::getUserName).orElse("탈퇴한 유저"))
+                .otherUserProfileImgUrl(otherOpt.map(User::getProfileImgUrl).orElse(null))
+                .lastMessageContent(saved.getContent())
+                .lastMessageTime(room.getCreatedAt())
+                .unreadMessageCount(
+                        chatMessageRepository.countByChatRoomIdAndSenderIdNotAndIsReadFalse(
+                                room.getId(), senderId)
+                )
+                .build();
+
+        // 4) SSE 푸시
+        sseService.pushRoomUpdate(senderId, delta);
+        sseService.pushRoomUpdate(otherUserId, delta);
+
+        // 5) 응답 생성
+        return ChatMessageResponseDto.builder()
+                .id(saved.getId())
+                .chatRoomId(saved.getChatRoomId())
+                .senderType(saved.getSenderType())
+                .senderId(saved.getSenderId())
+                .messageType(saved.getMessageType())
+                .content(saved.getContent())
+                .isRead(saved.getIsRead())
+                .sentAt(saved.getSentAt())
+                .build();
+    }
 
     public void verifyUserInRoom(Integer roomId, Integer userId) {
         ChatRoom room = chatRoomRepository.findById(roomId)

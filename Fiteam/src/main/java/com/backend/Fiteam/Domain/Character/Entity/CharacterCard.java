@@ -18,7 +18,7 @@ public class CharacterCard {
     private Integer id;
 
     @Schema(example = "https://kr.object.ncloudstorage.com/fiteam-character/1.jpg")
-    @Column(nullable = false, unique = true, length = 100)
+    @Column(name="img_url",nullable = false, unique = true, length = 100)
     private String imgUrl;
 
     @Schema(example = "EPIC")

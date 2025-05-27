@@ -1,5 +1,7 @@
 package com.backend.Fiteam.Domain.Group.Controller;
 
+import com.backend.Fiteam.Domain.Character.Service.CharacterCardService.CompatibilityResult;
+import com.backend.Fiteam.Domain.Group.Dto.CompatibilityResultDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupMemberMiniProfileResponseDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupMemberProfileResponseDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupMemberResponseDto;
@@ -121,6 +123,15 @@ public class GroupMemberController {
 
         List<GroupMemberResponseDto> response = groupMemberService.getGroupMembers(requesterId, groupId, true);
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "6. 유저 성향 궁합 보기", description = "로그인한 유저와 상대방 유저의 성향검사 결과를 기반으로 궁합 결과를 반환합니다.")
+    @GetMapping("/fit-score/{otherUserId}")
+    public ResponseEntity<CompatibilityResult> getCompatibilityResult(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer otherUserId) {
+        Integer myUserId = Integer.parseInt(userDetails.getUsername());
+
+        CompatibilityResult result = groupMemberService.getCompatibility(myUserId, otherUserId);
+        return ResponseEntity.ok(result);
     }
 
 }

@@ -5,7 +5,12 @@ import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
@@ -19,13 +24,17 @@ public class JwtTokenProvider {
     * 추가 - Refresh 토큰, 로그아웃 토큰 블랙리스트 처리, 토큰 만료 시간 확인 메서드
     * */
 
+    private final UserDetailsService userDetailsService;  // ← 추가
+
     private final Key secretKey;
     private final long tokenValidity = 1000L * 60 * 90 * 4; // 유효시간 60분
     private final long refreshThreshold = 1000L * 60 * 30; // 10분 이하 시 갱신
     private static final Logger logger = LoggerFactory.getLogger(JwtTokenProvider.class);
 
-    public JwtTokenProvider(@Value("${jwt.secret}") String secret) {
+    public JwtTokenProvider(@Value("${jwt.secret}") String secret,
+            @Qualifier("customUserDetailsService") UserDetailsService userDetailsService) {
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes()); // 최신 Key 생성 방식
+        this.userDetailsService = userDetailsService;
     }
 
     // JWT 토큰 생성
@@ -108,6 +117,14 @@ public class JwtTokenProvider {
             return bearerToken.substring(7);
         }
         return null;
+    }
+
+    public Authentication getAuthentication(String token) {
+        Integer userId = getIdFromToken(token);
+        UserDetails userDetails = userDetailsService.loadUserByUsername(userId.toString());
+        return new UsernamePasswordAuthenticationToken(
+                userDetails, "", userDetails.getAuthorities()
+        );
     }
 
 }
