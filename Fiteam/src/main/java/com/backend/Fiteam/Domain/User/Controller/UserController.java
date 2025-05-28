@@ -1,8 +1,6 @@
 package com.backend.Fiteam.Domain.User.Controller;
 
 
-import com.backend.Fiteam.Domain.Group.Dto.GroupMemberProfileResponseDto;
-import com.backend.Fiteam.Domain.Group.Dto.ManagerGroupResponseDto;
 import com.backend.Fiteam.Domain.User.Dto.TestResultResponseDto;
 import com.backend.Fiteam.Domain.User.Dto.UserCardHistoryDto;
 import com.backend.Fiteam.Domain.User.Dto.UserCardResponseDto;
@@ -14,27 +12,22 @@ import com.backend.Fiteam.Domain.User.Dto.UserSettingsRequestDto;
 import com.backend.Fiteam.Domain.User.Dto.UserSettingsResponseDto;
 import com.backend.Fiteam.Domain.User.Service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -166,5 +159,11 @@ public class UserController {
         Integer userId = Integer.parseInt(userDetails.getUsername());
         UserSettingsResponseDto dto = userService.getUserSettings(userId);
         return ResponseEntity.ok(dto);
+    }
+
+    // 10. 본인 ID 리턴하는
+    @GetMapping("/myId")
+    public Integer getMyId(@AuthenticationPrincipal UserDetails userDetails) {
+        return Integer.valueOf(userDetails.getUsername());
     }
 }

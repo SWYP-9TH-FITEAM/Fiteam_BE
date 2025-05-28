@@ -1,5 +1,7 @@
 package com.backend.Fiteam.Domain.Group.Controller;
 
+import com.backend.Fiteam.Domain.Admin.Dto.SystemNoticeResponseDto;
+import com.backend.Fiteam.Domain.Admin.Service.AdminService;
 import com.backend.Fiteam.Domain.Group.Dto.GroupMemberResponseDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupNoticeDetailDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupNoticeRequestDto;
@@ -25,7 +27,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import java.util.NoSuchElementException;
 import lombok.RequiredArgsConstructor;
+import org.quartz.JobKey;
+import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -48,7 +54,8 @@ public class ManagerController {
     private final ProjectGroupRepository projectGroupRepository;
     private final GroupMemberService groupMemberService;
     private final GroupNoticeService groupNoticeService;
-
+    private final AdminService adminService;
+    private final Scheduler scheduler;
     /*
     1. 로그인한 매니저의 ID, 이름 반환
     2. 로그인한 매니저가 관리하는 그룹 정보를 반환합니다.
@@ -184,7 +191,58 @@ public class ManagerController {
     @GetMapping("/notices/{noticeId}")
     public ResponseEntity<GroupNoticeDetailDto> getNoticeById(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer noticeId) {
         Integer managerId = Integer.valueOf(userDetails.getUsername());
-        GroupNoticeDetailDto dto = groupNoticeService.getNoticeById(managerId, noticeId);
+        GroupNoticeDetailDto dto = groupNoticeService.getNoticeById(noticeId);
         return ResponseEntity.ok(dto);
+    }
+
+    @Operation(summary = "new-시스템 공지사항 조회", description = "등록된 모든 시스템 공지사항 목록을 반환합니다.")
+    @GetMapping("/system/notices")
+    public ResponseEntity<List<SystemNoticeResponseDto>> getSystemNotices() {
+        List<SystemNoticeResponseDto> list = adminService.getAllSystemNotices();
+        return ResponseEntity.ok(list);
+    }
+
+
+    @Operation(summary = "팀 빌딩 시작(수동)", description = "Quartz에 등록된 시작 잡을 즉시 실행합니다.")
+    @PostMapping("/{groupId}/start")
+    @PreAuthorize("hasAuthority('Manager')")
+    public ResponseEntity<Void> startBuildingManually(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Integer groupId
+    ) throws SchedulerException {
+        Integer managerId = Integer.valueOf(userDetails.getUsername());
+        authorizeManager(groupId, managerId);
+
+        JobKey startKey = JobKey.jobKey("job_group_" + groupId + "_start", "teamBuilding");
+        if (!scheduler.checkExists(startKey)) {
+            throw new IllegalStateException("팀 빌딩 시작이 불가능합니다. 이미 시작되었거나 시작 잡이 없습니다.");
+        }
+
+        // 1) 즉시 실행
+        scheduler.triggerJob(startKey);
+        // 2) 더 이상 재실행되지 않도록 잡 삭제
+        scheduler.deleteJob(startKey);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "팀 빌딩 종료(수동)", description = "Quartz에 등록된 종료 잡을 즉시 실행합니다.")
+    @PostMapping("/{groupId}/end")
+    @PreAuthorize("hasAuthority('Manager')")
+    public ResponseEntity<Void> endBuildingManually(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Integer groupId
+    ) throws SchedulerException {
+        Integer managerId = Integer.valueOf(userDetails.getUsername());
+        authorizeManager(groupId, managerId);
+
+        JobKey endKey = JobKey.jobKey("job_group_" + groupId + "_end", "teamBuilding");
+
+        if (!scheduler.checkExists(endKey)) {
+            throw new IllegalStateException("팀 빌딩 종료가 불가능합니다. 이미 종료되었거나 종료 잡이 없습니다.");
+        }
+
+        scheduler.triggerJob(endKey);
+        scheduler.deleteJob(endKey);
+        return ResponseEntity.ok().build();
     }
 }

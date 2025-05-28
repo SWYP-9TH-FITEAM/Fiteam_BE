@@ -45,7 +45,8 @@ public class ManagerService {
                 .orElseThrow(() -> new NoSuchElementException("존재하지 않는 매니저입니다."));
         return new ManagerProfileResponseDto(
                 manager.getId(),
-                manager.getManagerName()
+                manager.getManagerName(),
+                manager.getProfileImgUrl()
         );
     }
 

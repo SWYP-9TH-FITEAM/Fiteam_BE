@@ -7,4 +7,8 @@ import java.util.List;
 
 public interface GroupNoticeRepository extends JpaRepository<GroupNotice, Integer> {
     List<GroupNotice> findAllByManagerIdOrderByCreatedAtDesc(Integer managerId);
+
+    void deleteAllByGroupId(Integer groupId);
+
+    List<GroupNotice> findAllByGroupIdOrderByCreatedAtDesc(Integer groupId);
 }

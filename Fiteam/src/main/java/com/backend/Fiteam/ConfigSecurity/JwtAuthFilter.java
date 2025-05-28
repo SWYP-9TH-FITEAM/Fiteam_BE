@@ -70,6 +70,8 @@ public class JwtAuthFilter extends OncePerRequestFilter{
                 List<GrantedAuthority> authorities;
                 if ("manager".equals(userType)) {
                     authorities = List.of(new SimpleGrantedAuthority("Manager"));
+                } else if("admin".equals(userType)){
+                    authorities = List.of(new SimpleGrantedAuthority("Admin"));
                 } else {
                     authorities = List.of(new SimpleGrantedAuthority("User"));
                 }

@@ -185,10 +185,9 @@ public class TeamController {
     }
 
     // 10. 팀 확정 이후 연락처 공유
-    @Operation(summary = "10. 팀 확정 이후 연락처 공유", description = "팀 확정 이후, 로그인한 팀장만 해당 팀의 멤버 연락처(전화번호, 카카오톡 ID)를 조회할 수 있습니다.",
-            responses = {@ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = TeamContactResponseDto.class))))})
+    @Operation(summary = "10. 팀 확정 이후 연락처 공유", description = "팀 확정 이후, 로그인한 팀장만 해당 팀의 멤버 연락처(전화번호, 카카오톡 ID)를 조회할 수 있습니다.")
     @GetMapping("/{teamId}/contacts")
-    public ResponseEntity<?> getTeamContacts(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer teamId) {
+    public ResponseEntity<List<TeamContactResponseDto>> getTeamContacts(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer teamId) {
         Integer currentUserId = Integer.parseInt(userDetails.getUsername());
         List<TeamContactResponseDto> contacts = teamService.getTeamContacts(teamId, currentUserId);
         return ResponseEntity.ok(contacts);

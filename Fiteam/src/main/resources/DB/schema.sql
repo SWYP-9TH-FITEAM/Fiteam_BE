@@ -87,6 +87,7 @@ CREATE TABLE Manager (
     password VARCHAR(100),
     manager_name VARCHAR(30),
     organization VARCHAR(50),
+    profile_img_url TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -241,13 +242,6 @@ CREATE TABLE Notification (
     FOREIGN KEY (user_id) REFERENCES User(id)
 );
 
-CREATE TABLE IF NOT EXISTS Admin (
-    id INT AUTO_INCREMENT PRIMARY KEY,      -- 관리자 고유 ID
-    email VARCHAR(50) NOT NULL UNIQUE,      -- 로그인용 이메일
-    password VARCHAR(100) NOT NULL,         -- 암호 (해시값 저장)
-    name VARCHAR(30) NOT NULL,              -- 관리자 이름
-    position VARCHAR(50) NOT NULL           -- 직책/역할
-);
 
 -- 성능 향상을 위한 인덱싱 --
 ALTER TABLE GroupMember

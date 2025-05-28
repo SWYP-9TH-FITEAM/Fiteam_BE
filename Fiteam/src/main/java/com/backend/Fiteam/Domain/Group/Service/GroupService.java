@@ -3,31 +3,33 @@ package com.backend.Fiteam.Domain.Group.Service;
 import com.backend.Fiteam.ConfigQuartz.TeamBuildingSchedulerService;
 import com.backend.Fiteam.Domain.Character.Entity.CharacterCard;
 import com.backend.Fiteam.Domain.Character.Repository.CharacterCardRepository;
+import com.backend.Fiteam.Domain.Chat.Entity.ChatRoom;
+import com.backend.Fiteam.Domain.Chat.Entity.ManagerChatRoom;
+import com.backend.Fiteam.Domain.Chat.Repository.ChatMessageRepository;
+import com.backend.Fiteam.Domain.Chat.Repository.ChatRoomRepository;
+import com.backend.Fiteam.Domain.Chat.Repository.ManagerChatRoomRepository;
 import com.backend.Fiteam.Domain.Group.Dto.CreateGroupRequestDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupDetailResponseDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupInvitedResponseDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupNoticeRequestDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupTeamTypeSettingDto;
-import com.backend.Fiteam.Domain.Group.Dto.ManagerGroupListDto;
-import com.backend.Fiteam.Domain.Group.Dto.ManagerGroupResponseDto;
-import com.backend.Fiteam.Domain.Group.Dto.ManagerGroupStatusDto;
-import com.backend.Fiteam.Domain.Group.Dto.ManagerProfileResponseDto;
 import com.backend.Fiteam.Domain.Group.Dto.UpdateGroupRequestDto;
 import com.backend.Fiteam.Domain.Group.Entity.GroupMember;
-import com.backend.Fiteam.Domain.Group.Entity.Manager;
 import com.backend.Fiteam.Domain.Group.Entity.ProjectGroup;
 import com.backend.Fiteam.Domain.Group.Repository.GroupMemberRepository;
-import com.backend.Fiteam.Domain.Group.Repository.ManagerRepository;
+import com.backend.Fiteam.Domain.Group.Repository.GroupNoticeRepository;
 import com.backend.Fiteam.Domain.Group.Repository.ProjectGroupRepository;
 import com.backend.Fiteam.Domain.Group.Entity.TeamType;
 import com.backend.Fiteam.Domain.Notification.Service.NotificationService;
+import com.backend.Fiteam.Domain.Team.Dto.TeamContactResponseDto;
 import com.backend.Fiteam.Domain.Team.Entity.Team;
 import com.backend.Fiteam.Domain.Team.Repository.TeamRepository;
-import com.backend.Fiteam.Domain.Team.Repository.TeamRequestRepository;
 import com.backend.Fiteam.Domain.Team.Repository.TeamTypeRepository;
 import com.backend.Fiteam.Domain.Team.Service.TeamService;
 import com.backend.Fiteam.Domain.User.Entity.User;
+import com.backend.Fiteam.Domain.User.Repository.UserLikeRepository;
 import com.backend.Fiteam.Domain.User.Repository.UserRepository;
+import com.backend.Fiteam.Domain.User.Service.UserService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.sql.Timestamp;
@@ -40,8 +42,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.quartz.SchedulerException;
 import org.springframework.stereotype.Service;
@@ -62,6 +66,12 @@ public class GroupService {
     private final TeamBuildingSchedulerService schedulerService;
     private final NotificationService notificationService;
     private final GroupNoticeService groupNoticeService;
+    private final GroupNoticeRepository groupNoticeRepository;
+    private final UserLikeRepository userLikeRepository;
+    private final ChatRoomRepository chatRoomRepository;
+    private final ManagerChatRoomRepository managerChatRoomRepository;
+    private final ChatMessageRepository chatMessageRepository;
+    private final UserService userService;
 
 
     @Transactional(readOnly = true)
@@ -69,10 +79,7 @@ public class GroupService {
         return projectGroupRepository.findById(groupId)
                 .orElseThrow(() -> new NoSuchElementException("Group not found with id: " + groupId));
     }
-    private void notifyAllGroupMembersById(Integer groupId,
-            String senderType,
-            String type,
-            String content) {
+    private void notifyAllGroupMembersById(Integer groupId, String senderType, String type, String content) {
         Integer managerId = projectGroupRepository.findById(groupId)
                 .orElseThrow(() -> new NoSuchElementException("그룹이 없습니다."))
                 .getManagerId();
@@ -87,6 +94,48 @@ public class GroupService {
                     senderType,
                     type,
                     content
+            );
+        }
+    }
+
+    public void notifyTeamLeadersWithContacts(Integer groupId) {
+        // 발신자(그룹 관리자) ID
+        Integer managerId = projectGroupRepository.findById(groupId)
+                .orElseThrow(() -> new NoSuchElementException("그룹이 없습니다: " + groupId))
+                .getManagerId();
+
+        // 1) 그룹 내 모든 팀 가져오기
+        List<Team> teams = teamRepository.findAllByGroupId(groupId);
+
+        for (Team team : teams) {
+            Integer masterId = team.getMasterUserId();
+            if (masterId == null) continue;
+
+            // 2) 해당 팀의 팀원 연락처(팀장 자신 제외) 수집
+            List<TeamContactResponseDto> contacts = groupMemberRepository
+                    .findAllByTeamId(team.getId()).stream()
+                    .filter(gm -> !gm.getUserId().equals(masterId))
+                    .map(gm -> userService.getContactForUser(gm.getUserId()))
+                    .collect(Collectors.toList());
+
+            if (contacts.isEmpty()) continue;
+
+            // 3) 메시지 조립
+            StringBuilder msg = new StringBuilder()
+                    .append("팀 [").append(team.getName()).append("] 연락처:\n");
+            contacts.forEach(c -> {
+                msg.append(c.getUserName())
+                        .append(": ").append(c.getPhoneNumber());
+                msg.append("\n");
+            });
+
+            // 4) 알림 발송
+            notificationService.createAndPushNotification(
+                    masterId,            // 수신자: 팀장
+                    managerId,           // 발신자: 그룹 관리자
+                    "SYSTEM",            // 발신자 타입
+                    "TEAM_CONTACTS",     // 알림 유형
+                    msg.toString()       // 알림 내용
             );
         }
     }
@@ -426,7 +475,7 @@ public class GroupService {
                     .name("Team " + (i + 1))
                     .maxMembers(tmembers.size())
                     .description("랜덤 팀빌딩 결과")
-                    .status("모집완료")
+                    .status("모집마감")
                     .createdAt(new Timestamp(System.currentTimeMillis()))
                     .build();
             newTeam = teamRepository.save(newTeam);
@@ -435,7 +484,7 @@ public class GroupService {
             Team finalNewTeam = newTeam;
             tmembers.forEach(gm -> {
                 gm.setTeamId(finalNewTeam.getId());
-                gm.setTeamStatus("모집완료");
+                gm.setTeamStatus("모집마감");
             });
             groupMemberRepository.saveAll(tmembers);
         }
@@ -487,25 +536,50 @@ public class GroupService {
     public void deleteGroup(Integer groupId) {
         // 1) 그룹 존재 확인
         ProjectGroup group = projectGroupRepository.findById(groupId)
-                .orElseThrow(() -> new NoSuchElementException("존재하지 않는 그룹입니다."));
+                .orElseThrow(() -> new NoSuchElementException("존재하지 않는 그룹입니다: " + groupId));
 
-        // 2) 그룹 멤버 모두 삭제
+        // 2) 그룹 공지 삭제
+        groupNoticeRepository.deleteAllByGroupId(groupId);
+
+        // 3) 사용자 좋아요(유저-그룹 매핑) 삭제
+        userLikeRepository.deleteAllByGroupId(groupId);
+
+        // 4) 채팅방 및 채팅메시지 삭제
+        // 4-1) 일반 사용자 채팅방
+        List<ChatRoom> chatRooms = chatRoomRepository.findAllByGroupId(groupId);
+        if (!chatRooms.isEmpty()) {
+            List<Integer> roomIds = chatRooms.stream()
+                    .map(ChatRoom::getId).toList();
+            chatMessageRepository.deleteAllByChatRoomIdIn(roomIds);
+            chatRoomRepository.deleteAll(chatRooms);
+        }
+
+        // 4-2) 매니저-사용자 채팅방
+        List<ManagerChatRoom> mgrRooms = managerChatRoomRepository.findAllByGroupId(groupId);
+        if (!mgrRooms.isEmpty()) {
+            managerChatRoomRepository.deleteAll(mgrRooms);
+            // ChatMessage 는 일반 ChatRoom 과만 연관되어 있으므로 추가 삭제 불필요
+        }
+
+        // 5) 그룹 멤버 모두 삭제
         List<GroupMember> members = groupMemberRepository.findAllByGroupId(groupId);
         if (!members.isEmpty()) {
             groupMemberRepository.deleteAll(members);
         }
 
-        // 3) 팀 + 팀 요청 삭제 (TeamService)
+        // 6) 팀 + 팀 요청 삭제
         teamService.deleteTeamsAndRequestsByGroupId(groupId);
 
-        // 5) 그룹에 연결된 TeamType 설정 삭제
+        // 7) 마지막으로 그룹 자체 삭제
+        projectGroupRepository.delete(group);
+
+        // 8) 관련 TeamType 설정 삭제
         Integer teamTypeId = group.getTeamMakeType();
         if (teamTypeId != null) {
             teamTypeRepository.deleteById(teamTypeId);
         }
 
-        // 6) 마지막으로 그룹 자체 삭제
-        projectGroupRepository.delete(group);
+
     }
 
     @Transactional(readOnly = true)
@@ -553,7 +627,7 @@ public class GroupService {
         // 팀빌딩 시작하면서 유저들에게 알림 전송
         notifyAllGroupMembersById(
                 group.getId(),
-                "MANAGER",
+                "manager",
                 "TEAM_BUILDING_START",
                 group.getName()+"의 팀 빌딩이 시작되었습니다."
         );
@@ -565,4 +639,31 @@ public class GroupService {
         // projectGroup.getManagerId()가 매니저 ID 입니다
         groupNoticeService.createNotice(group.getManagerId(), noticeDto);
     }
+
+    @Transactional
+    public void closeTeamBuilding(ProjectGroup group) {
+        Integer groupId = group.getId();
+
+        // 1) 팀 상태 변경
+        List<Team> teams = teamRepository.findAllByGroupIdAndStatus(groupId, "모집중");
+        teams.forEach(t -> t.setStatus("모집마감"));
+        teamRepository.saveAll(teams);
+
+        // 2) 멤버 teamStatus 변경
+        List<GroupMember> members = groupMemberRepository.findAllByGroupId(groupId);
+        members.forEach(m -> m.setTeamStatus("팀확정"));
+        groupMemberRepository.saveAll(members);
+
+        // 3) 모든 멤버에게 알림
+        notifyAllGroupMembersById(
+                groupId,
+                "manager",                      // 발신자 타입
+                "TEAM_BUILDING_END",           // 알림 유형
+                group.getName() + " 팀 빌딩이 종료되었습니다."
+        );
+
+        // 4) 팀 빌딩 종료 후 팀장에게 팀원들 연락처 알림으로 전송
+        // notifyTeamLeadersWithContacts(groupId);
+    }
+
 }

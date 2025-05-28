@@ -17,6 +17,4 @@ public class TeamContactResponseDto {
     @Schema(description = "전화번호", example = "010-1234-5678")
     private String phoneNumber;
 
-    @Schema(description = "카카오톡 ID", example = "hong_kakao")
-    private String kakaoId;
 }

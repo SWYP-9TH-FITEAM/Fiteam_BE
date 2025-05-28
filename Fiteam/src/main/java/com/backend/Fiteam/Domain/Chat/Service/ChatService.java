@@ -134,6 +134,7 @@ public class ChatService {
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."))
                 .getUserName();
 
+        /*
         ChatMessage teamRequestMessage = ChatMessage.builder()
                 .chatRoomId(room.getId())
                 .senderType(SenderType.USER)                  // 팀요청은 User만 가능해서
@@ -145,10 +146,11 @@ public class ChatService {
                 .build();
 
         ChatMessage saved = chatMessageRepository.save(teamRequestMessage);
+        */
 
         // -- SSE 추가하기 --
         // 1) ChatRoom 메타데이터(createdAt을 updateAt 대신 사용) 갱신
-        room.setCreatedAt(saved.getSentAt());
+        room.setCreatedAt(new Timestamp(System.currentTimeMillis()));
         chatRoomRepository.save(room);
 
         // 2) 델타 DTO 생성
@@ -156,7 +158,7 @@ public class ChatService {
         ChatRoomListResponseDto delta = ChatRoomListResponseDto.builder()
                 .chatRoomId(room.getId())
                 .otherUserId(otherUserId)
-                .lastMessageContent(saved.getContent()) // content 필드 이름 확인
+                .lastMessageContent(senderName+"이 팀 제안을 보냈습니다!") // content 필드 이름 확인
                 .lastMessageTime(room.getCreatedAt())
                 .unreadMessageCount(
                         chatMessageRepository.countByChatRoomIdAndSenderIdNotAndIsReadFalse(room.getId(), senderId)
@@ -181,6 +183,7 @@ public class ChatService {
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."))
                 .getUserName();
 
+        /*
         ChatMessage acceptMessage = ChatMessage.builder()
                 .chatRoomId(room.getId())
                 .senderType(SenderType.USER)                  // 팀요청은 User만 가능해서
@@ -192,16 +195,18 @@ public class ChatService {
                 .build();
 
         ChatMessage saved = chatMessageRepository.save(acceptMessage);
+        */
+
 
         // ——— SSE 델타 푸시 ———
-        room.setCreatedAt(saved.getSentAt());
+        room.setCreatedAt(new Timestamp(System.currentTimeMillis()));
         chatRoomRepository.save(room);
 
         Integer otherUserId = (room.getUser1Id().equals(senderId) ? room.getUser2Id() : room.getUser1Id());
         ChatRoomListResponseDto delta = ChatRoomListResponseDto.builder()
                 .chatRoomId(room.getId())
                 .otherUserId(otherUserId)
-                .lastMessageContent(saved.getContent())
+                .lastMessageContent(name + "님이 팀 제안을 " + type + "했습니다!")
                 .lastMessageTime(room.getCreatedAt())
                 .unreadMessageCount(
                         chatMessageRepository.countByChatRoomIdAndSenderIdNotAndIsReadFalse(room.getId(), senderId)
@@ -316,10 +321,13 @@ public class ChatService {
     }
 
     public List<ChatRoomListResponseDto> searchChatRoomsForUser(Integer userId, String name) {
+        String lowerName = name.toLowerCase();
         return getChatRoomsForUser(userId, null).stream()
-                .filter(dto -> dto.getOtherUserName() != null
-                        && dto.getOtherUserName().toLowerCase().contains(name.toLowerCase()))
-                .collect(Collectors.toList());
+                .filter(dto -> {
+                    String other = dto.getOtherUserName();
+                    return other != null && other.toLowerCase().contains(lowerName);
+                }).collect(Collectors.toList());
     }
+
 
 }

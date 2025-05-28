@@ -19,6 +19,9 @@ public class GroupNoticeSummaryDto {
     @Schema(description = "공지 대상 그룹 ID", example = "7")
     private Integer groupId;
 
+    @Schema(description = "공지 대상 그룹 이름", example = "스위프 9기")
+    private String groupName;
+
     @Schema(description = "공지 제목", example = "이번 주 발표 안내")
     private String title;
 

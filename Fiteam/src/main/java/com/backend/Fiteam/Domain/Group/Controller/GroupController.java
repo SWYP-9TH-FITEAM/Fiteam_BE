@@ -4,13 +4,17 @@ import com.backend.Fiteam.Domain.Group.Dto.CreateGroupRequestDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupDetailResponseDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupInviteRequestDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupInvitedResponseDto;
+import com.backend.Fiteam.Domain.Group.Dto.GroupNoticeDetailDto;
+import com.backend.Fiteam.Domain.Group.Dto.GroupNoticeSummaryDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupTeamTypeSettingDto;
 import com.backend.Fiteam.Domain.Group.Dto.ManagerGroupResponseDto;
 import com.backend.Fiteam.Domain.Group.Dto.ManagerGroupStatusDto;
 import com.backend.Fiteam.Domain.Group.Dto.ManagerProfileResponseDto;
 import com.backend.Fiteam.Domain.Group.Dto.UpdateGroupRequestDto;
+import com.backend.Fiteam.Domain.Group.Entity.GroupNotice;
 import com.backend.Fiteam.Domain.Group.Entity.ProjectGroup;
 import com.backend.Fiteam.Domain.Group.Repository.GroupMemberRepository;
+import com.backend.Fiteam.Domain.Group.Service.GroupNoticeService;
 import com.backend.Fiteam.Domain.Group.Service.GroupService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -39,6 +43,7 @@ public class GroupController {
 
     private final GroupService groupService;
     private final GroupMemberRepository groupMemberRepository;
+    private final GroupNoticeService groupNoticeService;
 
     /*
     1. 매니저가 그룹 생성
@@ -221,6 +226,23 @@ public class GroupController {
 
         GroupDetailResponseDto detail = groupService.getGroupDetail(groupId);
         return ResponseEntity.ok(detail);
+    }
+
+    // 11. 그룹의 공지목록 보기.
+    @Operation(summary = "11. 그룹 공지 목록 조회 (멤버용)", description = "로그인한 멤버가 자신이 속한 그룹의 공지를 최신 순으로 조회합니다.")
+    @GetMapping("/notice-list/{groupId}")
+    public ResponseEntity<List<GroupNoticeSummaryDto>> getGroupNotices(
+            @AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer groupId) {
+        Integer userId = Integer.valueOf(userDetails.getUsername());
+        List<GroupNoticeSummaryDto> list = groupNoticeService.getNoticesForMember(userId, groupId);
+        return ResponseEntity.ok(list);
+    }
+
+    @Operation(summary = "공지 상세 조회", description = "관리자가 작성한 특정 공지의 전체 내용을 반환합니다.")
+    @GetMapping("/notice-detail/{noticeId}")
+    public ResponseEntity<GroupNoticeDetailDto> getNoticeById(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer noticeId) {
+        GroupNoticeDetailDto dto = groupNoticeService.getNoticeById(noticeId);
+        return ResponseEntity.ok(dto);
     }
 }
 

@@ -1,6 +1,7 @@
 package com.backend.Fiteam.Domain.Group.Dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.persistence.Column;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -14,4 +15,7 @@ public class ManagerProfileResponseDto {
 
     @Schema(description = "매니저 이름", example = "홍길동")
     private String managerName;
+
+    @Schema(description = "매니저 프로필 이미지 URL", example = "https://example.com/profile.jpg")
+    private String profileImgUrl;
 }

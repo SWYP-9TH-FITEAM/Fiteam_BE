@@ -11,4 +11,6 @@ public interface ManagerChatRoomRepository extends JpaRepository<ManagerChatRoom
     List<ManagerChatRoom> findAllByUserId(Integer userId);
 
     Optional<ManagerChatRoom> findByManagerIdAndUserId(Integer managerId, Integer userId);
+
+    List<ManagerChatRoom> findAllByGroupId(Integer groupId);
 }

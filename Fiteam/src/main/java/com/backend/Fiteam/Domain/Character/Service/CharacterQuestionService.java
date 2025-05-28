@@ -19,6 +19,7 @@ public class CharacterQuestionService {
 
     private final CharacterQuestionRepository characterQuestionRepository;
     private final CharacterCardRepository characterCardRepository;
+    private final CharacterCardService characterCardService;
 
 
     public List<CharacterQuestion> getAllCharacterQuestions() {
@@ -62,6 +63,8 @@ public class CharacterQuestionService {
         CharacterCard characterCard = characterCardRepository.findByCode(code)
                 .orElseThrow(() -> new NoSuchElementException("CharacterCard not found with code: " + code));
 
+        String description = characterCardService.buildCharacterDescription(E, P, V, C);
+
         // 4) DTO 반환 (DB 저장 없음)
         return SaveTestResultResponseDto.builder()
                 .cardId(characterCard.getId())
@@ -69,6 +72,7 @@ public class CharacterQuestionService {
                 .numPD(numPD)
                 .numVA(numVA)
                 .numCL(numCL)
+                .details(description)
                 .build();
     }
 }

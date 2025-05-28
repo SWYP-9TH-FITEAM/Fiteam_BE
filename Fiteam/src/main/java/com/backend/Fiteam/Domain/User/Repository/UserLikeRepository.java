@@ -8,4 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface UserLikeRepository extends JpaRepository<UserLike, Integer> {
     Optional<UserLike> findBySenderIdAndReceiverIdAndGroupId(Integer senderId, Integer receiverId, Integer groupId);
     List<UserLike> findAllBySenderId(Integer senderId);
+
+    void deleteAllByGroupId(Integer groupId);
 }

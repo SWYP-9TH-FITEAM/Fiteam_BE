@@ -21,5 +21,8 @@ public class SaveTestResultResponseDto {
 
     @Schema(description = "CL 성향 점수", example = "6")
     private Integer numCL;
+
+    @Schema(description = "당신은 이런 성향입니다.", example = "~~~~~")
+    private String details;
 }
 

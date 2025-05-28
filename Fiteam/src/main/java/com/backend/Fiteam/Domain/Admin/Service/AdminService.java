@@ -13,6 +13,7 @@ import com.backend.Fiteam.Domain.Admin.Repository.VisitLogRepository;
 import com.backend.Fiteam.Domain.Group.Entity.Manager;
 import com.backend.Fiteam.Domain.User.Repository.UserRepository;
 import com.backend.Fiteam.Domain.Group.Repository.ManagerRepository;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -60,14 +61,15 @@ public class AdminService {
                 .password(passwordEncoder.encode(dto.getPassword()))
                 .managerName(dto.getManagerName())
                 .organization(dto.getOrganization())
+                .createdAt(new Timestamp(System.currentTimeMillis()))
                 .build();
 
         managerRepository.save(manager);
     }
 
-    public void createSystemNotice(CreateSystemNoticeRequestDto dto) {
+    public void createSystemNotice(CreateSystemNoticeRequestDto dto, Integer AdminId) {
         SystemNotice notice = SystemNotice.builder()
-                .adminId(dto.getAdminId())
+                .adminId(AdminId)
                 .title(dto.getTitle())
                 .content(dto.getContent())
                 .build();

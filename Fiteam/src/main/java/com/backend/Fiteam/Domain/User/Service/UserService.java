@@ -2,6 +2,7 @@ package com.backend.Fiteam.Domain.User.Service;
 
 import com.backend.Fiteam.Domain.Character.Entity.CharacterCard;
 import com.backend.Fiteam.Domain.Character.Repository.CharacterCardRepository;
+import com.backend.Fiteam.Domain.Character.Service.CharacterCardService;
 import com.backend.Fiteam.Domain.Group.Entity.GroupMember;
 import com.backend.Fiteam.Domain.Group.Entity.ProjectGroup;
 import com.backend.Fiteam.Domain.Group.Repository.GroupMemberRepository;
@@ -42,7 +43,7 @@ public class UserService {
     private final ProjectGroupRepository projectGroupRepository;
     private final TeamRepository teamRepository;
     private final TeamTypeRepository teamTypeRepository;
-
+    private final CharacterCardService characterCardService;
 
 
     @Transactional
@@ -87,6 +88,7 @@ public class UserService {
 
         // HyperCLOVA로 분석 결과 생성
         //String description = hyperCLOVAService.generateDescription(numEI, numPD, numVA, numCL);
+        String description = characterCardService.buildCharacterDescription(E, P, V, C);
 
         // 기존 cardId1 → cardId2로 백업
         user.setCardId2(user.getCardId1());
@@ -100,10 +102,11 @@ public class UserService {
         user.setNumPD(numPD);
         user.setNumVA(numVA);
         user.setNumCL(numCL);
-        user.setDetails("hyper clova description");
+        user.setDetails(description);
 
         userRepository.save(user);
     }
+
 
     @Transactional(readOnly = true)
     public TestResultResponseDto getTestResult(Integer userId) {
@@ -351,8 +354,7 @@ public class UserService {
         return new TeamContactResponseDto(
                 user.getId(),
                 user.getUserName(),
-                user.getPhoneNumber(),
-                user.getKakaoId()
+                user.getPhoneNumber()
         );
     }
 }

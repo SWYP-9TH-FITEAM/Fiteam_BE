@@ -88,6 +88,15 @@ INSERT INTO CharacterQuestion (id, dimension, question, type_a, type_b) VALUES
     (60, 'C-L', '대화나 회의 중엔 나서기보다는 상황을 파악하고 적절히 연결하는 것을 중요하게 여긴다.',                                'C', 'L');
 
 
+INSERT INTO Admin (email, password, admin_name, position)
+VALUES
+    ('eunjishin@admin.com',  '$2a$10$VuPfJJPhJdkwMYV.aZIKjeFKxrYHBnqmfldMVDLyD9Y9yI/l4foGG', '신은지', 'PM'),
+    ('kimdohyeong@admin.com','$2a$10$VuPfJJPhJdkwMYV.aZIKjeFKxrYHBnqmfldMVDLyD9Y9yI/l4foGG', '김도형', 'FE'),
+    ('yejinlee@admin.com',    '$2a$10$VuPfJJPhJdkwMYV.aZIKjeFKxrYHBnqmfldMVDLyD9Y9yI/l4foGG', '이예진', 'FE'),
+    ('kimdoeun@admin.com',    '$2a$10$VuPfJJPhJdkwMYV.aZIKjeFKxrYHBnqmfldMVDLyD9Y9yI/l4foGG', '김도은', 'DS'),
+    ('sungmoonhong@admin.com','$2a$10$VuPfJJPhJdkwMYV.aZIKjeFKxrYHBnqmfldMVDLyD9Y9yI/l4foGG', '홍성문', 'BE');
+
+
 INSERT INTO Manager (email, password, manager_name, organization)
 VALUES
     ('manager1@test.com', '$2a$10$VuPfJJPhJdkwMYV.aZIKjeFKxrYHBnqmfldMVDLyD9Y9yI/l4foGG', '김도형매니저', '스위프9-1기'),
@@ -98,17 +107,17 @@ VALUES
 INSERT INTO User (
     email, password, user_name, profile_img_url, phone_number, kakao_id,job, major, introduction, url, card_id1, card_id2,details, num_EI, num_PD, num_VA, num_CL, created_at)
 VALUES
-    ('aa@test.com', '$2a$10$VuPfJJPhJdkwMYV.aZIKjeFKxrYHBnqmfldMVDLyD9Y9yI/l4foGG', 'aa', 'https://example.com/aa.jpg', '010-0000-0000', 'kakao_aa',
-     'Developer', 'CS', '안녕하세요, 저는 aa입니다.', 'https://github.com/aa', 1, 2,
+    ('aa@test.com', '$2a$10$VuPfJJPhJdkwMYV.aZIKjeFKxrYHBnqmfldMVDLyD9Y9yI/l4foGG', 'aa', 'https://kr.object.ncloudstorage.com/fiteam-character/7_1.png', '010-0000-0000', 'kakao_aa',
+     'Developer', 'CS', '안녕하세요, 저는 aa입니다.', 'https://github.com/aa', 7, 2,
      'ISTP 유형의 적극적인 사람입니다.', 7, 3, 5, 8, NOW()),
-    ('bb@test.com', '$2a$10$VuPfJJPhJdkwMYV.aZIKjeFKxrYHBnqmfldMVDLyD9Y9yI/l4foGG', 'bb', 'https://example.com/bb.jpg', '010-0000-0001', 'kakao_bb',
-     'Developer', 'CS', '안녕하세요, 저는 bb입니다.', 'https://github.com/bb', 1, 2,
+    ('bb@test.com', '$2a$10$VuPfJJPhJdkwMYV.aZIKjeFKxrYHBnqmfldMVDLyD9Y9yI/l4foGG', 'bb', 'https://kr.object.ncloudstorage.com/fiteam-character/12_1.png', '010-0000-0001', 'kakao_bb',
+     'Developer', 'CS', '안녕하세요, 저는 bb입니다.', 'https://github.com/bb', 12, 2,
      'ESTJ 유형의 분석적인 사람입니다.', 6, 4, 4, 7, NOW()),
     ('cc@test.com', '$2a$10$VuPfJJPhJdkwMYV.aZIKjeFKxrYHBnqmfldMVDLyD9Y9yI/l4foGG', 'cc', 'https://example.com/cc.jpg', '010-0000-0002', 'kakao_cc',
      'Developer', 'CS', '안녕하세요, 저는 cc입니다.', 'https://github.com/cc', 1, 2,
      'INFP 유형의 창의적인 사람입니다.', 5, 5, 6, 6, NOW()),
-    ('dd@test.com', '$2a$10$VuPfJJPhJdkwMYV.aZIKjeFKxrYHBnqmfldMVDLyD9Y9yI/l4foGG', 'dd', 'https://example.com/dd.jpg', '010-0000-0003', 'kakao_dd',
-     'Developer', 'CS', '안녕하세요, 저는 dd입니다.', 'https://github.com/dd', 1, 2,
+    ('dd@test.com', '$2a$10$VuPfJJPhJdkwMYV.aZIKjeFKxrYHBnqmfldMVDLyD9Y9yI/l4foGG', 'dd', 'https://kr.object.ncloudstorage.com/fiteam-character/7_1.png', '010-0000-0003', 'kakao_dd',
+     'Developer', 'CS', '안녕하세요, 저는 dd입니다.', 'https://github.com/dd', 7, 2,
      'ENTP 유형의 호기심 많은 사람입니다.', 8, 2, 7, 5, NOW()),
     ('ee@test.com', '$2a$10$VuPfJJPhJdkwMYV.aZIKjeFKxrYHBnqmfldMVDLyD9Y9yI/l4foGG', 'ee', 'https://example.com/ee.jpg', '010-0000-0004', 'kakao_ee',
      'Developer', 'CS', '안녕하세요, 저는 ee입니다.', 'https://github.com/ee', 1, 2,
@@ -116,13 +125,13 @@ VALUES
     ('ff@test.com', '$2a$10$VuPfJJPhJdkwMYV.aZIKjeFKxrYHBnqmfldMVDLyD9Y9yI/l4foGG', 'ff', 'https://example.com/ff.jpg', '010-0000-0005', 'kakao_ff',
      'Developer', 'CS', '안녕하세요, 저는 ff입니다.', 'https://github.com/ff', 1, 2,
      'ENFJ 유형의 사회적인 사람입니다.', 7, 4, 6, 6, NOW()),
-    ('gg@test.com', '$2a$10$VuPfJJPhJdkwMYV.aZIKjeFKxrYHBnqmfldMVDLyD9Y9yI/l4foGG', 'gg', 'https://example.com/gg.jpg', '010-0000-0006', 'kakao_gg',
+    ('gg@test.com', '$2a$10$VuPfJJPhJdkwMYV.aZIKjeFKxrYHBnqmfldMVDLyD9Y9yI/l4foGG', 'gg', 'https://kr.object.ncloudstorage.com/fiteam-character/12_1.png', '010-0000-0006', 'kakao_gg',
      'Developer', 'CS', '안녕하세요, 저는 gg입니다.', 'https://github.com/gg', 1, 2,
      'ISTJ 유형의 논리적인 사람입니다.', 6, 5, 4, 8, NOW()),
     ('hh@test.com', '$2a$10$VuPfJJPhJdkwMYV.aZIKjeFKxrYHBnqmfldMVDLyD9Y9yI/l4foGG', 'hh', 'https://example.com/hh.jpg', '010-0000-0007', 'kakao_hh',
      'Developer', 'CS', '안녕하세요, 저는 hh입니다.', 'https://github.com/hh', 1, 2,
      'ESFP 유형의 활발한 사람입니다.', 8, 3, 6, 5, NOW()),
-    ('ii@test.com', '$2a$10$VuPfJJPhJdkwMYV.aZIKjeFKxrYHBnqmfldMVDLyD9Y9yI/l4foGG', 'ii', 'https://example.com/ii.jpg', '010-0000-0008', 'kakao_ii',
+    ('ii@test.com', '$2a$10$VuPfJJPhJdkwMYV.aZIKjeFKxrYHBnqmfldMVDLyD9Y9yI/l4foGG', 'ii', 'https://kr.object.ncloudstorage.com/fiteam-character/7_1.png', '010-0000-0008', 'kakao_ii',
      'Developer', 'CS', '안녕하세요, 저는 ii입니다.', 'https://github.com/ii', 1, 2,
      'INFJ 유형의 통찰력 있는 사람입니다.', 5, 7, 5, 6, NOW()),
     ('jj@test.com', '$2a$10$VuPfJJPhJdkwMYV.aZIKjeFKxrYHBnqmfldMVDLyD9Y9yI/l4foGG', 'jj', 'https://example.com/jj.jpg', '010-0000-0009', 'kakao_jj',
@@ -133,7 +142,7 @@ VALUES
 -- 2) 팀 타입 (직군별 구성) 하나
 INSERT INTO TeamType (id, name, description,start_datetime, end_datetime,min_members, max_members,position_based, is_building_done, config_json)
 VALUES
-(1,'랜덤팀 빌딩 테스트','랜덤으로 팀을 구성하는 방식','2025-05-15 22:30:00','2025-06-01 00:00:00',4, 6,FALSE, FALSE, NULL);
+(1,'랜덤팀 빌딩 테스트','랜덤으로 팀을 구성하는 방식','2025-05-28 20:30:00','2025-06-01 00:00:00',4, 6,FALSE, FALSE, NULL);
 
 -- 3) 프로젝트 그룹 하나 (매니저1이 만든 샘플 그룹)
 INSERT INTO ProjectGroup (id, manager_id, name, description,max_user_count, team_make_type, contact_policy)

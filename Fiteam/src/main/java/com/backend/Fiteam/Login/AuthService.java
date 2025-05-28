@@ -1,5 +1,7 @@
 package com.backend.Fiteam.Login;
 
+import com.backend.Fiteam.Domain.Admin.Entity.Admin;
+import com.backend.Fiteam.Domain.Admin.Repository.AdminRepository;
 import com.backend.Fiteam.Domain.Admin.Service.VisitLogService;
 import com.backend.Fiteam.Domain.Group.Entity.Manager;
 import com.backend.Fiteam.Domain.Group.Repository.ManagerRepository;
@@ -31,6 +33,7 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final ManagerRepository managerRepository;
     private final VisitLogService visitLogService;
+    private final AdminRepository adminRepository;
 
     public void register(RegisterRequestDto request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
@@ -50,7 +53,18 @@ public class AuthService {
 
 
     public LoginResponseDto login(String email, String password) {
-        // 1. Manager 먼저 조회
+        // 1) Admin 먼저 조회
+        Admin admin = adminRepository.findByEmail(email).orElse(null);
+        if (admin != null) {
+            if (!passwordEncoder.matches(password, admin.getPassword())) {
+                throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+            }
+            String token = jwtTokenProvider.createToken(admin.getId(), "admin");
+            return new LoginResponseDto(token, "admin");
+        }
+
+
+        // 2. Manager 먼저 조회
         Manager manager = managerRepository.findByEmail(email).orElse(null);
         if (manager != null) {
             if (!passwordEncoder.matches(password, manager.getPassword())) {
@@ -60,7 +74,7 @@ public class AuthService {
             return new LoginResponseDto(token, "manager");
         }
 
-        // 2. User 조회
+        // 3. User 조회
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("존재하지 않는 사용자입니다: " + email));
 

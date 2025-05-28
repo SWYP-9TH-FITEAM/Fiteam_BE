@@ -24,4 +24,6 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Intege
     void markAllAsRead(@Param("chatRoomId") Integer chatRoomId, @Param("userId") Integer userId);
 
     Page<ChatMessage> findByChatRoomIdOrderBySentAtDesc(Integer chatRoomId, Pageable pageable);
+
+    void deleteAllByChatRoomIdIn(List<Integer> roomIds);
 }

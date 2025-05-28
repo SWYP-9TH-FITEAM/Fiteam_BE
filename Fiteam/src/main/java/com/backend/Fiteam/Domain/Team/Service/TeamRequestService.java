@@ -77,8 +77,7 @@ public class TeamRequestService {
         // 4-3) "모집마감" 이란건 팀 확정상태
         if ("모집마감".equals(receiverTeam.getStatus())) {
             throw new IllegalStateException("이미 확정팀의 멤버입니다.: " + receiverTeam.getStatus());
-        }
-        if("팀 확정".equals(receiverMember.getTeamStatus())){
+        }if("팀확정".equals(receiverMember.getTeamStatus())){
             throw new IllegalStateException("이미 확정팀의 멤버입니다.: " + receiverTeam.getStatus());
         }
 
