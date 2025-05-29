@@ -638,6 +638,12 @@ public class GroupService {
         noticeDto.setContext(group.getName()+"그룹의 직군별 팀 빌딩이 시작되었습니다. 팀 빌딩을 진행해 주세요.");
         // projectGroup.getManagerId()가 매니저 ID 입니다
         groupNoticeService.createNotice(group.getManagerId(), noticeDto);
+
+        // 3) TeamType.startDatetime 을 현재 시간으로 덮어쓰기
+        TeamType ttStart = teamTypeRepository.findById(group.getTeamMakeType())
+                .orElseThrow(() -> new NoSuchElementException("있으면 안되는 오류... TeamType이 없습니다: " + group.getTeamMakeType()));
+        ttStart.setStartDatetime(LocalDateTime.now());
+        teamTypeRepository.save(ttStart);
     }
 
     @Transactional
@@ -664,6 +670,12 @@ public class GroupService {
 
         // 4) 팀 빌딩 종료 후 팀장에게 팀원들 연락처 알림으로 전송
         // notifyTeamLeadersWithContacts(groupId);
+
+        // 5) TeamType.endDatetime 을 현재 시간으로 덮어쓰기
+        TeamType ttEnd = teamTypeRepository.findById(group.getTeamMakeType())
+                .orElseThrow(() -> new NoSuchElementException("TeamType이 없습니다: " + group.getTeamMakeType()));
+        ttEnd.setEndDatetime(LocalDateTime.now());
+        teamTypeRepository.save(ttEnd);
     }
 
 }

@@ -17,6 +17,7 @@ import com.backend.Fiteam.Domain.User.Service.UserService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -174,6 +175,14 @@ public class TeamService {
                 .getTeamMakeType();
         TeamType type = teamTypeRepository.findById(typeId)
                 .orElseThrow(() -> new IllegalArgumentException("팀 빌딩 타입이 존재하지 않습니다."));
+
+        LocalDateTime now = LocalDateTime.now();
+        if (now.isBefore(type.getStartDatetime()) || now.isAfter(type.getEndDatetime())) {
+            throw new IllegalStateException(
+                    String.format("팀 확정은 %s부터 %s 사이에만 가능합니다.",
+                            type.getStartDatetime(), type.getEndDatetime())
+            );
+        }
 
         // 2-1) 전체 팀원 수 검사
         List<GroupMember> members = groupMemberRepository.findAllByTeamId(teamId);
