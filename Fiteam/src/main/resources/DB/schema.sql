@@ -80,7 +80,6 @@ CREATE TABLE IF NOT EXISTS SystemNotice (
     FOREIGN KEY (admin_id) REFERENCES Admin(id)
 );
 
-
 CREATE TABLE Manager (
     id INT AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(50) NOT NULL UNIQUE,
@@ -119,7 +118,7 @@ CREATE TABLE ProjectGroup (
 );
 
 -- ========== 그룹 공지(Group Notice) ==========
-CREATE TABLE IF NOT EXISTS GroupNotice (
+CREATE TABLE GroupNotice (
     id INT AUTO_INCREMENT PRIMARY KEY,
     manager_id INT NOT NULL,
     group_id INT NOT NULL,
@@ -138,7 +137,7 @@ CREATE TABLE Team (
     name VARCHAR(50),
     max_members INT,
     description TEXT,
-    status VARCHAR(20),
+    team_status INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (group_id) REFERENCES ProjectGroup(id),
     FOREIGN KEY (master_user_id) REFERENCES User(id)
@@ -152,7 +151,7 @@ CREATE TABLE GroupMember (
     invited_at TIMESTAMP,
     ban BOOLEAN DEFAULT FALSE,
     team_id INT,
-    team_status VARCHAR(30),
+    team_status INT DEFAULT 0,
     work_history INT,
     project_goal VARCHAR(200),
     project_purpose VARCHAR(50),
@@ -170,7 +169,7 @@ CREATE TABLE TeamRequest (
     team_id INT,
     sender_id INT,
     receiver_id INT,
-    status VARCHAR(30) DEFAULT '대기중',
+    status INT DEFAULT 0,
     requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (group_id) REFERENCES ProjectGroup(id),
     FOREIGN KEY (team_id) REFERENCES Team(id),

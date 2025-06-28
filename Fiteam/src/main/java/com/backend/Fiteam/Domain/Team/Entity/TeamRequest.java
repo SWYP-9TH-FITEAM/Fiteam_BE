@@ -1,5 +1,7 @@
 package com.backend.Fiteam.Domain.Team.Entity;
 
+import com.backend.Fiteam.ConfigEnum.Custom.StatusEnumConverter;
+import com.backend.Fiteam.ConfigEnum.GlobalEnum.TeamRequestStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -30,8 +32,8 @@ public class TeamRequest {
     @Column(name = "receiver_id")
     private Integer receiverId;
 
-    @Column(length = 30)
-    private String status = "대기중";
+    @Convert(converter = StatusEnumConverter.class)
+    private TeamRequestStatus status;
 
     @Column(name = "requested_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private Timestamp requestedAt;

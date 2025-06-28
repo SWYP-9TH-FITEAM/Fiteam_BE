@@ -1,5 +1,10 @@
 package com.backend.Fiteam.Domain.Team.Dto;
 
+import com.backend.Fiteam.ConfigEnum.EnumLabelSerializer;
+import com.backend.Fiteam.ConfigEnum.Custom.StatusEnumDeserializer;
+import com.backend.Fiteam.ConfigEnum.GlobalEnum.TeamRequestStatus;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
@@ -22,7 +27,9 @@ public class TeamRequestResponseDto {
     private Integer groupId;
 
     @Schema(description = "요청 상태", example = "대기중")
-    private String status;
+    @JsonSerialize(using = EnumLabelSerializer.class)
+    @JsonDeserialize(using = StatusEnumDeserializer.class)
+    private TeamRequestStatus status;
 
     @Schema(description = "요청 시간", example = "2025-05-01 13:40:00")
     private Timestamp requestedAt;

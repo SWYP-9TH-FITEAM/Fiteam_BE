@@ -329,5 +329,18 @@ public class ChatService {
                 }).collect(Collectors.toList());
     }
 
+    public List<ChatRoomListResponseDto> searchChatRoomsForUser2(Integer userId, String name, Integer groupId) {
+        String lowerName = name.toLowerCase();
+        return getChatRoomsForUser(userId, groupId).stream()
+                // 2) 그룹아이디가 일치하는 것만
+                .filter(dto -> dto.getGroupId() != null && dto.getGroupId().equals(groupId))
+                // 3) otherUserName에 검색어 포함 여부
+                .filter(dto -> {
+                    String other = dto.getOtherUserName();
+                    return other != null && other.toLowerCase().contains(lowerName);
+                })
+                .collect(Collectors.toList());
+    }
+
 
 }

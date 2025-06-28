@@ -16,7 +16,6 @@ public class GlobalExceptionHandler {
                 .body(e.getMessage());
     }
 
-
     // 그 외 모든 예외는 500 Internal Server Error 로 응답
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleInternalError(Exception e) {

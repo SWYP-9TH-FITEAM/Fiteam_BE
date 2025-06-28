@@ -196,9 +196,17 @@ public class ChatController {
     }
 
     // 7. 채팅방 검색
-    @Operation(summary = "7. 채팅방 검색", description = "상대방 이름으로 채팅방을 검색합니다.")
+    @Operation(summary = "7. 채팅방 검색-그룹 구분없이", description = "상대방 이름으로 채팅방을 검색합니다.")
     @GetMapping("/search/{name}")
     public List<ChatRoomListResponseDto> searchChatRooms(@AuthenticationPrincipal UserDetails userDetails, @PathVariable String name) {
+        Integer userId = Integer.parseInt(userDetails.getUsername());
+        return chatService.searchChatRoomsForUser(userId, name);
+    }
+
+    @Operation(summary = "8. 채팅방 검색-그룹으로 구분해서", description = "상대방 이름으로 채팅방을 검색합니다.")
+    @GetMapping("/search/{groupId}/{name}")
+    public List<ChatRoomListResponseDto> searchChatRooms(@AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Integer groupId,@PathVariable String name) {
         Integer userId = Integer.parseInt(userDetails.getUsername());
         return chatService.searchChatRoomsForUser(userId, name);
     }

@@ -1,6 +1,6 @@
 package com.backend.Fiteam.Domain.Team.Service;
 
-import com.backend.Fiteam.Domain.Chat.Entity.ChatMessage;
+import com.backend.Fiteam.ConfigEnum.GlobalEnum.TeamRequestStatus;
 import com.backend.Fiteam.Domain.Chat.Service.ChatService;
 import com.backend.Fiteam.Domain.Group.Entity.GroupMember;
 import com.backend.Fiteam.Domain.Group.Repository.GroupMemberRepository;
@@ -92,7 +92,7 @@ public class TeamRequestService {
                 .receiverId(receiverId)
                 .groupId(groupId)
                 .teamId(senderTeamId)
-                .status("대기중")
+                .status(TeamRequestStatus.PENDING)
                 .requestedAt(new Timestamp(System.currentTimeMillis()))
                 .build();
         teamRequestRepository.save(request);
@@ -174,7 +174,7 @@ public class TeamRequestService {
         mergeTeams(senderMember.getTeamId(), receiverMember.getTeamId());
 
         // 7) 요청 상태 업데이트 -> 사실상 삭제..
-        request.setStatus("수락됨");
+        request.setStatus(TeamRequestStatus.APPROVED);
         teamRequestRepository.delete(request);
     }
 
@@ -225,7 +225,7 @@ public class TeamRequestService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 요청입니다."));
 
         // 2) 이미 처리된 요청인지 검사
-        if (!"대기중".equals(request.getStatus())) {
+        if (!TeamRequestStatus.PENDING.equals(request.getStatus())) {
             throw new IllegalArgumentException("이미 처리된 요청입니다.");
         }
 

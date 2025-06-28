@@ -12,11 +12,13 @@ import com.backend.Fiteam.Domain.Group.Dto.ManagerGroupStatusDto;
 import com.backend.Fiteam.Domain.Group.Dto.ManagerProfileResponseDto;
 import com.backend.Fiteam.Domain.Group.Entity.GroupNotice;
 import com.backend.Fiteam.Domain.Group.Entity.ProjectGroup;
+import com.backend.Fiteam.Domain.Group.Entity.TeamType;
 import com.backend.Fiteam.Domain.Group.Repository.ProjectGroupRepository;
 import com.backend.Fiteam.Domain.Group.Service.GroupMemberService;
 import com.backend.Fiteam.Domain.Group.Service.GroupNoticeService;
 import com.backend.Fiteam.Domain.Group.Service.GroupService;
 import com.backend.Fiteam.Domain.Group.Service.ManagerService;
+import com.backend.Fiteam.Domain.Team.Repository.TeamTypeRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -24,8 +26,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.quartz.JobKey;
 import org.quartz.Scheduler;
@@ -56,6 +60,9 @@ public class ManagerController {
     private final GroupNoticeService groupNoticeService;
     private final AdminService adminService;
     private final Scheduler scheduler;
+    private final GroupService groupService;
+    private final TeamTypeRepository teamTypeRepository;
+
     /*
     1. 로그인한 매니저의 ID, 이름 반환
     2. 로그인한 매니저가 관리하는 그룹 정보를 반환합니다.
@@ -206,43 +213,60 @@ public class ManagerController {
     @Operation(summary = "팀 빌딩 시작(수동)", description = "Quartz에 등록된 시작 잡을 즉시 실행합니다.")
     @PostMapping("/{groupId}/start")
     @PreAuthorize("hasAuthority('Manager')")
-    public ResponseEntity<Void> startBuildingManually(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @PathVariable Integer groupId
+    public ResponseEntity<String> startBuildingManually(
+            @AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer groupId
     ) throws SchedulerException {
         Integer managerId = Integer.valueOf(userDetails.getUsername());
         authorizeManager(groupId, managerId);
 
+        // Quartz에 예약된 잡이 남아 있으면 제거
         JobKey startKey = JobKey.jobKey("job_group_" + groupId + "_start", "teamBuilding");
-        if (!scheduler.checkExists(startKey)) {
-            throw new IllegalStateException("팀 빌딩 시작이 불가능합니다. 이미 시작되었거나 시작 잡이 없습니다.");
+        if (scheduler.checkExists(startKey)) {
+            // 그룹, TeamType 정보 로드
+            ProjectGroup group = projectGroupRepository.findById(groupId)
+                    .orElseThrow(() -> new NoSuchElementException("존재하지 않는 그룹입니다: " + groupId));
+            TeamType tt = teamTypeRepository.findById(group.getTeamMakeType())
+                    .orElseThrow(() -> new NoSuchElementException("TeamType not found"));
+
+            if (Boolean.TRUE.equals(tt.getPositionBased())) {
+                // 포지션 기반: Quartz 트리거 대신 직접 호출
+                groupService.openPositionBasedRequests(group);
+            } else {
+                // 랜덤 빌딩: 직접 호출
+                groupService.RandomTeamBuilding(group);
+            }
+
+            scheduler.deleteJob(startKey);
+            return ResponseEntity.ok("팀 빌딩을 지금 시작합니다.");
+        }else{
+            return ResponseEntity.ok("이미 팀 빌딩이 시작되어있습니다.");
         }
 
-        // 1) 즉시 실행
-        scheduler.triggerJob(startKey);
-        // 2) 더 이상 재실행되지 않도록 잡 삭제
-        scheduler.deleteJob(startKey);
-        return ResponseEntity.ok().build();
     }
 
     @Operation(summary = "팀 빌딩 종료(수동)", description = "Quartz에 등록된 종료 잡을 즉시 실행합니다.")
     @PostMapping("/{groupId}/end")
     @PreAuthorize("hasAuthority('Manager')")
-    public ResponseEntity<Void> endBuildingManually(
+    public ResponseEntity<String> endBuildingManually(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable Integer groupId
     ) throws SchedulerException {
         Integer managerId = Integer.valueOf(userDetails.getUsername());
         authorizeManager(groupId, managerId);
 
-        JobKey endKey = JobKey.jobKey("job_group_" + groupId + "_end", "teamBuilding");
 
-        if (!scheduler.checkExists(endKey)) {
-            throw new IllegalStateException("팀 빌딩 종료가 불가능합니다. 이미 종료되었거나 종료 잡이 없습니다.");
+        JobKey endKey = JobKey.jobKey("job_group_" + groupId + "_end", "teamBuilding");
+        if (scheduler.checkExists(endKey)) {
+            ProjectGroup group = projectGroupRepository.findById(groupId)
+                    .orElseThrow(() -> new NoSuchElementException("존재하지 않는 그룹입니다: " + groupId));
+
+            groupService.closeTeamBuilding(group);
+            scheduler.deleteJob(endKey);
+            return ResponseEntity.ok("팀 빌딩을 종료합니다.");
+        }else {
+            return ResponseEntity.ok("이미 팀 빌딩이 종료되었습니다.");
         }
 
-        scheduler.triggerJob(endKey);
-        scheduler.deleteJob(endKey);
-        return ResponseEntity.ok().build();
+
     }
 }
