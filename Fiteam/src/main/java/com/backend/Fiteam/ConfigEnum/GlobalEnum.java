@@ -27,6 +27,48 @@ public class GlobalEnum {
         PUSH        // 푸시 알림
     }
 
+    public enum TeamStatus implements EnumType {
+        WAITING(0, "대기중"),
+        RECRUITING(1, "모집중"),
+        CLOSED(2, "모집마감"),
+        FIXED(3,"팀확정"),
+        TEMP(4, "임시팀");
+
+        private final int code;
+        private final String label;
+
+        TeamStatus(int code, String label) {
+            this.code = code;
+            this.label = label;
+        }
+
+        @Override
+        public int getCode() {
+            return code;
+        }
+
+        @Override
+        public String getLabel() {
+            return label;
+        }
+
+        public static TeamStatus fromCode(Integer code) {
+            return Arrays.stream(values())
+                    .filter(v -> v.code == code)
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        @JsonCreator
+        public static TeamStatus fromLabel(String label) {
+            return Arrays.stream(values())
+                    .filter(v -> v.getLabel().equalsIgnoreCase(label) || v.name().equalsIgnoreCase(label))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid label: " + label));
+        }
+    }
+
+
     public enum TeamRequestStatus implements EnumType {
         PENDING(0, "대기중"),
         APPROVED(1, "승인됨"),

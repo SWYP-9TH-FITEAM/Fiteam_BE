@@ -1,5 +1,6 @@
 package com.backend.Fiteam.Domain.Group.Service;
 
+import com.backend.Fiteam.ConfigEnum.GlobalEnum.TeamStatus;
 import com.backend.Fiteam.ConfigQuartz.TeamBuildingSchedulerService;
 import com.backend.Fiteam.Domain.Character.Entity.CharacterCard;
 import com.backend.Fiteam.Domain.Character.Repository.CharacterCardRepository;
@@ -42,7 +43,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -475,7 +475,7 @@ public class GroupService {
                     .name("Team " + (i + 1))
                     .maxMembers(tmembers.size())
                     .description("랜덤 팀빌딩 결과")
-                    .status("모집마감")
+                    .teamStatus(TeamStatus.CLOSED)
                     .createdAt(new Timestamp(System.currentTimeMillis()))
                     .build();
             newTeam = teamRepository.save(newTeam);
@@ -484,7 +484,7 @@ public class GroupService {
             Team finalNewTeam = newTeam;
             tmembers.forEach(gm -> {
                 gm.setTeamId(finalNewTeam.getId());
-                gm.setTeamStatus("모집마감");
+                gm.setTeamStatus(TeamStatus.CLOSED);
             });
             groupMemberRepository.saveAll(tmembers);
         }
@@ -619,9 +619,9 @@ public class GroupService {
 
     @Transactional
     public void openPositionBasedRequests(ProjectGroup group) {
-        List<Team> teams = teamRepository.findAllByGroupIdAndStatus(group.getId(), "대기중");
+        List<Team> teams = teamRepository.findAllByGroupIdAndTeamStatus(group.getId(), TeamStatus.WAITING);
 
-        teams.forEach(t -> t.setStatus("모집중"));
+        teams.forEach(t -> t.setTeamStatus(TeamStatus.RECRUITING));
         teamRepository.saveAll(teams);
 
         // 팀빌딩 시작하면서 유저들에게 알림 전송
@@ -651,13 +651,13 @@ public class GroupService {
         Integer groupId = group.getId();
 
         // 1) 팀 상태 변경
-        List<Team> teams = teamRepository.findAllByGroupIdAndStatus(groupId, "모집중");
-        teams.forEach(t -> t.setStatus("모집마감"));
+        List<Team> teams = teamRepository.findAllByGroupIdAndTeamStatus(groupId, TeamStatus.RECRUITING);
+        teams.forEach(t -> t.setTeamStatus(TeamStatus.CLOSED));
         teamRepository.saveAll(teams);
 
         // 2) 멤버 teamStatus 변경
         List<GroupMember> members = groupMemberRepository.findAllByGroupId(groupId);
-        members.forEach(m -> m.setTeamStatus("팀확정"));
+        members.forEach(m -> m.setTeamStatus(TeamStatus.FIXED));
         groupMemberRepository.saveAll(members);
 
         // 3) 모든 멤버에게 알림

@@ -1,5 +1,6 @@
 package com.backend.Fiteam.Domain.User.Service;
 
+import com.backend.Fiteam.ConfigEnum.GlobalEnum.TeamStatus;
 import com.backend.Fiteam.Domain.Character.Entity.CharacterCard;
 import com.backend.Fiteam.Domain.Character.Repository.CharacterCardRepository;
 import com.backend.Fiteam.Domain.Character.Service.CharacterCardService;
@@ -257,7 +258,7 @@ public class UserService {
                 .name("temp_" + user.getUserName())
                 .maxMembers(teamType.getMaxMembers())
                 .description(null)
-                .status("대기중")
+                .teamStatus(TeamStatus.WAITING)
                 .createdAt(new Timestamp(System.currentTimeMillis()))
                 .build();
 
@@ -266,7 +267,7 @@ public class UserService {
 
         // GroupMember 테이블에도 팀 정보 반영
         groupMember.setTeamId(savedTeam.getId());
-        groupMember.setTeamStatus("대기중");
+        groupMember.setTeamStatus(TeamStatus.WAITING);
         groupMemberRepository.save(groupMember);
     }
 

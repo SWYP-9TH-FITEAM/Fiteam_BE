@@ -1,7 +1,6 @@
 package com.backend.Fiteam.Domain.Team.Entity;
 
-import com.backend.Fiteam.ConfigEnum.Custom.StatusEnumConverter;
-import com.backend.Fiteam.ConfigEnum.GlobalEnum;
+import com.backend.Fiteam.ConfigEnum.GlobalEnum.TeamStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -39,7 +38,7 @@ public class Team {
     private String description;
 
     @Column(name = "team_status")
-    private String status;
+    private TeamStatus teamStatus;
 
     @Column(name = "created_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private Timestamp createdAt;

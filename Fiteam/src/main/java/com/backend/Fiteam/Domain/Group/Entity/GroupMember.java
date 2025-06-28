@@ -1,5 +1,6 @@
 package com.backend.Fiteam.Domain.Group.Entity;
 
+import com.backend.Fiteam.ConfigEnum.GlobalEnum.TeamStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -30,8 +31,8 @@ public class GroupMember {
     @Column(name = "invited_at")
     private Timestamp invitedAt;
 
-    @Column(name = "team_status", length = 30)
-    private String teamStatus;
+    @Column(name = "team_status")
+    private TeamStatus teamStatus;
 
     @Column(name = "team_id")
     private Integer teamId;

@@ -1,6 +1,7 @@
 package com.backend.Fiteam.Domain.Team.Service;
 
 import com.backend.Fiteam.ConfigEnum.GlobalEnum.TeamRequestStatus;
+import com.backend.Fiteam.ConfigEnum.GlobalEnum.TeamStatus;
 import com.backend.Fiteam.Domain.Chat.Service.ChatService;
 import com.backend.Fiteam.Domain.Group.Entity.GroupMember;
 import com.backend.Fiteam.Domain.Group.Repository.GroupMemberRepository;
@@ -71,14 +72,14 @@ public class TeamRequestService {
                 .orElseThrow(() -> new IllegalArgumentException("팀 정보를 찾을 수 없습니다."));
 
         // 4-2) "대기중" 이라는건 팀 빌딩 시작 전
-        if ("대기중".equals(receiverTeam.getStatus())) {
-            throw new IllegalStateException("아직 팀 모집 기간이 아닙니다. 현재 상태: " + receiverTeam.getStatus());
+        if (TeamRequestStatus.PENDING.equals(receiverTeam.getTeamStatus())) {
+            throw new IllegalStateException("아직 팀 모집 기간이 아닙니다. 현재 상태: " + receiverTeam.getTeamStatus());
         }
         // 4-3) "모집마감" 이란건 팀 확정상태
-        if ("모집마감".equals(receiverTeam.getStatus())) {
-            throw new IllegalStateException("이미 확정팀의 멤버입니다.: " + receiverTeam.getStatus());
-        }if("팀확정".equals(receiverMember.getTeamStatus())){
-            throw new IllegalStateException("이미 확정팀의 멤버입니다.: " + receiverTeam.getStatus());
+        if (TeamStatus.CLOSED.equals(receiverTeam.getTeamStatus())) {
+            throw new IllegalStateException("이미 확정팀의 멤버입니다.: " + receiverTeam.getTeamStatus());
+        }if(TeamStatus.FIXED.equals(receiverMember.getTeamStatus())){
+            throw new IllegalStateException("이미 확정팀의 멤버입니다.: " + receiverTeam.getTeamStatus());
         }
 
         // 4-3) 이미 같은 팀에 속해 있는지 체크
@@ -147,7 +148,7 @@ public class TeamRequestService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 요청입니다."));
 
         // 2) 이미 처리된 요청인지 체크
-        if (!"대기중".equals(request.getStatus())) {
+        if (!TeamRequestStatus.PENDING.equals(request.getStatus())) {
             throw new IllegalArgumentException("이미 처리된 요청입니다.");
         }
 
@@ -272,7 +273,7 @@ public class TeamRequestService {
         return TeamStatusDto.builder()
                 .teamId(teamId)
                 .masterUserId(leaderId)
-                .teamStatus(team.getStatus())
+                .teamStatus(team.getTeamStatus())
                 .members(memberDtos)
                 .build();
     }
@@ -318,7 +319,7 @@ public class TeamRequestService {
                     return TeamStatusDto.builder()
                             .teamId(teamId)
                             .masterUserId(leaderId)
-                            .teamStatus(team.getStatus())
+                            .teamStatus(team.getTeamStatus())
                             .members(members)
                             .build();
                 })

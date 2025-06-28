@@ -1,5 +1,10 @@
 package com.backend.Fiteam.Domain.Group.Dto;
 
+import com.backend.Fiteam.ConfigEnum.Custom.TeamStatusDeserializer;
+import com.backend.Fiteam.ConfigEnum.EnumLabelSerializer;
+import com.backend.Fiteam.ConfigEnum.GlobalEnum.TeamStatus;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -30,8 +35,10 @@ public class GroupMemberResponseDto {
     @Schema(description = "직군 (직무)", example = "PM, DS, FE, BE 등등")
     private String position;
 
-    @Schema(description = "팀 참여 상태", example = "모집중, 마감")
-    private String teamStatus;
+    @Schema(description = "팀 참여 상태 (예: 모집중, 모집마감 등)", example = "모집중")
+    @JsonSerialize(using = EnumLabelSerializer.class)
+    @JsonDeserialize(using = TeamStatusDeserializer.class)
+    private TeamStatus teamStatus;
 
     @Schema(description = "팀 ID", example = "12")
     private Integer teamId;

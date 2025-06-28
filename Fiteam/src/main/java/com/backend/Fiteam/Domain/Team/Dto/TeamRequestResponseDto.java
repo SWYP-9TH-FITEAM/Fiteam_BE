@@ -1,7 +1,7 @@
 package com.backend.Fiteam.Domain.Team.Dto;
 
 import com.backend.Fiteam.ConfigEnum.EnumLabelSerializer;
-import com.backend.Fiteam.ConfigEnum.Custom.StatusEnumDeserializer;
+import com.backend.Fiteam.ConfigEnum.Custom.TeamRequestStatusDeserializer;
 import com.backend.Fiteam.ConfigEnum.GlobalEnum.TeamRequestStatus;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -28,7 +28,7 @@ public class TeamRequestResponseDto {
 
     @Schema(description = "요청 상태", example = "대기중")
     @JsonSerialize(using = EnumLabelSerializer.class)
-    @JsonDeserialize(using = StatusEnumDeserializer.class)
+    @JsonDeserialize(using = TeamRequestStatusDeserializer.class)
     private TeamRequestStatus status;
 
     @Schema(description = "요청 시간", example = "2025-05-01 13:40:00")

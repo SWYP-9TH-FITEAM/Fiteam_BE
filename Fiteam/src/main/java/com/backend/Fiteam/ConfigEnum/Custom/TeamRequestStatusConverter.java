@@ -4,9 +4,9 @@ import com.backend.Fiteam.ConfigEnum.EnumCodeConverter;
 import com.backend.Fiteam.ConfigEnum.GlobalEnum.TeamRequestStatus;
 import jakarta.persistence.Converter;
 
-@Converter(autoApply = false)
-public class StatusEnumConverter extends EnumCodeConverter<TeamRequestStatus> {
-    public StatusEnumConverter() {
+@Converter(autoApply = true)
+public class TeamRequestStatusConverter extends EnumCodeConverter<TeamRequestStatus> {
+    public TeamRequestStatusConverter() {
         super(TeamRequestStatus.class);
     }
 }

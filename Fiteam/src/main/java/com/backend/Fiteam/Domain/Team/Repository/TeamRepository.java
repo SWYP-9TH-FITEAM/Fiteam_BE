@@ -1,5 +1,6 @@
 package com.backend.Fiteam.Domain.Team.Repository;
 
+import com.backend.Fiteam.ConfigEnum.GlobalEnum.TeamStatus;
 import com.backend.Fiteam.Domain.Team.Entity.Team;
 import java.util.List;
 import java.util.Optional;
@@ -11,7 +12,7 @@ public interface TeamRepository extends JpaRepository<Team, Integer> {
 
     List<Team> findByGroupId(Integer groupId);
 
-    List<Team> findAllByGroupIdAndStatus(Integer groupId, String status);
+    List<Team> findAllByGroupIdAndTeamStatus(Integer groupId, TeamStatus status);
 
     Optional<Team> findByTeamId(Integer teamId);
 

@@ -12,8 +12,6 @@ import com.backend.Fiteam.Domain.Group.Repository.GroupMemberRepository;
 import com.backend.Fiteam.Domain.Group.Repository.ManagerRepository;
 import com.backend.Fiteam.Domain.Group.Repository.ProjectGroupRepository;
 import com.backend.Fiteam.Domain.Team.Repository.TeamTypeRepository;
-import com.backend.Fiteam.Domain.Team.Service.TeamService;
-import com.backend.Fiteam.Domain.User.Repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.NoSuchElementException;

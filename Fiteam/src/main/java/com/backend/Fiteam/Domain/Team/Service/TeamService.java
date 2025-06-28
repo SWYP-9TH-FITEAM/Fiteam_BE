@@ -1,5 +1,6 @@
 package com.backend.Fiteam.Domain.Team.Service;
 
+import com.backend.Fiteam.ConfigEnum.GlobalEnum.TeamStatus;
 import com.backend.Fiteam.Domain.Group.Entity.GroupMember;
 import com.backend.Fiteam.Domain.Group.Entity.ProjectGroup;
 import com.backend.Fiteam.Domain.Group.Entity.TeamType;
@@ -41,25 +42,6 @@ public class TeamService {
     private final NotificationService notificationService;
     private final UserRepository userRepository;
 
-    @Transactional
-    public void createTeams(Integer groupId, List<List<GroupMember>> teams) {
-        for (int i = 0; i < teams.size(); i++) {
-            List<GroupMember> teamMembers = teams.get(i);
-
-            Team team = Team.builder()
-                    .groupId(groupId)
-                    .name("최적화 팀 #" + (i + 1))
-                    .build();
-
-            teamRepository.save(team);
-
-            for (GroupMember gm : teamMembers) {
-                gm.setTeamId(team.getId());
-                gm.setTeamStatus("JOINED");
-                groupMemberRepository.save(gm);
-            }
-        }
-    }
 
     @Transactional
     public void deleteTeamsAndRequestsByGroupId(Integer groupId) {
@@ -146,7 +128,7 @@ public class TeamService {
                 .masterUserId(userId)
                 .maxMembers(oldTeam.getMaxMembers())
                 .description(null)
-                .status("임시팀")
+                .teamStatus(TeamStatus.TEMP)
                 .createdAt(new Timestamp(System.currentTimeMillis()))
                 .build();
         newTeam.setTeamId(newTeam.getId());
@@ -154,7 +136,7 @@ public class TeamService {
 
         // GroupMember 테이블에도 팀 정보 반영
         me.setTeamId(newTeam.getId());
-        me.setTeamStatus("대기중");
+        me.setTeamStatus(TeamStatus.WAITING);
 
         groupMemberRepository.save(me);
     }
@@ -237,10 +219,10 @@ public class TeamService {
         }
 
         // 3) 상태 변경
-        members.forEach(gm -> gm.setTeamStatus("팀확정"));
+        members.forEach(gm -> gm.setTeamStatus(TeamStatus.FIXED));
         groupMemberRepository.saveAll(members);
 
-        team.setStatus("모집마감");
+        team.setTeamStatus(TeamStatus.CLOSED);
         teamRepository.save(team);
     }
 
