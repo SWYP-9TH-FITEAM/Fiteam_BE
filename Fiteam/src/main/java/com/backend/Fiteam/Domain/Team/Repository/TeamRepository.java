@@ -13,8 +13,4 @@ public interface TeamRepository extends JpaRepository<Team, Integer> {
     List<Team> findByGroupId(Integer groupId);
 
     List<Team> findAllByGroupIdAndTeamStatus(Integer groupId, TeamStatus status);
-
-    Optional<Team> findByTeamId(Integer teamId);
-
-
 }

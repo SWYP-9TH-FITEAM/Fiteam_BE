@@ -663,7 +663,7 @@ public class GroupService {
         // 3) 모든 멤버에게 알림
         notifyAllGroupMembersById(
                 groupId,
-                "manager",                      // 발신자 타입
+                "manager",                     // 발신자 타입
                 "TEAM_BUILDING_END",           // 알림 유형
                 group.getName() + " 팀 빌딩이 종료되었습니다."
         );

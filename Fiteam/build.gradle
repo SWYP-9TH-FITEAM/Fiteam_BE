@@ -75,6 +75,9 @@ dependencies {
 	// 11. // AWS SDK v2 : NCP 도 AWS SDK로 api를 호출하게 한다.
 	implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
 	implementation 'software.amazon.awssdk:s3:2.20.67'
+
+	// 12. Redis 캐싱
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 }
 
 tasks.named('test') {

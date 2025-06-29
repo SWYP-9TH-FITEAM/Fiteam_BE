@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,6 +35,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/v1/user")
 @RequiredArgsConstructor
 @Tag(name = "3. UserController - 로그인한 User")
+@PreAuthorize("hasRole('User')")
 public class UserController {
 
     private final UserService userService;
@@ -50,25 +52,15 @@ public class UserController {
     9.마이페이지 내정보 조회
     */
 
-    private void authorizeUser(UserDetails userDetails) {
-        boolean isUser = userDetails.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_User"));
-        if (!isUser) {
-            throw new IllegalArgumentException("유저가 아닙니다.");
-        }
-    }
-
     // 1.테스트 결과 저장	POST
-    @Operation(
-            summary = "1. 테스트 결과 저장 (성향검사 응답 → 결과)",
+    @Operation(summary = "1. 테스트 결과 저장 (성향검사 응답 → 결과)",
             description = "사용자의 성향검사 답변을 결과형태로 저장합니다.",
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @Content(examples = @ExampleObject(
                     value = "[{\"E\": 4, \"I\": 1}, {\"P\": 2, \"D\": 3}, " + "{\"V\": 3, \"A\": 2}, {\"C\": 4, \"L\": 1}]"))))
     @PostMapping("/savecard")
-    public ResponseEntity<String> saveTestResult(
-            @AuthenticationPrincipal UserDetails userDetails, @RequestBody List<Map<String, Integer>> answers) {
+    public ResponseEntity<String> saveTestResult(@AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody List<Map<String, Integer>> answers) {
 
-        authorizeUser(userDetails);
         Integer userId = Integer.parseInt(userDetails.getUsername());
         userService.saveCharacterTestResult(userId, answers);
         return ResponseEntity.ok("테스트 결과가 성공적으로 저장되었습니다.");

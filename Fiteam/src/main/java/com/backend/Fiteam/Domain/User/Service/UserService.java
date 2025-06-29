@@ -1,5 +1,6 @@
 package com.backend.Fiteam.Domain.User.Service;
 
+import com.backend.Fiteam.AppCache.CharacterCardCache;
 import com.backend.Fiteam.ConfigEnum.GlobalEnum.TeamStatus;
 import com.backend.Fiteam.Domain.Character.Entity.CharacterCard;
 import com.backend.Fiteam.Domain.Character.Repository.CharacterCardRepository;
@@ -23,12 +24,15 @@ import com.backend.Fiteam.Domain.User.Dto.UserSettingsResponseDto;
 import com.backend.Fiteam.Domain.User.Entity.User;
 import com.backend.Fiteam.Domain.User.Repository.UserRepository;
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,9 +50,29 @@ public class UserService {
     private final TeamTypeRepository teamTypeRepository;
     private final CharacterCardService characterCardService;
 
+    private final RedisTemplate<String, String> redisTemplate;
+    // 캐릭터 카드 캐시 사용
+    private final CharacterCardCache characterCardCache;
 
+    // 캐싱해둔 캐릭터 카드 get 함수
+
+
+    /*
+    saveCharacterTestResult 함수
+    1. 시간복잡도 : O(n) - 작은 상수레벨 반복 수준
+    2. Read 1 + Write 1 = 총 2번 DB 접속
+    3. 병렬처리 여부 : ❌
+    4. 개선점
+        -1) 중복 제출 방지 -> Redis 캐시로 해결
+    */
     @Transactional
     public void saveCharacterTestResult(Integer userId, List<Map<String, Integer>> answers) {
+        // 1. 중복 제출 방지 (Redis 확인)
+        String redisKey = "submitted:" + userId;
+        if (redisTemplate.hasKey(redisKey)) {
+            throw new IllegalStateException("이미 테스트를 제출한 사용자입니다.");
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("User not found with id: " + userId));
 
@@ -106,9 +130,11 @@ public class UserService {
         user.setDetails(description);
 
         userRepository.save(user);
+
+        redisTemplate.opsForValue().set(redisKey, "1", Duration.ofMinutes(5));
     }
 
-
+    // 이정도면 정말 빠름
     @Transactional(readOnly = true)
     public TestResultResponseDto getTestResult(Integer userId) {
         User user = userRepository.findById(userId)
@@ -118,8 +144,7 @@ public class UserService {
             throw new IllegalArgumentException("테스트 결과가 존재하지 않습니다.");
         }
 
-        CharacterCard characterCard = characterCardRepository.findById(user.getCardId1())
-                .orElseThrow(() -> new NoSuchElementException("CharacterCard not found with id: " + user.getCardId1()));
+        CharacterCard characterCard = characterCardCache.getCard(user.getCardId1());
 
         return TestResultResponseDto.builder()
                 .code(characterCard.getCode())
@@ -131,13 +156,17 @@ public class UserService {
                 .build();
     }
 
-
     @Transactional(readOnly = true)
     public UserProfileDto getUserProfile(int userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("User not found with id: " + userId));
 
-        return new UserProfileDto(user.getUserName(), user.getProfileImgUrl(), user.getJob());
+        return UserProfileDto.builder()
+                .userName(user.getUserName())
+                .profileImgUrl(user.getProfileImgUrl())
+                .job(user.getJob())
+                .build();
+
     }
 
     @Transactional(readOnly = true)
@@ -152,16 +181,15 @@ public class UserService {
 
         List<UserCardHistoryDto> history = new ArrayList<>();
 
-        // 2) 최신 카드 (cardId1)
-        CharacterCard card1 = characterCardRepository.findById(user.getCardId1())
-                .orElseThrow(() -> new NoSuchElementException("해당 카드 정보를 찾을 수 없습니다. id: " + user.getCardId1()));
+        // 2) 최신 카드 (cardId1) -> 캐싱으로 대체함
+        // CharacterCard card1 = characterCardRepository.findById(user.getCardId1()).orElseThrow(() -> new NoSuchElementException("해당 카드 정보를 찾을 수 없습니다. id: " + user.getCardId1()));
+        CharacterCard card1 = characterCardCache.getCard(user.getCardId1());
 
         history.add(buildDto(card1, user.getDetails()));
 
         // 3) 이전 카드 (cardId2) — null 체크
         if (user.getCardId2() != null) {
-            CharacterCard card2 = characterCardRepository.findById(user.getCardId2())
-                    .orElseThrow(() -> new NoSuchElementException("해당 카드 정보를 찾을 수 없습니다. id: " + user.getCardId2()));
+            CharacterCard card2 = characterCardCache.getCard(user.getCardId2());
             history.add(buildDto(card2, user.getDetails()));
         }
 
@@ -198,8 +226,7 @@ public class UserService {
             throw new NoSuchElementException("해당 유저는 테스트 결과 가 없습니다.");
         }
 
-        CharacterCard card = characterCardRepository.findById(user.getCardId1())
-                .orElseThrow(() -> new NoSuchElementException("해당 카드 정보를 찾을 수 없습니다. id: " + user.getCardId1()));
+        CharacterCard card = characterCardCache.getCard(user.getCardId1());
 
         return UserCardResponseDto.builder()
                 .code(card.getCode())
@@ -225,6 +252,22 @@ public class UserService {
                 .build();
     }
 
+    /*
+    acceptGroupInvitation 함수
+    1. 시간복잡도 : O(1) - 모든 조회는 PK 또는 Unique 인덱스 기반
+    2. DB Read : 총 4회
+        - GroupMember (userId + groupId 복합키)
+        - ProjectGroup (groupId)
+        - TeamType (teamTypeId)
+        - User (userId)
+    3. DB Write : 총 2회
+        - Team 저장
+        - GroupMember 업데이트
+    4. 병렬처리 여부 : ❌
+    5. 개선점
+        -1) 중복 수락 방지 확인
+        -3) 팀 상태 및 생성일 처리 일관성 확인
+    */
     @Transactional
     public void acceptGroupInvitation(Integer groupId, Integer userId) {
         GroupMember groupMember = groupMemberRepository.findByUserIdAndGroupId(userId,groupId)
@@ -271,8 +314,18 @@ public class UserService {
         groupMemberRepository.save(groupMember);
     }
 
-
-    public List<UserGroupStatusDto> getUserGroupsByStatus(Integer userId, boolean isAccepted) {
+    /*
+    getUserGroupsByStatus 함수
+    1. 시간복잡도 : O(n) - 사용자의 그룹 멤버십 수에 비례
+    2. DB Read : n + 1 회
+        - groupMemberRepository.findAllByUserIdAndIsAccepted[True/False] → 1회
+        - 각 GroupMember마다 projectGroupRepository.findById() → n회
+    3. 병렬처리 여부 : ❌
+    4. 개선점
+        -1) N+1 쿼리 발생 → ProjectGroup을 미리 JOIN 또는 IN 쿼리로 묶는 방식으로 개선 가능
+    */
+    @Transactional(readOnly = true)
+    public List<UserGroupStatusDto> getUserGroupsByStatus_V1(Integer userId, boolean isAccepted) {
         List<GroupMember> memberships = isAccepted
                 ? groupMemberRepository.findAllByUserIdAndIsAcceptedTrue(userId)
                 : groupMemberRepository.findAllByUserIdAndIsAcceptedFalse(userId);
@@ -290,8 +343,42 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public List<UserGroupStatusDto> getUserGroupsByStatus(Integer userId, boolean isAccepted) {
+        List<GroupMember> memberships = isAccepted
+                ? groupMemberRepository.findAllByUserIdAndIsAcceptedTrue(userId)
+                : groupMemberRepository.findAllByUserIdAndIsAcceptedFalse(userId);
+
+        if (memberships.isEmpty()) return List.of(); // 참여중인거 없으면 바로 리턴
+
+        List<Integer> groupIds = memberships.stream().map(GroupMember::getGroupId).distinct().toList();
+
+        // ProjectGroup 일괄 조회 및 Map 구성
+        Map<Integer, ProjectGroup> groupMap = projectGroupRepository.findAllById(groupIds).stream()
+                .collect(Collectors.toMap(ProjectGroup::getId, Function.identity()));
+
+        // 4. DTO 매핑
+        return memberships.stream()
+                .map(gm -> { ProjectGroup pg = groupMap.get(gm.getGroupId());
+                    if (pg == null) {
+                        throw new IllegalStateException("그룹 정보를 찾을 수 없습니다. id: " + gm.getGroupId());
+                    }
+                    return UserGroupStatusDto.builder()
+                            .groupId(pg.getId())
+                            .groupName(pg.getName())
+                            .invitedAt(gm.getInvitedAt())
+                            .build();
+                }).toList();
+    }
+
+    // 프로필 수정이 너무 과하게 호출되지 않도록 5초Lock 추가
     @Transactional
     public void updateUserSettings(Integer userId, UserSettingsRequestDto dto) {
+        String redisKey = "update:user:" + userId;
+        if (Boolean.TRUE.equals(redisTemplate.hasKey(redisKey))) {
+            throw new IllegalStateException("설정은 잠시 후 다시 변경할 수 있습니다.");
+        }
+
         // 1) 사용자 조회
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("User not found with id: " + userId));
@@ -321,6 +408,7 @@ public class UserService {
 
         // 4) 저장
         userRepository.save(user);
+        redisTemplate.opsForValue().set(redisKey, "1", Duration.ofSeconds(5));
     }
 
     @Transactional(readOnly = true)
