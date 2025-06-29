@@ -10,4 +10,6 @@ public interface UserLikeRepository extends JpaRepository<UserLike, Integer> {
     List<UserLike> findAllBySenderId(Integer senderId);
 
     void deleteAllByGroupId(Integer groupId);
+
+    boolean existsBySenderIdAndReceiverIdAndGroupId(Integer senderId, Integer receiverId, Integer groupId);
 }

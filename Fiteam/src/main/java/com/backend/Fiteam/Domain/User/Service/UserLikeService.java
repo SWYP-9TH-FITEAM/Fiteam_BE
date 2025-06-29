@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @Service
@@ -23,6 +24,7 @@ public class UserLikeService {
     private final GroupMemberRepository groupMemberRepository;
     private final UserLikeRepository userLikeRepository;
 
+    @Transactional
     public void likeUser(Integer senderId, UserLikeRequestDto dto) {
         Integer receiverId = dto.getReceiverId();
         Integer groupId    = dto.getGroupId();
@@ -37,6 +39,11 @@ public class UserLikeService {
         // 2) 자기 자신은 좋아요 불가
         if (senderId.equals(receiverId)) {
             throw new IllegalArgumentException("자기 자신에게는 좋아요할 수 없습니다.");
+        }
+        // 2-1) 이미 좋아요 했는지 확인
+        boolean alreadyLiked = userLikeRepository.existsBySenderIdAndReceiverIdAndGroupId(senderId, receiverId, groupId);
+        if (alreadyLiked) {
+            throw new IllegalStateException("이미 해당 유저에게 좋아요를 보냈습니다.");
         }
 
         // 3) UserLike 엔티티 생성 및 저장
