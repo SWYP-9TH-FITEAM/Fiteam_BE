@@ -1,5 +1,7 @@
 package com.backend.Fiteam.Domain.Group.Service;
 
+import com.backend.Fiteam.ConfigEnum.GlobalEnum.NotificationEventType;
+import com.backend.Fiteam.ConfigEnum.GlobalEnum.SenderType;
 import com.backend.Fiteam.Domain.Group.Dto.GroupNoticeDetailDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupNoticeRequestDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupNoticeSummaryDto;
@@ -65,11 +67,11 @@ public class GroupNoticeService {
             );
 
             notificationService.createAndPushNotification(
-                    member.getUserId(),      // 수신자
-                    managerId,               // 발신자
-                    "manager",               // 발신자 타입
-                    "GroupNotice",           // 알림 유형
-                    message                  // 알림 내용 (제목 + 전체 본문)
+                    member.getUserId(),
+                    managerId,
+                    SenderType.MANAGER,
+                    NotificationEventType.GROUP_NOTICE,
+                    message
             );
         }
 
@@ -100,20 +102,6 @@ public class GroupNoticeService {
         noticeRepository.delete(notice);
     }
 
-    /*
-    @Transactional(readOnly = true)
-    public List<GroupNoticeSummaryDto> getNoticesByManager(Integer managerId) {
-        return noticeRepository.findAllByManagerIdOrderByCreatedAtDesc(managerId)
-                .stream()
-                .map(n -> GroupNoticeSummaryDto.builder()
-                        .id(n.getId())
-                        .groupId(n.getGroupId())
-                        .title(n.getTitle())
-                        .createdAt(n.getCreatedAt())
-                        .build())
-                .collect(Collectors.toList());
-    }
-     */
 
     @Transactional(readOnly = true)
     public List<GroupNoticeSummaryDto> getNoticesByManager(Integer managerId) {

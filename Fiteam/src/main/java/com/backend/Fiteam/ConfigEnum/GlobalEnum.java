@@ -6,25 +6,45 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 
 public class GlobalEnum {
 
-    // ✅ 예시 1: 사용자 권한
-    public enum UserRole {
-        USER,      // 일반 사용자
-        MANAGER,   // 관리자
-        ADMIN      // 최고 관리자
-    }
+    public enum SenderType implements EnumType {
+        USER(2, "User"),
+        MANAGER(1, "Manager"),
+        ADMIN(0, "Admin");
 
-    // ✅ 예시 2: 공통 상태값
-    public enum Status {
-        ACTIVE,     // 활성 상태
-        INACTIVE,   // 비활성 상태
-        DELETED     // 삭제 상태
+        private final int code;
+        private final String label;
+        SenderType(int code, String label) {this.code = code;this.label = label;}
+        @Override public int getCode() {return code;}
+        @Override public String getLabel() {return label;}
+        @JsonCreator
+        public static SenderType fromLabel(String label) {
+            return Arrays.stream(values())
+                    .filter(e -> e.label.equalsIgnoreCase(label) || e.name().equalsIgnoreCase(label))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Unknown SenderType label: " + label));
+        }
     }
+    public enum NotificationEventType implements EnumType {
+        GROUP_INVITE(0, "Group invite"),
+        GROUP_NOTICE(1, "GroupNotice"),
+        TEAM_CONTACTS(2, "TeamContacts"),
+        RANDOM_TEAM_BUILDING_RESULT(3, "RandomTeamBuilding"),
+        TEAM_BUILDING_START(4, "TeamBuildingStart"),
+        TEAM_BUILDING_END(5, "TeamBuildingEnd"),
+        TEAM_LEADER_CHANGE(6, "Team_Leader_Change");
 
-    // ✅ 예시 3: 알림 타입
-    public enum NotificationType {
-        EMAIL,      // 이메일 알림
-        SMS,        // 문자 알림
-        PUSH        // 푸시 알림
+        private final int code;
+        private final String label;
+        NotificationEventType(int code, String label) {this.code = code;this.label = label;}
+        @Override public int getCode() {return code;}
+        @Override public String getLabel() {return label;}
+        @JsonCreator
+        public static NotificationEventType fromLabel(String label) {
+            return Arrays.stream(values())
+                    .filter(e -> e.label.equalsIgnoreCase(label) || e.name().equalsIgnoreCase(label))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Unknown NotificationEventType label: " + label));
+        }
     }
 
     public enum TeamStatus implements EnumType {

@@ -193,11 +193,9 @@ public class TeamRequestService {
                 .orElseThrow(() -> new IllegalArgumentException("병합 대상 팀이 없습니다."));
 
         // 최대 인원 검사
-        TeamType teamType = teamTypeRepository.findById(
-                projectGroupRepository.findById(primary.getGroupId())
+        TeamType teamType = projectGroupRepository.findById(primary.getGroupId())
                         .orElseThrow(() -> new IllegalArgumentException("그룹이 없습니다."))
-                        .getTeamMakeType()
-        ).orElseThrow(() -> new IllegalArgumentException("팀 빌딩 타입이 없습니다."));
+                        .getTeamMakeType();
 
         long size1 = groupMemberRepository.countByTeamId(primaryTeamId);
         long size2 = groupMemberRepository.countByTeamId(secondaryTeamId);

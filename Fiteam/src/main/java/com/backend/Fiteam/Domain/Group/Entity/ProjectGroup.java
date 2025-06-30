@@ -35,9 +35,10 @@ public class ProjectGroup {
     @Column(name = "max_user_count")
     private Integer maxUserCount;
 
-    @Schema(description = "팀 빌딩 방식 타입 ID", example = "2")
-    @Column(name = "team_make_type")
-    private Integer teamMakeType;
+    @Schema(description = "팀 빌딩 방식 타입")
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "team_make_type", insertable = false, updatable = false)
+    private TeamType teamMakeType;
 
     @Schema(description = "연락 정책", example = "카카오톡 오픈채팅 이용, 전화번호 공유 등등")
     @Column(name = "contact_policy", length = 255)

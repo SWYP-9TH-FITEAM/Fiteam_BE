@@ -232,9 +232,9 @@ CREATE TABLE ChatMessage (
 CREATE TABLE Notification (
     id INT AUTO_INCREMENT PRIMARY KEY,
     sender_id    INT   NOT NULL,
-    sender_type  ENUM('USER','MANAGER','ADMIN') NOT NULL,
+    sender_type  INT NOT NULL,
     user_id INT  NOT NULL,
-    type VARCHAR(30),
+    type INT NOT NULL ,
     content TEXT,
     is_read BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

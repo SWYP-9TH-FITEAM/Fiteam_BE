@@ -8,6 +8,7 @@ import com.backend.Fiteam.Domain.Group.Dto.GroupMemberResponseDto;
 import com.backend.Fiteam.Domain.Group.Entity.ProjectGroup;
 import com.backend.Fiteam.Domain.Group.Service.GroupMemberService;
 import com.backend.Fiteam.Domain.Group.Service.GroupService;
+import com.backend.Fiteam.Domain.Group.Service.ManagerUserService;
 import com.backend.Fiteam.Domain.User.Dto.UserGroupProfileDto;
 import com.backend.Fiteam.Domain.User.Dto.UserProfileDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -48,13 +49,15 @@ public class GroupMemberController {
     */
 
     private final GroupMemberService groupMemberService;
+    private final ManagerUserService managerUserService;
 
     // 1. 직무 유형 리스트 GET (PM,디자이너 등)
     @Operation(summary = "1. 직무 유형 리스트 GET (PM,디자이너 등)",
             description = "teamMakeType 기준으로 TeamType의 configJson을 파싱하여 직무(position) 리스트를 반환합니다.",
             responses = {@ApiResponse(content = @Content(examples = @ExampleObject(value = "[\"PM\", \"DS\", \"FE\", \"BE\"]")))})
     @GetMapping("/{groupId}/positions")
-    public ResponseEntity<List<String>> getGroupPositions(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer groupId) {
+    public ResponseEntity<List<String>> getGroupPositions(@AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Integer groupId) {
         try {
             Integer userId = Integer.parseInt(userDetails.getUsername());
             groupMemberService.validateGroupMembership(userId, groupId);
@@ -121,7 +124,7 @@ public class GroupMemberController {
             throw new IllegalArgumentException("해당 그룹에 접근할 권한이 없습니다.");
         }
 
-        List<GroupMemberResponseDto> response = groupMemberService.getGroupMembers(requesterId, groupId, true);
+        List<GroupMemberResponseDto> response = managerUserService.getGroupMembers(requesterId, groupId, true);
         return ResponseEntity.ok(response);
     }
 

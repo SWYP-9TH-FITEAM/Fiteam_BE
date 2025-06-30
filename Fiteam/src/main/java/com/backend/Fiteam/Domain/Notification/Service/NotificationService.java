@@ -1,5 +1,6 @@
 package com.backend.Fiteam.Domain.Notification.Service;
 
+import com.backend.Fiteam.ConfigEnum.GlobalEnum;
 import com.backend.Fiteam.Domain.Notification.Dto.UserNotifyDto;
 import com.backend.Fiteam.Domain.Notification.Entity.Notification;
 import com.backend.Fiteam.Domain.Notification.Repository.NotificationRepository;
@@ -21,7 +22,8 @@ public class NotificationService {
 
 
     @Transactional
-    public Notification createAndPushNotification(Integer recipientId, Integer senderId, String senderType, String type, String content) {
+    public Notification createAndPushNotification(Integer recipientId, Integer senderId,
+            GlobalEnum.SenderType senderType, GlobalEnum.NotificationEventType type, String content) {
         // 1) DB에 알림 저장
         Notification notice = Notification.builder()
                 .userId(recipientId)

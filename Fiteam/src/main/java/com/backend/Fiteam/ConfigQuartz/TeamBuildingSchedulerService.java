@@ -23,8 +23,7 @@ public class TeamBuildingSchedulerService {
     private final TeamTypeRepository teamTypeRepository;
 
     public void scheduleTeamBuilding(ProjectGroup group) throws SchedulerException {
-        TeamType type = teamTypeRepository.findById(group.getTeamMakeType())
-                .orElseThrow(() -> new IllegalArgumentException("TeamType not found"));
+        TeamType type = group.getTeamMakeType();
 
         LocalDateTime startTime = type.getStartDatetime();
         LocalDateTime endTime   = type.getEndDatetime();

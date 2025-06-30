@@ -1,5 +1,7 @@
 package com.backend.Fiteam.Domain.Team.Service;
 
+import com.backend.Fiteam.ConfigEnum.GlobalEnum.NotificationEventType;
+import com.backend.Fiteam.ConfigEnum.GlobalEnum.SenderType;
 import com.backend.Fiteam.ConfigEnum.GlobalEnum.TeamStatus;
 import com.backend.Fiteam.Domain.Group.Entity.GroupMember;
 import com.backend.Fiteam.Domain.Group.Entity.ProjectGroup;
@@ -86,8 +88,8 @@ public class TeamService {
         notificationService.createAndPushNotification(
                 new_master_id,
                 userId,
-                "user",
-                "leader_change",
+                SenderType.USER,
+                NotificationEventType.TEAM_LEADER_CHANGE,
                 content
         );
     }
@@ -154,7 +156,7 @@ public class TeamService {
         Integer groupId = team.getGroupId();
         Integer typeId = projectGroupRepository.findById(groupId)
                 .orElseThrow(() -> new IllegalArgumentException("그룹이 존재하지 않습니다."))
-                .getTeamMakeType();
+                .getTeamMakeType().getId();
         TeamType type = teamTypeRepository.findById(typeId)
                 .orElseThrow(() -> new IllegalArgumentException("팀 빌딩 타입이 존재하지 않습니다."));
 

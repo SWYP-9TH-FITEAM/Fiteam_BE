@@ -40,7 +40,6 @@ public class GroupMemberService {
 
     private final GroupMemberRepository groupMemberRepository;
     private final ProjectGroupRepository projectGroupRepository;
-    private final TeamTypeRepository teamTypeRepository;
     private final UserRepository userRepository;
     private final UserLikeRepository userLikeRepository;
     private final CharacterCardService characterCardService;
@@ -88,9 +87,7 @@ public class GroupMemberService {
         ProjectGroup group = projectGroupRepository.findById(groupId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 그룹입니다."));
 
-        Integer typeId = group.getTeamMakeType();
-        TeamType teamType = teamTypeRepository.findById(typeId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 팀 빌딩 방식이 존재하지 않습니다."));
+        TeamType teamType = group.getTeamMakeType();
 
         List<String> positions = new ArrayList<>();
         if (Boolean.FALSE.equals(teamType.getPositionBased())) {
@@ -193,48 +190,6 @@ public class GroupMemberService {
         return groupMemberRepository.existsByGroupIdAndUserId(groupId, userId);
     }
 
-    // userLike 하고, 마감된 으로 정렬해야함.
-    @Transactional(readOnly = true)
-    public List<GroupMemberResponseDto> getGroupMembers(Integer userId, Integer groupId, boolean isUser) {
-        List<GroupMember> groupMembers = groupMemberRepository.findByGroupId(groupId);
-        List<GroupMemberResponseDto> result = new ArrayList<>();
-
-        for (GroupMember member : groupMembers) {
-            if (Boolean.TRUE.equals(member.getIsAccepted())) {
-                User targetUser = userRepository.findById(member.getUserId())
-                        .orElseThrow(() -> new NoSuchElementException("유저 정보를 찾을 수 없습니다."));
-
-                // Manager인 경우 무조건 null, User인 경우 체크
-                Integer likeId = null;
-                if (isUser) {
-                    likeId = userLikeRepository.findBySenderIdAndReceiverIdAndGroupId(userId, targetUser.getId(), groupId)
-                            .map(UserLike::getId).orElse(null);
-                }
-
-                GroupMemberResponseDto dto = GroupMemberResponseDto.builder()
-                        .memberId(member.getId())
-                        .userId(targetUser.getId())
-                        .userName(targetUser.getUserName())
-                        .profileImageUrl(targetUser.getProfileImgUrl())
-                        .cardId1(targetUser.getCardId1())
-                        .teamStatus(member.getTeamStatus())
-                        .position(member.getPosition())
-                        .teamId(member.getTeamId())
-                        .likeId(likeId)
-                        .build();
-
-                result.add(dto);
-            }
-        }
-
-        // 정렬 우선순위:
-        result.sort(Comparator
-                .comparing((GroupMemberResponseDto dto) -> dto.getLikeId() == null)  // false 먼저
-                .thenComparing(dto -> "마감".equals(dto.getTeamStatus()))             // false 먼저
-        );
-
-        return result;
-    }
 
     @Transactional(readOnly = true)
     public CompatibilityResult getCompatibility(Integer myUserId, Integer otherUserId) {

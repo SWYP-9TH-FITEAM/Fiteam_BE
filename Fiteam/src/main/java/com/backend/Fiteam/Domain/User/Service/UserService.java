@@ -286,9 +286,7 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("그룹이 존재하지 않습니다."));
 
         // 팀타입 정보 조회
-        Integer teamTypeId = projectGroup.getTeamMakeType();
-        TeamType teamType = teamTypeRepository.findById(teamTypeId)
-                .orElseThrow(() -> new IllegalArgumentException("팀 구성 방식이 존재하지 않습니다."));
+        TeamType teamType = projectGroup.getTeamMakeType();
 
         // 유저 이름 조회
         User user = userRepository.findById(userId)

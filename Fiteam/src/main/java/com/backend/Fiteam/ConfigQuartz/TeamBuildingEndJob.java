@@ -3,6 +3,7 @@ package com.backend.Fiteam.ConfigQuartz;
 import com.backend.Fiteam.Domain.Group.Entity.ProjectGroup;
 import com.backend.Fiteam.Domain.Group.Repository.ProjectGroupRepository;
 import com.backend.Fiteam.Domain.Group.Service.GroupService;
+import com.backend.Fiteam.Domain.Group.Service.TeamBuildingService;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.Job;
 import org.quartz.JobDataMap;
@@ -15,8 +16,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class TeamBuildingEndJob implements Job {
 
-    @Autowired
-    private GroupService groupService;
+    @Autowired private TeamBuildingService teamBuildingService;
     @Autowired private ProjectGroupRepository projectGroupRepository;
 
     @Override
@@ -30,7 +30,7 @@ public class TeamBuildingEndJob implements Job {
                 .orElseThrow(() -> new JobExecutionException("Group not found: " + groupId));
 
         // 그룹 빌딩 종료
-        groupService.closeTeamBuilding(group);
+        teamBuildingService.closeTeamBuilding(group);
     }
 }
 

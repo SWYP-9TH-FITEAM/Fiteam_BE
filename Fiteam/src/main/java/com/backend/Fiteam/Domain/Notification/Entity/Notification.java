@@ -1,5 +1,9 @@
 package com.backend.Fiteam.Domain.Notification.Entity;
 
+import com.backend.Fiteam.ConfigEnum.Custom.NotificationEventTypeConverter;
+import com.backend.Fiteam.ConfigEnum.Custom.SenderTypeConverter;
+import com.backend.Fiteam.ConfigEnum.GlobalEnum;
+import com.backend.Fiteam.ConfigEnum.GlobalEnum.NotificationEventType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.*;
@@ -26,7 +30,8 @@ public class Notification {
 
     @Column(name = "sender_type", length = 50)
     @Schema(description = "발신자 타입 (user, admin 등)", example = "user")
-    private String senderType;
+    @Convert(converter = SenderTypeConverter.class)
+    private GlobalEnum.SenderType senderType;
 
     @Column(name = "user_id")
     @Schema(description = "알림 수신자(현재 사용자) ID", example = "5")
@@ -34,7 +39,8 @@ public class Notification {
 
     @Schema(description = "알림 유형", example = "Group invite, team match ... ")
     @Column(name = "type")
-    private String type;
+    @Convert(converter = NotificationEventTypeConverter.class)
+    private GlobalEnum.NotificationEventType type;
 
     @Column(name = "content", length = 300)
     @Schema(description = "알림 내용", example = "새로운 팀 초대가 도착했습니다.")
