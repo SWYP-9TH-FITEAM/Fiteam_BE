@@ -3,16 +3,24 @@ package com.backend.Fiteam.Domain.Group.Controller;
 import com.backend.Fiteam.Domain.Admin.Dto.SystemNoticeResponseDto;
 import com.backend.Fiteam.Domain.Admin.Service.AdminService;
 import com.backend.Fiteam.Domain.Group.Dto.GroupDetailResponseDto;
+import com.backend.Fiteam.Domain.Group.Dto.GroupMemberResponseDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupNoticeDetailDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupNoticeRequestDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupNoticeSummaryDto;
 import com.backend.Fiteam.Domain.Group.Entity.GroupNotice;
 import com.backend.Fiteam.Domain.Group.Entity.ProjectGroup;
 import com.backend.Fiteam.Domain.Group.Repository.GroupMemberRepository;
+import com.backend.Fiteam.Domain.Group.Service.GroupMemberService;
 import com.backend.Fiteam.Domain.Group.Service.GroupNoticeService;
 import com.backend.Fiteam.Domain.Group.Service.GroupService;
 import com.backend.Fiteam.Domain.Group.Service.ManagerService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -44,8 +52,9 @@ public class GroupSharedController {
 
     /*
     1. 그룹 정보 가져오기(유저, 매니저 둘다 접근하게)
-    2. 그룹의 공지리스트 보기
-    3. 그룹공지 상세보기
+    2. 직무 유형 리스트 GET,POST (PM,디자이너 등)
+    3. 그룹의 공지리스트 보기
+    4. 그룹공지 상세보기
     */
 
 
@@ -55,23 +64,28 @@ public class GroupSharedController {
     public ResponseEntity<GroupDetailResponseDto> getGroupDetail(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer groupId) {
         Integer userId = Integer.valueOf(userDetails.getUsername());
 
-        boolean isManager = userDetails.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_Manager"));
-
-        if (isManager) {
-            // 매니저라면, 이 그룹을 관리하는 매니저인지 확인
-            managerService.authorizeManager(groupId, userId);
-        } else {
-            // 일반 유저라면, 가입되어 있고 수락된 상태인지 확인
-            boolean joined = groupMemberRepository
-                    .findByGroupIdAndUserIdAndIsAcceptedTrue(groupId, userId).isPresent();
-            if (!joined) {
-                throw new IllegalArgumentException("해당 그룹 유저가 아닙니다.");
-            }
-        }
+        groupService.authorizeManagerOrMember(groupId, userId);
 
         GroupDetailResponseDto detail = groupService.getGroupDetail(groupId);
         return ResponseEntity.ok(detail);
+    }
+
+    // 2. 직무 유형 리스트 GET (PM,디자이너 등)
+    @Operation(summary = "2. 직무 유형 리스트 GET (PM,디자이너 등)",
+            description = "teamMakeType 기준으로 TeamType의 configJson을 파싱하여 직무(position) 리스트를 반환합니다.",
+            responses = {@ApiResponse(content = @Content(examples = @ExampleObject(value = "[\"PM\", \"DS\", \"FE\", \"BE\"]")))})
+    @GetMapping("/group/{groupId}/positions")
+    public ResponseEntity<List<String>> getGroupPositions(@AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Integer groupId) {
+        try {
+            Integer userId = Integer.parseInt(userDetails.getUsername());
+            groupService.validateGroupMembership(userId, groupId);
+
+            List<String> positions = groupService.getPositionListForGroup(groupId);
+            return ResponseEntity.ok(positions);
+        } catch (JsonProcessingException e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     // 2. 그룹의 공지목록 보기.
@@ -99,4 +113,18 @@ public class GroupSharedController {
         List<SystemNoticeResponseDto> list = adminService.getAllSystemNotices();
         return ResponseEntity.ok(list);
     }
+
+    // 5. 유저 또는 매니저가 그룹에 참여한 전체 멤버 리스트 GET
+    @Operation(summary = "5. 유저가 그룹 전체 멤버 리스트 조회", description = "그룹에 속한 모든 멤버를 조회합니다.",
+            responses = {@ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = GroupMemberResponseDto.class))))})
+    @GetMapping("/{groupId}/members")
+    public ResponseEntity<List<GroupMemberResponseDto>> getGroupMembers(
+            @AuthenticationPrincipal UserDetails userDetails,  @PathVariable Integer groupId) {
+        Integer userId = Integer.valueOf(userDetails.getUsername());
+        boolean isManager = groupService.authorizeManagerOrMember(groupId, userId);
+        List<GroupMemberResponseDto> response = groupService.getGroupMembers(userId, groupId, !isManager);
+
+        return ResponseEntity.ok(response);
+    }
+
 }

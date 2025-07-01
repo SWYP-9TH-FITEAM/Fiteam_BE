@@ -3,6 +3,7 @@ package com.backend.Fiteam.Domain.Group.Service;
 import com.backend.Fiteam.ConfigEnum.GlobalEnum;
 import com.backend.Fiteam.ConfigQuartz.TeamBuildingSchedulerService;
 import com.backend.Fiteam.Domain.Group.Dto.GroupDetailResponseDto;
+import com.backend.Fiteam.Domain.Group.Dto.GroupMemberResponseDto;
 import com.backend.Fiteam.Domain.Group.Dto.GroupTeamTypeSettingDto;
 import com.backend.Fiteam.Domain.Group.Entity.GroupMember;
 import com.backend.Fiteam.Domain.Group.Entity.ProjectGroup;
@@ -13,13 +14,26 @@ import com.backend.Fiteam.Domain.Notification.Service.NotificationService;
 import com.backend.Fiteam.Domain.Team.Entity.Team;
 import com.backend.Fiteam.Domain.Team.Repository.TeamRepository;
 import com.backend.Fiteam.Domain.Team.Repository.TeamTypeRepository;
+import com.backend.Fiteam.Domain.User.Entity.User;
+import com.backend.Fiteam.Domain.User.Entity.UserLike;
+import com.backend.Fiteam.Domain.User.Repository.UserLikeRepository;
+import com.backend.Fiteam.Domain.User.Repository.UserRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.quartz.SchedulerException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,7 +48,9 @@ public class GroupService {
     private final TeamRepository teamRepository;
     private final TeamBuildingSchedulerService schedulerService;
     private final NotificationService notificationService;
-
+    private final UserLikeRepository userLikeRepository;
+    private final UserRepository userRepository;
+    private final ManagerService managerService;
 
     @Transactional(readOnly = true)
     public ProjectGroup getProjectGroup(Integer groupId) {
@@ -59,6 +75,24 @@ public class GroupService {
                     content
             );
         }
+    }
+
+    public boolean authorizeManagerOrMember(Integer groupId, Integer userId) {
+        // 권한 가져오기
+        boolean isManager = SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_Manager"));
+        if (isManager) {
+            // 매니저 검증
+            managerService.authorizeManager(groupId, userId);
+        } else {
+            // 일반 회원 검증
+            boolean joined = groupMemberRepository
+                    .existsByGroupIdAndUserIdAndIsAcceptedTrue(groupId, userId);
+            if (!joined) {
+                throw new IllegalArgumentException("해당 그룹 유저가 아닙니다.");
+            }
+        }
+        return isManager;
     }
 
     /*
@@ -139,6 +173,46 @@ public class GroupService {
         );
     }
 
+    // 로그인한 상태의 User가 해당 그룹에 소속된 사람인지 확인하는 검증코드
+    public void validateGroupMembership(Integer userId, Integer groupId) {
+        boolean isMember = groupMemberRepository.existsByGroupIdAndUserIdAndIsAcceptedTrue(groupId, userId);
+        if (!isMember) {
+            throw new IllegalArgumentException("해당 그룹의 멤버가 아닙니다.");
+        }
+    }
+
+    // Config Josn 에서 직군 정리를 어떻게 할지에 따라 수정이 필요할수도 있음.
+    @Transactional(readOnly = true)
+    public List<String> getPositionListForGroup(Integer groupId) throws JsonProcessingException {
+        ProjectGroup group = projectGroupRepository.findById(groupId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 그룹입니다."));
+
+        TeamType teamType = group.getTeamMakeType();
+
+        List<String> positions = new ArrayList<>();
+        if (Boolean.FALSE.equals(teamType.getPositionBased())) {
+            positions.add("normal");
+            return positions;
+        }
+
+        String configJson = teamType.getConfigJson();
+        if (configJson == null || configJson.isBlank()) {
+            return Collections.emptyList();
+        }
+
+        // JSON 파싱: Object 형태로 가정
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree(configJson);
+
+        if (!root.isObject()) {
+            return Collections.emptyList();
+        }
+
+        root.fieldNames().forEachRemaining(positions::add); // PM, DS, FE, BE 등 key만 추출
+        return positions;
+    }
+
+
     protected boolean isValidDatetimeRange(LocalDateTime start, LocalDateTime end) {
         LocalDateTime now = LocalDateTime.now();
 
@@ -218,4 +292,78 @@ public class GroupService {
         schedulerService.scheduleTeamBuilding(projectGroup);
     }
 
+
+    /*
+    getGroupMembers 함수
+    1. 시간복잡도 : O(n) - n < 100
+    2. DB Read : 3회
+        - groupMemberRepository.findByGroupId(groupId) → 1회
+        - userRepository.findAllById(userIds) → 1회
+        - userLikeRepository.findBySenderIdAndGroupId(userId, groupId) → 1회
+    3. DB Write : 없음
+    4. 병렬처리 필요 여부 : ❌
+    5. 개선점
+        - N+1 문제 발생 가능성 있음 → userRepository.findById() 및 userLikeRepository 호출이 개별 반복문 내 존재
+            ➜ userId 리스트로 미리 userRepository.findAllById() 호출 후 Map으로 캐싱
+            ➜ userLike도 (senderId, receiverId, groupId) 조합으로 한 번에 조회
+        - 정렬 조건이 명확하지 않음: `likeId == null`, `"마감".equals(teamStatus)` 순서 명확히 문서화 필요
+        - Stream API 사용 시 코드 간결성 개선 가능
+    */
+    @Transactional(readOnly = true)
+    public List<GroupMemberResponseDto> getGroupMembers(Integer userId, Integer groupId, boolean isUser) {
+        List<GroupMember> groupMembers = groupMemberRepository.findByGroupId(groupId);
+        List<GroupMemberResponseDto> result = new ArrayList<>();
+
+        // 1. 유저 ID 리스트 수집
+        List<Integer> userIds = groupMembers.stream()
+                .filter(member -> Boolean.TRUE.equals(member.getIsAccepted()))
+                .map(GroupMember::getUserId)
+                .toList();
+
+        // 2. 유저들 미리 조회
+        Map<Integer, User> userMap = userRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
+
+        // 3. 좋아요 정보 미리 조회
+        Map<Integer, Integer> likeIdMap = new HashMap<>();
+        if (isUser) {
+            List<UserLike> userLikes = userLikeRepository.findBySenderIdAndGroupId(userId, groupId);
+            likeIdMap = userLikes.stream()
+                    .collect(Collectors.toMap(UserLike::getReceiverId, UserLike::getId));
+        }
+
+        // 4. DTO 구성
+        for (GroupMember member : groupMembers) {
+            if (Boolean.TRUE.equals(member.getIsAccepted())) {
+                User targetUser = userMap.get(member.getUserId());
+                if (targetUser == null) {
+                    throw new NoSuchElementException("유저 정보를 찾을 수 없습니다.");
+                }
+
+                Integer likeId = isUser ? likeIdMap.getOrDefault(targetUser.getId(), null) : null;
+
+                GroupMemberResponseDto dto = GroupMemberResponseDto.builder()
+                        .memberId(member.getId())
+                        .userId(targetUser.getId())
+                        .userName(targetUser.getUserName())
+                        .profileImageUrl(targetUser.getProfileImgUrl())
+                        .cardId1(targetUser.getCardId1())
+                        .teamStatus(member.getTeamStatus())
+                        .position(member.getPosition())
+                        .teamId(member.getTeamId())
+                        .likeId(likeId)
+                        .build();
+
+                result.add(dto);
+            }
+        }
+
+        // 5. 정렬: 좋아요 먼저, 마감되지 않은사람 먼저
+        result.sort(Comparator
+                .comparing((GroupMemberResponseDto dto) -> dto.getLikeId() == null) // false (좋아요 있음) 먼저
+                .thenComparing(dto -> "마감".equals(dto.getTeamStatus()))            // false (마감 아님) 먼저
+        );
+
+        return result;
+    }
 }

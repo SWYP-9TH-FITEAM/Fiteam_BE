@@ -44,13 +44,6 @@ public class GroupMemberService {
     private final UserLikeRepository userLikeRepository;
     private final CharacterCardService characterCardService;
 
-    // 로그인한 상태의 User가 해당 그룹에 소속된 사람인지 확인하는 검증코드
-    public void validateGroupMembership(Integer userId, Integer groupId) {
-        boolean isMember = groupMemberRepository.existsByGroupIdAndUserIdAndIsAcceptedTrue(groupId, userId);
-        if (!isMember) {
-            throw new IllegalArgumentException("해당 그룹의 멤버가 아닙니다.");
-        }
-    }
 
     @Transactional
     public void updateGroupMemberProfile(Integer groupId, Integer userId, UserGroupProfileDto requestDto) {
@@ -82,36 +75,6 @@ public class GroupMemberService {
         }
     }
 
-    // Config Josn 에서 직군 정리를 어떻게 할지에 따라 수정이 필요할수도 있음.
-    public List<String> getPositionListForGroup(Integer groupId) throws JsonProcessingException {
-        ProjectGroup group = projectGroupRepository.findById(groupId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 그룹입니다."));
-
-        TeamType teamType = group.getTeamMakeType();
-
-        List<String> positions = new ArrayList<>();
-        if (Boolean.FALSE.equals(teamType.getPositionBased())) {
-            positions.add("normal");
-            return positions;
-        }
-
-        String configJson = teamType.getConfigJson();
-        if (configJson == null || configJson.isBlank()) {
-            return Collections.emptyList();
-        }
-
-        // JSON 파싱: Object 형태로 가정
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode root = mapper.readTree(configJson);
-
-        if (!root.isObject()) {
-            return Collections.emptyList();
-        }
-
-        root.fieldNames().forEachRemaining(positions::add); // PM, DS, FE, BE 등 key만 추출
-        return positions;
-    }
-
     @Transactional(readOnly = true)
     public GroupMemberMiniProfileResponseDto getMemberMiniProfile(Integer groupId, Integer userId) {
         // 1) groupId + userId 로 승인된 GroupMember 조회
@@ -136,7 +99,7 @@ public class GroupMemberService {
     }
 
     @Transactional(readOnly = true)
-    public GroupMemberProfileResponseDto getMemberProfile(Integer groupId, Integer userId) {
+    public GroupMemberProfileResponseDto getMyMemberProfile(Integer groupId, Integer userId) {
         // 1) groupId + userId 로 승인된 GroupMember 조회
         GroupMember gm = groupMemberRepository
                 .findByUserIdAndGroupIdAndIsAcceptedTrue(userId, groupId)
@@ -184,12 +147,6 @@ public class GroupMemberService {
                 .introduction(gm.getIntroduction())
                 .build();
     }
-
-    @Transactional(readOnly = true)
-    public boolean isUserInGroup(Integer groupId, Integer userId) {
-        return groupMemberRepository.existsByGroupIdAndUserId(groupId, userId);
-    }
-
 
     @Transactional(readOnly = true)
     public CompatibilityResult getCompatibility(Integer myUserId, Integer otherUserId) {

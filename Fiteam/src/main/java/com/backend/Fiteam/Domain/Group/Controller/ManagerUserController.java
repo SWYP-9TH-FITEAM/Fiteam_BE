@@ -41,7 +41,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-
+@PreAuthorize("hasRole('Manager')")
 @RestController
 @RequestMapping("/v1/manager")
 @RequiredArgsConstructor
@@ -60,6 +60,7 @@ public class ManagerUserController {
     5. 매니저가 그룹의 팀 구성 방식을 설정함.
     */
 
+    /*
     // 1. 매니저가 그룹 멤버 리스트 조회
     @Operation(summary = "1. 매니저가 그룹 멤버 리스트 조회",
             description = "매니저 권한이 있는 사용자가 자신이 관리하는 그룹의 모든 멤버를 조회합니다.")
@@ -72,9 +73,10 @@ public class ManagerUserController {
         Integer managerId = Integer.valueOf(userDetails.getUsername());
         managerService.authorizeManager(groupId, managerId);
 
-        List<GroupMemberResponseDto> response = managerUserService.getGroupMembers(managerId, groupId, false);
+        List<GroupMemberResponseDto> response = groupService.getGroupMembers(managerId, groupId, false);
         return ResponseEntity.ok(response);
     }
+    */
 
     // 2. 매니저가 이메일로 유저 초대(1~N명)
     @Operation(summary = "2. 매니저가 이메일로 그룹에 유저 초대(1~N명)", description = "Manager가 여러 사용자를 프로젝트 그룹에 초대합니다.")
