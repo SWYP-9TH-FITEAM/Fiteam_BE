@@ -66,33 +66,21 @@ public class ChatController {
     // 1.채팅방 생성 (채팅신청하기)
     @Operation(summary = "채팅방 생성", description = "상대방과 채팅방을 생성합니다. 이미 존재하면 기존 방을 반환합니다.")
     @PostMapping("/room")
-    public ResponseEntity<ChatRoomResponseDto> createChatRoom(
-            @AuthenticationPrincipal UserDetails userDetails, @RequestBody CreateUserChatRoomRequestDto dto) {
-        try {
-            Integer senderId = Integer.parseInt(userDetails.getUsername());
-            ChatRoomResponseDto room = chatService.createChatRoom(senderId, dto);
-            return ResponseEntity.ok(room);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+    public ResponseEntity<ChatRoomResponseDto> createChatRoom(@AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody CreateUserChatRoomRequestDto dto) {
+        Integer senderId = Integer.parseInt(userDetails.getUsername());
+        ChatRoomResponseDto room = chatService.createChatRoom(senderId, dto);
+        return ResponseEntity.ok(room);
     }
 
     // 2.채팅방 리스트 조회-대화 마지막 시간순서대로
     @Operation(summary = "2. 로그인한 사용자의 채팅방 리스트 조회", description = "현재 유저가 속한 모든 채팅방을 최근 메시지 기준으로 정렬해서 반환합니다.")
     @GetMapping("/list")
     public ResponseEntity<List<ChatRoomListResponseDto>> getChatRooms(@AuthenticationPrincipal UserDetails userDetails) {
-        try {
-            Integer userId = Integer.parseInt(userDetails.getUsername());
+        Integer userId = Integer.parseInt(userDetails.getUsername());
 
-            List<ChatRoomListResponseDto> rooms = chatService.getChatRoomsForUser(userId, null);
-            return ResponseEntity.ok(rooms);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        List<ChatRoomListResponseDto> rooms = chatService.getChatRoomsForUser(userId, null);
+        return ResponseEntity.ok(rooms);
     }
 
     @Operation(summary = "2-1.그룹별 채팅방 리스트 조회", description = "로그인한 사용자가 속한 그룹(groupId)에 해당하는 채팅방만 최근 메시지 기준으로 정렬해서 반환합니다.")
@@ -171,23 +159,18 @@ public class ChatController {
     // 5. 채팅 메시지 읽음 처리
     @Operation(summary = "채팅 메시지 읽음 처리", description = "로그인한 사용자가 지정된 채팅방(roomId)에 있는 자신의 읽지 않은 메시지를 모두 읽음 처리합니다.")
     @PatchMapping("/{roomId}/read")
-    public ResponseEntity<Void> markMessagesAsRead(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer roomId) {
-        try {
-            Integer userId = Integer.parseInt(userDetails.getUsername());
-            chatMessageRepository.markAllAsRead(roomId, userId);
-            return ResponseEntity.ok().build();
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+    public ResponseEntity<Void> markMessagesAsRead(@AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Integer roomId) {
+        Integer userId = Integer.parseInt(userDetails.getUsername());
+        chatMessageRepository.markAllAsRead(roomId, userId);
+        return ResponseEntity.ok().build();
     }
 
     // 6. RoomId 가지고, 채팅방 정보 GET
     @Operation(summary = "6. RoomId 가지고, 채팅방 정보 GET", description = "roomId를 이용해 채팅방의 user1Id, user2Id, groupId, 생성 시각을 반환합니다.")
     @GetMapping("/{roomId}/data")
-    public ResponseEntity<ChatRoomResponseDto> getChatRoomById(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer roomId
-    ) {
+    public ResponseEntity<ChatRoomResponseDto> getChatRoomById(@AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Integer roomId) {
         Integer userId = Integer.parseInt(userDetails.getUsername());
         chatService.verifyUserInRoom(roomId, userId);
 
@@ -198,7 +181,8 @@ public class ChatController {
     // 7. 채팅방 검색
     @Operation(summary = "7. 채팅방 검색-그룹 구분없이", description = "상대방 이름으로 채팅방을 검색합니다.")
     @GetMapping("/search/{name}")
-    public List<ChatRoomListResponseDto> searchChatRooms(@AuthenticationPrincipal UserDetails userDetails, @PathVariable String name) {
+    public List<ChatRoomListResponseDto> searchChatRooms(@AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable String name) {
         Integer userId = Integer.parseInt(userDetails.getUsername());
         return chatService.searchChatRoomsForUser(userId, name);
     }

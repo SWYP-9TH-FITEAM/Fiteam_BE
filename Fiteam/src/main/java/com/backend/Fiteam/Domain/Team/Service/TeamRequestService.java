@@ -38,6 +38,38 @@ public class TeamRequestService {
     private final UserRepository          userRepository;
     private final ChatService             chatService;
 
+
+    /*
+    sendTeamRequest 함수
+    1. 시간복잡도 : O(1)
+        - sender/receiver 간 요청 존재 조회 및 그룹 멤버 여부 확인이 모두 상수 횟수의 쿼리로 처리됨
+        - teamRequest 저장 및 메시지 전송도 상수 작업
+
+    2. DB Read : 총 7회
+        - teamRequestRepository.existsBySenderIdAndReceiverIdAndGroupId(sender→receiver) → 1회
+        - teamRequestRepository.existsBySenderIdAndReceiverIdAndGroupId(receiver→sender) → 1회
+        - groupMemberRepository.existsByGroupIdAndUserIdAndIsAcceptedTrue(groupId, senderId) → 1회
+        - groupMemberRepository.existsByGroupIdAndUserIdAndIsAcceptedTrue(groupId, receiverId) → 1회
+        - groupMemberRepository.findByUserIdAndGroupId(senderId, groupId) → 1회
+        - groupMemberRepository.findByUserIdAndGroupId(receiverId, groupId) → 1회
+        - teamRepository.findById(receiverTeamId) → 1회
+    3. DB Write : 총 2회
+        - teamRequestRepository.save(request) → 1회
+        - chatService.sendTeamRequestMessage(...) (메시지 저장) → 1회
+    4. 병렬처리 필요성 여부 : ⛔ 필요 없음
+        - 트랜잭션 내에서 일관성 있게 처리되어야 하는 쓰기 중심 로직
+        - 비동기화 시 오히려 예외 처리·롤백 복잡도 증가
+    5. 개선점
+        - **중복 조회 통합**
+            • `existsBy…` + `findBy…` 로 두 번 조회하는 회원 정보를
+              `findByUserIdAndGroupId` 한 번으로 조회 후 검증하여 DB 호출 수 절감
+        - **조건 분기 정리**
+            • 팀 상태 검증(`PENDING`, `CLOSED`, `FIXED`) 로ジック을 헬퍼 메서드로 분리하여 가독성 향상
+        - **트랜잭션 경계 최소화**
+            • 순수 검증 로직을 별도 서비스로 분리해, 실제 저장은 가장 마지막에만 수행
+        - **Bulk 설정**
+            • 많은 요청이 동시 발생할 때 대비해 인덱스 최적화, DB 커넥션 풀 모니터링 필요
+    */
     @Transactional
     public void sendTeamRequest(Integer senderId, Integer receiverId, Integer groupId) {
         // 1) 이미 보낸 요청 여부
@@ -51,24 +83,23 @@ public class TeamRequestService {
             return;
         }
 
-        // 3) 둘 다 그룹에 정식 멤버여야 함
-        boolean bothInGroup = groupMemberRepository.existsByGroupIdAndUserIdAndIsAcceptedTrue(groupId, senderId)
-                && groupMemberRepository.existsByGroupIdAndUserIdAndIsAcceptedTrue(groupId, receiverId);
-        if (!bothInGroup) {
-            throw new IllegalArgumentException("같은 그룹 멤버가 아닙니다.");
-        }
-
-        // 4) sender 의 현재 teamId 조회
-        GroupMember senderMember = groupMemberRepository.findByUserIdAndGroupId(senderId, groupId)
+        // 3) sender와 receiver가 모두 그룹의 수락된 멤버인지 단일 조회로 확인
+        GroupMember senderMember = groupMemberRepository
+                .findByUserIdAndGroupIdAndIsAcceptedTrue(senderId, groupId)
                 .orElseThrow(() -> new IllegalArgumentException("요청 보낸 사용자가 그룹에 속해 있지 않습니다."));
-        Integer senderTeamId = senderMember.getTeamId();
-
-        // 4-1) receiver 의 현재 teamId 조회
-        GroupMember receiverMember = groupMemberRepository.findByUserIdAndGroupId(receiverId, groupId)
+        GroupMember receiverMember = groupMemberRepository
+                .findByUserIdAndGroupIdAndIsAcceptedTrue(receiverId, groupId)
                 .orElseThrow(() -> new IllegalArgumentException("요청 받는 사용자가 그룹에 속해 있지 않습니다."));
+
+        Integer senderTeamId   = senderMember.getTeamId();
         Integer receiverTeamId = receiverMember.getTeamId();
 
-        Team receiverTeam = teamRepository.findById(receiverMember.getTeamId())
+        // 4-1) 이미 같은 팀에 속해 있는지 체크
+        if (senderTeamId != null && senderTeamId.equals(receiverTeamId)) {
+            throw new IllegalArgumentException("이미 같은 팀에 속해 있습니다.");
+        }
+
+        Team receiverTeam = teamRepository.findById(receiverTeamId)
                 .orElseThrow(() -> new IllegalArgumentException("팀 정보를 찾을 수 없습니다."));
 
         // 4-2) "대기중" 이라는건 팀 빌딩 시작 전
@@ -80,11 +111,6 @@ public class TeamRequestService {
             throw new IllegalStateException("이미 확정팀의 멤버입니다.: " + receiverTeam.getTeamStatus());
         }if(TeamStatus.FIXED.equals(receiverMember.getTeamStatus())){
             throw new IllegalStateException("이미 확정팀의 멤버입니다.: " + receiverTeam.getTeamStatus());
-        }
-
-        // 4-3) 이미 같은 팀에 속해 있는지 체크
-        if (senderTeamId != null && senderTeamId.equals(receiverTeamId)) {
-            throw new IllegalArgumentException("이미 같은 팀에 속해 있습니다.");
         }
 
         // 5) 요청 저장

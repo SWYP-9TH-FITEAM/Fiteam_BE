@@ -19,6 +19,7 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -30,6 +31,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@PreAuthorize("hasRole('User')")
 @RestController
 @RequestMapping("/v1/team")
 @RequiredArgsConstructor
@@ -83,15 +85,15 @@ public class TeamController {
     @Operation(summary = "3. 특정 유저에게 받은 팀 요청 조회", description = "내가 특정 사용자에게 받은 팀 요청이 있는지 확인합니다.",
             responses = {@ApiResponse(content = @Content(schema = @Schema(implementation = TeamRequestResponseDto.class)))})
     @GetMapping("/request/from/{userId}")
-    public ResponseEntity<TeamRequestResponseDto> getRequestFromUser(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer userId) {
+    public ResponseEntity<TeamRequestResponseDto> getRequestFromUser(@AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Integer userId) {
         Integer receiverId = Integer.parseInt(userDetails.getUsername());
 
         // 한 개만 조회
         Optional<TeamRequestResponseDto> dtoOpt = Optional.ofNullable(
                 teamRequestService.getRequestFromUser(userId, receiverId));
 
-        return dtoOpt.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.noContent().build());
+        return dtoOpt.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.noContent().build());
     }
 
     // 4. 팀 참가 요청 수락
