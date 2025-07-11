@@ -19,9 +19,11 @@ public class ProjectGroup {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Schema(description = "그룹을 생성한 매니저 ID", example = "1")
-    @Column(name = "manager_id")
-    private Integer managerId;
+    // 기존 Integer managerId 필드 제거
+    @Schema(description = "그룹을 생성한 매니저", implementation = Manager.class)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "manager_id", nullable = false)
+    private Manager manager;
 
     @Schema(description = "그룹 이름", example = "스위프9기")
     @Column(length = 50)

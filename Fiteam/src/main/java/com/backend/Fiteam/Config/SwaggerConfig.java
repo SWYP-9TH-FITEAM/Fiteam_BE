@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.info.Info;
+import org.springframework.http.HttpHeaders;
 
 @Configuration
 public class SwaggerConfig {
@@ -21,6 +22,8 @@ public class SwaggerConfig {
                                 .type(SecurityScheme.Type.HTTP)
                                 .scheme("bearer")
                                 .bearerFormat("JWT")
+                                .in(SecurityScheme.In.HEADER)
+                                .name(HttpHeaders.AUTHORIZATION)
                 );
 
         // 전역 보안 요구 추가
@@ -37,6 +40,6 @@ public class SwaggerConfig {
         return new Info()
                 .title("Fiteam API Documentation")
                 .description("")
-                .version("1.0");
+                .version("1.1");
     }
 }

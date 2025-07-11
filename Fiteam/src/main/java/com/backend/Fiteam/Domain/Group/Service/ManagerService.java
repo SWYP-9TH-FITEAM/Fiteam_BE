@@ -46,16 +46,16 @@ public class ManagerService {
     private final ChatRoomRepository chatRoomRepository;
     private final ManagerChatRoomRepository managerChatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
-    private final GroupService groupService;
 
     @Transactional(readOnly = true)
     public void authorizeManager(Integer groupId, Integer managerId) {
         ProjectGroup group = projectGroupRepository.findById(groupId)
                 .orElseThrow(() -> new NoSuchElementException("Group not found with id: " + groupId));
-        if (!group.getManagerId().equals(managerId)) {
+        if (!group.getManager().getId().equals(managerId)) {
             throw new IllegalArgumentException("이 그룹을 관리할 권한이 없습니다.");
         }
     }
+
 
     @Transactional(readOnly = true)
     public ManagerProfileResponseDto getManagerBasicProfile(Integer managerId) {
@@ -151,9 +151,11 @@ public class ManagerService {
         if (projectGroupRepository.existsByManagerIdAndName(managerId, requestDto.getName())) {
             throw new IllegalArgumentException("이미 동일한 이름의 그룹이 존재합니다.");
         }
+        Manager manager = managerRepository.findById(managerId)
+                .orElseThrow(() -> new NoSuchElementException("관리자 정보를 찾을 수 없습니다."));
 
         ProjectGroup projectGroup = ProjectGroup.builder()
-                .managerId(managerId)
+                .manager(manager)
                 .name(requestDto.getName())
                 .description(requestDto.getDescription())
                 .maxUserCount(requestDto.getMaxUserCount())
@@ -166,9 +168,15 @@ public class ManagerService {
         return projectGroup.getId();
     }
 
+    @Transactional(readOnly = true)
+    public ProjectGroup getProjectGroup(Integer groupId) {
+        return projectGroupRepository.findById(groupId)
+                .orElseThrow(() -> new NoSuchElementException("Group not found with id: " + groupId));
+    }
+
     @Transactional
     public void updateGroup(Integer groupId, UpdateGroupRequestDto requestDto) {
-        ProjectGroup projectGroup = groupService.getProjectGroup(groupId);
+        ProjectGroup projectGroup = getProjectGroup(groupId);
         if (requestDto.getName() != null) {
             projectGroup.setName(requestDto.getName());
         }
@@ -188,7 +196,7 @@ public class ManagerService {
     @Transactional
     public void deleteGroup(Integer groupId) {
         // 1) 그룹 존재 확인
-        ProjectGroup group = groupService.getProjectGroup(groupId);
+        ProjectGroup group = getProjectGroup(groupId);
 
         // 2) 그룹 공지 삭제
         groupNoticeRepository.deleteAllByGroupId(groupId);

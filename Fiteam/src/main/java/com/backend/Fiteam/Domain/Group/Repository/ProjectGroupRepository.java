@@ -11,7 +11,7 @@ public interface ProjectGroupRepository extends JpaRepository<ProjectGroup, Inte
     boolean existsByManagerIdAndName(Integer managerId, String name);
     List<ProjectGroup> findAllByManagerId(Integer managerId);
 
-    @Query("SELECT pg FROM ProjectGroup pg JOIN FETCH pg.teamMakeType tt WHERE pg.managerId = :managerId ")
+    @Query("SELECT pg FROM ProjectGroup pg JOIN FETCH pg.teamMakeType tt WHERE pg.manager.id = :managerId ")
     List<ProjectGroup> findAllWithTeamTypeByManagerId(@Param("managerId") Integer managerId);
 
 }

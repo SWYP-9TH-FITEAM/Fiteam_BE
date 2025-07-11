@@ -73,7 +73,7 @@ public class JwtAuthFilter extends OncePerRequestFilter{
                 } else if("admin".equals(userType)){
                     authorities = List.of(new SimpleGrantedAuthority("Admin"));
                 } else {
-                    authorities = List.of(new SimpleGrantedAuthority("User"));
+                    authorities = List.of(new SimpleGrantedAuthority("ROLE_USER"));
                 }
 
                 // 5) Authentication 객체 생성 및 SecurityContext에 등록

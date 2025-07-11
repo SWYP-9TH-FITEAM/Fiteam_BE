@@ -36,7 +36,7 @@ import org.quartz.SchedulerException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import org.springframework.context.annotation.Lazy;
 
 @Service
 @RequiredArgsConstructor
@@ -50,18 +50,15 @@ public class GroupService {
     private final NotificationService notificationService;
     private final UserLikeRepository userLikeRepository;
     private final UserRepository userRepository;
-    private final ManagerService managerService;
 
-    @Transactional(readOnly = true)
-    public ProjectGroup getProjectGroup(Integer groupId) {
-        return projectGroupRepository.findById(groupId)
-                .orElseThrow(() -> new NoSuchElementException("Group not found with id: " + groupId));
-    }
+    private final @Lazy ManagerService managerService;
+
+
     public void notifyAllGroupMembersById(Integer groupId, GlobalEnum.SenderType senderType,
             GlobalEnum.NotificationEventType type, String content) {
         Integer managerId = projectGroupRepository.findById(groupId)
                 .orElseThrow(() -> new NoSuchElementException("그룹이 없습니다."))
-                .getManagerId();
+                .getManager().getId();
 
         List<GroupMember> members =
                 groupMemberRepository.findAllByGroupIdAndIsAcceptedTrue(groupId);

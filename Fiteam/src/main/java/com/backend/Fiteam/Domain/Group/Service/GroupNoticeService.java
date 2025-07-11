@@ -39,7 +39,7 @@ public class GroupNoticeService {
         // 1) 그룹 존재 및 권한 체크
         ProjectGroup group = groupRepository.findById(dto.getGroupId())
                 .orElseThrow(() -> new NoSuchElementException("존재하지 않는 그룹입니다: " + dto.getGroupId()));
-        if (!group.getManagerId().equals(managerId)) {
+        if (!group.getManager().getId().equals(managerId)) {
             throw new IllegalArgumentException("해당 그룹을 관리할 권한이 없습니다.");
         }
 

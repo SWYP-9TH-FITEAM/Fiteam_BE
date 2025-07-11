@@ -175,11 +175,11 @@ public class ManagerGroupController {
     // 8. 공지 삭제
     @Operation(summary = "공지 삭제", description = "로그인한 매니저가 자신이 작성한 공지를 삭제합니다.")
     @DeleteMapping("/notices/{noticeId}")
-    public ResponseEntity<Void> deleteNotice(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer noticeId) {
+    public ResponseEntity<String> deleteNotice(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer noticeId) {
         Integer managerId = Integer.valueOf(userDetails.getUsername());
 
         groupNoticeService.deleteNotice(managerId, noticeId);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok("공지를 삭제했습니다.");
     }
 
     // 9. 최근 공지목록 가져오기

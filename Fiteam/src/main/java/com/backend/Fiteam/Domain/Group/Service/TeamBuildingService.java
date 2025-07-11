@@ -87,7 +87,7 @@ public class TeamBuildingService {
         noticeDto.setTitle("랜덤 팀빌딩 완료 안내");
         noticeDto.setContext("그룹의 랜덤 팀빌딩이 완료되었습니다. 결과를 확인해 주세요.");
         // projectGroup.getManagerId()가 매니저 ID 입니다
-        groupNoticeService.createNotice(projectGroup.getManagerId(), noticeDto);
+        groupNoticeService.createNotice(projectGroup.getManager().getId(), noticeDto);
     }
 
     @Transactional
@@ -110,7 +110,7 @@ public class TeamBuildingService {
         noticeDto.setTitle(group.getName()+"팀 빌딩 시작되었습니다.");
         noticeDto.setContext(group.getName()+"그룹의 직군별 팀 빌딩이 시작되었습니다. 팀 빌딩을 진행해 주세요.");
         // projectGroup.getManagerId()가 매니저 ID 입니다
-        groupNoticeService.createNotice(group.getManagerId(), noticeDto);
+        groupNoticeService.createNotice(group.getManager().getId(), noticeDto);
 
         TeamType teamType = group.getTeamMakeType();
         if (teamType == null) {

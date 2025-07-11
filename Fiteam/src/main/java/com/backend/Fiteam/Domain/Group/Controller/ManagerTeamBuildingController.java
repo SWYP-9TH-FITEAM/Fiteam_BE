@@ -18,7 +18,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -36,7 +35,6 @@ public class ManagerTeamBuildingController {
     private final ManagerService managerService;
     private final ProjectGroupRepository projectGroupRepository;
     private final Scheduler scheduler;
-    private final GroupService groupService;
     private final TeamBuildingService teamBuildingService;
 
     /*
@@ -54,7 +52,7 @@ public class ManagerTeamBuildingController {
         Integer managerId = Integer.valueOf(userDetails.getUsername());
         managerService.authorizeManager(groupId, managerId);
 
-        ProjectGroup projectGroup = groupService.getProjectGroup(groupId);
+        ProjectGroup projectGroup = managerService.getProjectGroup(groupId);
         teamBuildingService.RandomTeamBuilding(projectGroup);
 
         return ResponseEntity.ok().build();

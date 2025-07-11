@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/v1/question")
 @RequiredArgsConstructor
-@Tag(name = "2. 성향검사 질문관련")
+@Tag(name = "1-2. 성향검사 질문관련")
 public class CharacterQuestionController {
 
     private final CharacterQuestionService characterQuestionService;

@@ -43,7 +43,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @PreAuthorize("hasRole('Manager')")
 @RestController
-@RequestMapping("/v1/manager")
+@RequestMapping("/v1/manager/user")
 @RequiredArgsConstructor
 @Tag(name = "8. ManagerUserController - 로그인한 Manager")
 public class ManagerUserController {

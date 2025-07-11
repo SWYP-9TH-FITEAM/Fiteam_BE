@@ -35,7 +35,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/v1/user")
 @RequiredArgsConstructor
 @Tag(name = "3. UserController - 로그인한 User")
-@PreAuthorize("hasRole('User')")
+@PreAuthorize("hasAuthority('ROLE_USER')")
 public class UserController {
 
     private final UserService userService;

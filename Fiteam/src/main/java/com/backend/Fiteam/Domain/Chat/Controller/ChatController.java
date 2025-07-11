@@ -74,7 +74,7 @@ public class ChatController {
     }
 
     // 2.채팅방 리스트 조회-대화 마지막 시간순서대로
-    @Operation(summary = "2. 로그인한 사용자의 채팅방 리스트 조회", description = "현재 유저가 속한 모든 채팅방을 최근 메시지 기준으로 정렬해서 반환합니다.")
+    @Operation(summary = "2. 로그인한 사용자의 전체 채팅방 리스트 조회", description = "현재 유저가 속한 모든 채팅방을 최근 메시지 기준으로 정렬해서 반환합니다.")
     @GetMapping("/list")
     public ResponseEntity<List<ChatRoomListResponseDto>> getChatRooms(@AuthenticationPrincipal UserDetails userDetails) {
         Integer userId = Integer.parseInt(userDetails.getUsername());
@@ -96,32 +96,21 @@ public class ChatController {
     public ResponseEntity<Page<ChatMessageResponseDto>> getMessagesForRoomPaged(
             @AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer roomId,
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
-        try {
-            Integer userId = Integer.parseInt(userDetails.getUsername());
+        Integer userId = Integer.parseInt(userDetails.getUsername());
 
-            // 1. 권한 검사
-            chatService.verifyUserInRoom(roomId, userId);
+        // 1. 권한 검사
+        chatService.verifyUserInRoom(roomId, userId);
 
-            // 2. 최신 메시지부터 조회 (sentAt DESC)
-            Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "sentAt"));
-            Page<ChatMessageResponseDto> messages = chatService.getMessagesForRoomPaged(roomId, pageable);
-            return ResponseEntity.ok(messages);
-
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
-        } catch (AccessDeniedException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        // 2. 최신 메시지부터 조회 (sentAt DESC)
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "sentAt"));
+        Page<ChatMessageResponseDto> messages = chatService.getMessagesForRoomPaged(roomId, pageable);
+        return ResponseEntity.ok(messages);
     }
 
-    //
     // 4.채팅 메시지 전송	STOMP 방식
     @MessageMapping("/chat.sendMessage")
     @Operation(summary = "채팅 메시지 전송 및 실시간 알림")
-    public void handleChatMessage(
-            @Payload ChatMessageDto dto) {
+    public void handleChatMessage(@Payload ChatMessageDto dto) {
         try {
             // 1. 유효성 검사
             if (dto.getChatRoomId() == null || dto.getSenderId() == null || dto.getContent() == null || dto.getSenderType() == null) {
@@ -145,14 +134,19 @@ public class ChatController {
     }
 
     @GetMapping(value = "/rooms/subscribe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter subscribeChatRoomList(@RequestParam("token") String token) {
-        // 1) 토큰 검증
-        if (!jwtTokenProvider.validateToken(token)) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰");
+    public SseEmitter subscribeChatRoomList(@AuthenticationPrincipal UserDetails userDetails) {
+        // 1) 인증된 회원 정보가 없으면 401
+        if (userDetails == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증 정보가 없습니다");
         }
-        // 2) 토큰에서 userId 추출
-        Integer userId = jwtTokenProvider.getIdFromToken(token);
-        // 3) SSE 구독
+        // 2) UserDetails의 username 필드에 userId를 담아서 사용했다면 파싱
+        Integer userId;
+        try {
+            userId = Integer.parseInt(userDetails.getUsername());
+        } catch (NumberFormatException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "잘못된 사용자 정보");
+        }
+        // 3) SSE 구독 시작
         return sseService.subscribe(userId);
     }
 

@@ -37,7 +37,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@PreAuthorize("hasRole('User') or hasRole('Manager')")
+@PreAuthorize("hasAuthority('ROLE_USER') or hasAuthority('ROLE_MANAGER')")
 @RestController
 @RequestMapping("/v1")
 @RequiredArgsConstructor
@@ -45,16 +45,15 @@ import org.springframework.web.bind.annotation.RestController;
 public class GroupSharedController {
 
     private final GroupService groupService;
-    private final GroupMemberRepository groupMemberRepository;
     private final GroupNoticeService groupNoticeService;
     private final AdminService adminService;
-    private final ManagerService managerService;
 
     /*
     1. 그룹 정보 가져오기(유저, 매니저 둘다 접근하게)
     2. 직무 유형 리스트 GET,POST (PM,디자이너 등)
     3. 그룹의 공지리스트 보기
     4. 그룹공지 상세보기
+    5. 유저가 그룹 전체 멤버 리스트 조회
     */
 
 
@@ -90,7 +89,7 @@ public class GroupSharedController {
 
     // 2. 그룹의 공지목록 보기.
     @Operation(summary = "2. 그룹 공지 목록 조회 (멤버용)", description = "로그인한 멤버가 자신이 속한 그룹의 공지를 최신 순으로 조회합니다.")
-    @GetMapping("/notice/{groupId}/list")
+    @GetMapping("/group/{groupId}/notice/list")
     public ResponseEntity<List<GroupNoticeSummaryDto>> getGroupNotices(
             @AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer groupId) {
         Integer userId = Integer.valueOf(userDetails.getUsername());
@@ -100,7 +99,7 @@ public class GroupSharedController {
 
     // 3. 그룹공지 상세보기
     @Operation(summary = "3. 공지 상세 조회", description = "관리자가 작성한 특정 공지의 전체 내용을 반환합니다.")
-    @GetMapping("/notice/{noticeId}/detail")
+    @GetMapping("/group/notice/{noticeId}/detail")
     public ResponseEntity<GroupNoticeDetailDto> getNoticeById(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Integer noticeId) {
         GroupNoticeDetailDto dto = groupNoticeService.getNoticeById(noticeId);
         return ResponseEntity.ok(dto);
@@ -117,7 +116,7 @@ public class GroupSharedController {
     // 5. 유저 또는 매니저가 그룹에 참여한 전체 멤버 리스트 GET
     @Operation(summary = "5. 유저가 그룹 전체 멤버 리스트 조회", description = "그룹에 속한 모든 멤버를 조회합니다.",
             responses = {@ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = GroupMemberResponseDto.class))))})
-    @GetMapping("/{groupId}/members")
+    @GetMapping("/group/{groupId}/members")
     public ResponseEntity<List<GroupMemberResponseDto>> getGroupMembers(
             @AuthenticationPrincipal UserDetails userDetails,  @PathVariable Integer groupId) {
         Integer userId = Integer.valueOf(userDetails.getUsername());

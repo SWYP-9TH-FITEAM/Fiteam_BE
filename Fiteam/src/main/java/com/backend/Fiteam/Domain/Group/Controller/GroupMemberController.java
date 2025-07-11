@@ -32,7 +32,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@PreAuthorize("hasRole('User')")
+@PreAuthorize("hasAuthority('ROLE_USER')")
 @RestController
 @RequestMapping("/v1/member")
 @RequiredArgsConstructor
@@ -42,7 +42,7 @@ public class GroupMemberController {
     private final GroupMemberService groupMemberService;
 
     /*
-    2. 해당그룹 프로필 작성 (경력/목표/URL/소개 작성)
+    1. 해당그룹 프로필 작성 (경력/목표/URL/소개 작성)
     3. 현재 그룹에서 내가 작성한 프로필 GET
     4. 그룹 다른멤버 프로필 조회
     5. 그룹에 참여한 전체 멤버 리스트 GET
@@ -52,13 +52,13 @@ public class GroupMemberController {
 
 
     // 1. 해당그룹 프로필 작성 (경력/목표/목적/URL/소개 작성)
-    @Operation(summary = "1. 해당그룹 프로필 작성. (경력/목표/목적/URL/소개 작성)그룹멤버 프로필 수정", description = "초대 수락 후에 그룹 멤버가 자신의 프로필 정보를 수정합니다. (수정 안하는 필드는 null로 입력해주세요")
+    @Operation(summary = "2. 해당그룹 프로필 작성. (경력/목표/목적/URL/소개 작성)그룹멤버 프로필 수정", description = "초대 수락 후에 그룹 멤버가 자신의 프로필 정보를 수정합니다. (수정 안하는 필드는 null로 입력해주세요")
     @PatchMapping("{groupId}/set-profile")
-    public ResponseEntity<?> updateGroupMemberProfile(@AuthenticationPrincipal UserDetails userDetails,
+    public ResponseEntity<String> updateGroupMemberProfile(@AuthenticationPrincipal UserDetails userDetails,
             @PathVariable Integer groupId, @RequestBody UserGroupProfileDto requestDto) {
         Integer userId = Integer.parseInt(userDetails.getUsername());
         groupMemberService.updateGroupMemberProfile(groupId, userId, requestDto);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok("프로필이 성공적으로 수정되었습니다.");
     }
 
     // 3-1. 현재 그룹에서 내가 작성한 프로필 Mini GET
@@ -92,22 +92,6 @@ public class GroupMemberController {
         GroupMemberProfileResponseDto profile = groupMemberService.getMemberProfile(memberId);
         return ResponseEntity.ok(profile);
     }
-
-    /*
-    // 5. 유저가 그룹에 참여한 전체 멤버 리스트 GET
-    @Operation(summary = "5. 유저가 그룹 전체 멤버 리스트 조회", description = "그룹에 속한 모든 멤버를 조회합니다.",
-            responses = {@ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = GroupMemberResponseDto.class))))})
-    @GetMapping("/{groupId}/members")
-    public ResponseEntity<List<GroupMemberResponseDto>> getGroupMembers(
-            @AuthenticationPrincipal UserDetails userDetails,  @PathVariable Integer groupId) {
-        Integer requesterId = Integer.valueOf(userDetails.getUsername());
-
-        // 요청자가 이 그룹에 속한 사용자 인지 확인
-        groupService.validateGroupMembership(requesterId, groupId);
-        List<GroupMemberResponseDto> response = groupService.getGroupMembers(requesterId, groupId, true);
-        return ResponseEntity.ok(response);
-    }
-    */
 
     @Operation(summary = "6. 유저 성향 궁합 보기", description = "로그인한 유저와 상대방 유저의 성향검사 결과를 기반으로 궁합 결과를 반환합니다.")
     @GetMapping("/fit-score/{otherUserId}")

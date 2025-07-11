@@ -17,7 +17,7 @@ import java.util.List;
 @RequestMapping("/v1/card")
 @RequiredArgsConstructor
 @RestControllerAdvice
-@Tag(name = "1. 캐릭터카드 16개 관련")
+@Tag(name = "1-1. 캐릭터카드 16개 관련")
 public class CharacterCardController {
     private final CharacterCardService characterCardService;
 

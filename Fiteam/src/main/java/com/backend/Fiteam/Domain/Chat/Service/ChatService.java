@@ -21,8 +21,6 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Pageable;
 
@@ -77,6 +75,7 @@ public class ChatService {
     }
 
 
+    // N+1 DB repository접근 문제..
     public List<ChatRoomListResponseDto> getChatRoomsForUser(Integer userId, Integer groupId) {
         List<ChatRoom> allRooms = chatRoomRepository.findByUser1IdOrUser2Id(userId, userId);
 
@@ -105,6 +104,23 @@ public class ChatService {
                         Comparator.nullsLast(Comparator.reverseOrder())))
                 .collect(Collectors.toList());
     }
+    /* 이게 이제 최적화 JOIN을 구현해야 사용할 수 있는..
+    public List<ChatRoomListResponseDto> getChatRoomsForUser(Integer userId, Integer groupId) {
+        return chatRoomRepository.findChatRoomListForUser(userId, groupId).stream()
+                .map(p -> ChatRoomListResponseDto.builder()
+                        .chatRoomId(p.getChatRoomId())
+                        .groupId(p.getGroupId())
+                        .userId(userId)
+                        .otherUserId(p.getOtherUserId())
+                        .otherUserName(Optional.ofNullable(p.getOtherUserName()).orElse("탈퇴한 유저"))
+                        .otherUserProfileImgUrl(p.getOtherUserProfileImgUrl())
+                        .lastMessageContent(Optional.ofNullable(p.getLastMessageContent()).orElse(""))
+                        .lastMessageTime(p.getLastMessageTime())
+                        .unreadMessageCount(p.getUnreadMessageCount() != null ? p.getUnreadMessageCount() : 0)
+                        .build())
+                .collect(Collectors.toList());
+    }
+    */
 
     public Page<ChatMessageResponseDto> getMessagesForRoomPaged(Integer chatRoomId, Pageable pageable) {
         Page<ChatMessage> messages = chatMessageRepository.findByChatRoomIdOrderBySentAtDesc(chatRoomId, pageable);

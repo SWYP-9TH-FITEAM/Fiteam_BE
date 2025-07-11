@@ -34,7 +34,6 @@ public class AuthController {
         return ResponseEntity.ok("Register Success");
     }
 
-
     @Operation(summary = "공통 로그인", description = "Manager 또는 User 이메일로 로그인합니다.")
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequestDto requestDto) {

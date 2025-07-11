@@ -1,5 +1,6 @@
 package com.backend.Fiteam.Domain.Chat.Repository;
 
+import com.backend.Fiteam.Domain.Chat.Dto.ChatRoomListResponseDto;
 import com.backend.Fiteam.Domain.Chat.Entity.ChatMessage;
 import com.backend.Fiteam.Domain.Chat.Entity.ChatRoom;
 import java.util.List;
@@ -17,4 +18,9 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Integer> {
     Optional<ChatRoom> findByUser1IdAndUser2IdAndGroupId(Integer user1Id, Integer user2Id, Integer groupId);
 
     List<ChatRoom> findAllByGroupId(Integer groupId);
+
+
+
+
+
 }

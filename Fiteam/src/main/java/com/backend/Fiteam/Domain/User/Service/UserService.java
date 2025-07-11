@@ -32,6 +32,7 @@ import java.util.NoSuchElementException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -68,9 +69,14 @@ public class UserService {
     @Transactional
     public void saveCharacterTestResult(Integer userId, List<Map<String, Integer>> answers) {
         // 1. 중복 제출 방지 (Redis 확인)
-        String redisKey = "submitted:" + userId;
-        if (redisTemplate.hasKey(redisKey)) {
-            throw new IllegalStateException("이미 테스트를 제출한 사용자입니다.");
+        try {
+            String redisKey = "submitted:" + userId;
+            if (redisTemplate.hasKey(redisKey)) {
+                throw new IllegalStateException("이미 테스트를 제출한 사용자입니다.");
+            }
+        } catch (RedisConnectionFailureException ex) {
+            // Redis 다운 시 로깅만 하고, 캐시 검사 건너뛰기
+            //log.warn("Redis 연결 실패 — 중복 검사 스킵: {}", ex.getMessage());
         }
 
         User user = userRepository.findById(userId)
@@ -131,7 +137,7 @@ public class UserService {
 
         userRepository.save(user);
 
-        redisTemplate.opsForValue().set(redisKey, "1", Duration.ofMinutes(5));
+        //redisTemplate.opsForValue().set(redisKey, "1", Duration.ofMinutes(5));
     }
 
     // 이정도면 정말 빠름
@@ -372,10 +378,16 @@ public class UserService {
     // 프로필 수정이 너무 과하게 호출되지 않도록 5초Lock 추가
     @Transactional
     public void updateUserSettings(Integer userId, UserSettingsRequestDto dto) {
-        String redisKey = "update:user:" + userId;
-        if (Boolean.TRUE.equals(redisTemplate.hasKey(redisKey))) {
-            throw new IllegalStateException("설정은 잠시 후 다시 변경할 수 있습니다.");
+        try {
+            String redisKey = "submitted:" + userId;
+            if (redisTemplate.hasKey(redisKey)) {
+                throw new IllegalStateException("설정은 잠시 후 다시 변경할 수 있습니다.");
+            }
+        } catch (RedisConnectionFailureException ex) {
+            // Redis 다운 시 로깅만 하고, 캐시 검사 건너뛰기
+            //log.warn("Redis 연결 실패 — 중복 검사 스킵: {}", ex.getMessage());
         }
+
 
         // 1) 사용자 조회
         User user = userRepository.findById(userId)
@@ -406,7 +418,7 @@ public class UserService {
 
         // 4) 저장
         userRepository.save(user);
-        redisTemplate.opsForValue().set(redisKey, "1", Duration.ofSeconds(5));
+        //redisTemplate.opsForValue().set(redisKey, "1", Duration.ofSeconds(5));
     }
 
     @Transactional(readOnly = true)
