@@ -39,7 +39,7 @@ public class ProjectGroup {
 
     @Schema(description = "팀 빌딩 방식 타입")
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "team_make_type", insertable = false, updatable = false)
+    @JoinColumn(name = "team_make_type", insertable = false, nullable = false)
     private TeamType teamMakeType;
 
     @Schema(description = "연락 정책", example = "카카오톡 오픈채팅 이용, 전화번호 공유 등등")

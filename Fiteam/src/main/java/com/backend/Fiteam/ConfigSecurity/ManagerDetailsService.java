@@ -21,7 +21,7 @@ public class ManagerDetailsService implements UserDetailsService {
         return org.springframework.security.core.userdetails.User.builder()
                 .username(m.getId().toString())
                 .password(m.getPassword())
-                .roles("Manager")       // ← ROLE_MANAGER 권한 명시
+                .roles("MANAGER")       // ← ROLE_MANAGER 권한 명시
                 .build();
     }
 }

@@ -31,7 +31,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@PreAuthorize("hasRole('User')")
+@PreAuthorize("hasAuthority('ROLE_USER')")
 @RestController
 @RequestMapping("/v1/team")
 @RequiredArgsConstructor

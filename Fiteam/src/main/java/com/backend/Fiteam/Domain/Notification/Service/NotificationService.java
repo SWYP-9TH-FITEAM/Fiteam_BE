@@ -48,12 +48,8 @@ public class NotificationService {
                 .build();
 
         // 3) WebSocket 푸시 (유저 전용 큐)
-        //    클라이언트는 '/user/queue/notifications'를 subscribe 해야 합니다.
-        messagingTemplate.convertAndSendToUser(
-                recipientId.toString(),
-                "/queue/notifications",
-                dto
-        );
+        // 클라이언트는 '/user/queue/notifications'를 subscribe 해야 합니다.
+        messagingTemplate.convertAndSendToUser(recipientId.toString(), "/queue/notifications", dto);
 
         return saved;
     }

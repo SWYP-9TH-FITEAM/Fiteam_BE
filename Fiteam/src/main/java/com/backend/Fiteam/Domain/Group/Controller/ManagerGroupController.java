@@ -35,7 +35,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
-@PreAuthorize("hasRole('Manager')")
+@PreAuthorize("hasAuthority('ROLE_MANAGER')")
 @RestController
 @RequestMapping("/v1/manager")
 @RequiredArgsConstructor
@@ -44,6 +44,7 @@ public class ManagerGroupController {
 
     private final GroupNoticeService groupNoticeService;
     private final ManagerService managerService;
+    private final GroupService groupService;
     /*
     1. 로그인한 매니저의 ID, 이름 반환
     2. 매니저 관리 그룹 ID·이름 리스트 조회
@@ -106,6 +107,18 @@ public class ManagerGroupController {
         Integer managerId = Integer.valueOf(userDetails.getUsername());
         Integer newGroupId = managerService.createGroup(managerId, requestDto);
         return ResponseEntity.ok().body(newGroupId);
+    }
+
+    // 5. 매니저가 그룹의 팀 구성 방식을 설정함.
+    @Operation(summary = "5-2. 매니저가 그룹의 팀 구성 방식을 설정함.", description = "특정 그룹에 팀 빌딩 방식을 설정합니다.")
+    @PostMapping("/group/{groupId}/set-teamtype")
+    public ResponseEntity<String> setTeamType(@AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Integer groupId, @RequestBody GroupTeamTypeSettingDto requestDto) throws SchedulerException {
+        Integer managerId = Integer.valueOf(userDetails.getUsername());
+        managerService.authorizeManager(groupId, managerId);
+
+        groupService.setTeamType(groupId, requestDto);
+        return ResponseEntity.ok().body("팀 구성 방식을 설정했습니다.");
     }
 
     // 6. 그룹 정보 수정하기

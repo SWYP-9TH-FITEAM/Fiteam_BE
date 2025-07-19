@@ -1,38 +1,78 @@
-import React, { useState } from "react";
+// src/LoginPage.jsx
+import React, { useState } from 'react';
+import { login } from './ChatApi/api.js';
 
-const LoginPage = ({ setAuthToken }) => {
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
+export default function LoginPage({ onLogin }) {
+  const [email,    setEmail]    = useState('');
+  const [password, setPassword] = useState('');
+  const [error,    setError]    = useState('');
 
-    const handleLogin = async () => {
-        try {
-            const response = await fetch("http://localhost:8080/v1/auth/login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, password }),
-            });
+  const handleSubmit = async e => {
+    e.preventDefault();
+    setError('');
 
-            if (!response.ok) {
-                throw new Error("로그인 실패!");
-            }
+    console.log('→ 로그인 시도:', { email, password });
+    try {
+      const { token, type } = await login(email, password);
+      console.log('← 로그인 성공 응답:', { token, type });
+      onLogin(token);
+    } catch (err) {
+      console.error('← 로그인 에러:', err);
+      setError(err.message || '로그인 실패');
+    }
+  };
 
-            const data = await response.json();
-            setAuthToken(data.token);
-            localStorage.setItem("authToken", data.token);
-            alert("로그인 성공");
-        } catch (error) {
-            alert(error.message);
-        }
-    };
+  return (
+    <form
+      onSubmit={handleSubmit}
+      style={{
+        maxWidth: 360,
+        margin: '100px auto',
+        padding: 20,
+        border: '1px solid #ccc',
+        borderRadius: 6,
+      }}
+    >
+      <h2 style={{ textAlign: 'center' }}>로그인</h2>
 
-    return (
-        <div>
-            <h2>로그인</h2>
-            <input type="email" placeholder="이메일 입력" value={email} onChange={e => setEmail(e.target.value)} />
-            <input type="password" placeholder="비밀번호 입력" value={password} onChange={e => setPassword(e.target.value)} />
-            <button onClick={handleLogin}>로그인</button>
-        </div>
-    );
-};
+      <input
+        type="email"
+        placeholder="Email"
+        value={email}
+        onChange={e => setEmail(e.target.value)}
+        required
+        style={{ width:'100%', padding:8, margin:'8px 0' }}
+      />
 
-export default LoginPage;
+      <input
+        type="password"
+        placeholder="Password"
+        value={password}
+        onChange={e => setPassword(e.target.value)}
+        required
+        style={{ width:'100%', padding:8, margin:'8px 0' }}
+      />
+
+      <button
+        type="submit"
+        style={{
+          width:'100%',
+          padding:10,
+          background:'#007bff',
+          color:'#fff',
+          border:'none',
+          borderRadius:4,
+          cursor:'pointer'
+        }}
+      >
+        로그인
+      </button>
+
+      {error && (
+        <p style={{ color:'red', marginTop:10, textAlign:'center' }}>
+          {error}
+        </p>
+      )}
+    </form>
+  );
+}

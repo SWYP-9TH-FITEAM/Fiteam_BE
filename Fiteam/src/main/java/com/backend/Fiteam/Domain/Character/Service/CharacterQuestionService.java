@@ -1,5 +1,7 @@
 package com.backend.Fiteam.Domain.Character.Service;
 
+import com.backend.Fiteam.AppCache.CharacterCardCache;
+import com.backend.Fiteam.AppCache.CharacterQuestionCache;
 import com.backend.Fiteam.Domain.Character.Dto.SaveTestResultResponseDto;
 import com.backend.Fiteam.Domain.Character.Entity.CharacterCard;
 import com.backend.Fiteam.Domain.Character.Entity.CharacterQuestion;
@@ -17,15 +19,14 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class CharacterQuestionService {
 
-    private final CharacterQuestionRepository characterQuestionRepository;
-    private final CharacterCardRepository characterCardRepository;
     private final CharacterCardService characterCardService;
+    private final CharacterCardCache characterCardCache;
 
+    private final CharacterQuestionCache characterQuestionCache;
 
     public List<CharacterQuestion> getAllCharacterQuestions() {
-        return characterQuestionRepository.findAll();
+        return characterQuestionCache.getAllQuestions();
     }
-
 
     public SaveTestResultResponseDto saveCharacterTestResult(List<Map<String, Integer>> answers) {
         int E = 0, I = 0, P = 0, D = 0, V = 0, A = 0, C = 0, L = 0;
@@ -59,9 +60,8 @@ public class CharacterQuestionService {
         codeBuilder.append(C >= L ? "C" : "L");
         String code = codeBuilder.toString();
 
-        // 3) CharacterCard 조회
-        CharacterCard characterCard = characterCardRepository.findByCode(code)
-                .orElseThrow(() -> new NoSuchElementException("CharacterCard not found with code: " + code));
+        // 3) CharacterCard 조회 → 인메모리 캐시 사용
+        CharacterCard characterCard = characterCardCache.getCardByCode(code);
 
         String description = characterCardService.buildCharacterDescription(E, P, V, C);
 

@@ -150,6 +150,46 @@ public class ChatController {
         return sseService.subscribe(userId);
     }
 
+    /*
+    @GetMapping(
+            value = "/rooms/subscribe/{groupId}",
+            produces = MediaType.TEXT_EVENT_STREAM_VALUE
+    )
+    public SseEmitter subscribeChatRoomList(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Integer groupId    // PathVariable 추가
+    ) {
+        if (userDetails == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증 정보가 없습니다");
+        }
+
+        Integer userId;
+        try {
+            userId = Integer.parseInt(userDetails.getUsername());
+        } catch (NumberFormatException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "잘못된 사용자 정보");
+        }
+
+        // 1) SSE 구독 시작, 그룹 필터도 함께 전달
+        SseEmitter emitter = sseService.subscribe(userId);
+
+        // 2) 초기 채팅방 리스트 조회 (groupId 파라미터 적용)
+        List<ChatRoomListResponseDto> initialRooms =
+                chatService.getChatRoomsForUser(userId, groupId);
+        try {
+            emitter.send(SseEmitter.event()
+                    .name("chat-room-updated")
+                    .data(initialRooms)
+            );
+        } catch (IOException ex) {
+            System.out.printf("초기 채팅방 리스트 전송 실패: userId={}, groupId={}, error={}",
+                    userId, groupId, ex.getMessage());
+        }
+
+        return emitter;
+    }
+     */
+
     // 5. 채팅 메시지 읽음 처리
     @Operation(summary = "채팅 메시지 읽음 처리", description = "로그인한 사용자가 지정된 채팅방(roomId)에 있는 자신의 읽지 않은 메시지를 모두 읽음 처리합니다.")
     @PatchMapping("/{roomId}/read")

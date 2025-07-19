@@ -1,5 +1,6 @@
 package com.backend.Fiteam.Domain.Character.Service;
 
+import com.backend.Fiteam.AppCache.CharacterCardCache;
 import com.backend.Fiteam.Domain.Character.Dto.CharacterCardDto;
 import com.backend.Fiteam.Domain.Character.Dto.CharacterMatchDto;
 import com.backend.Fiteam.Domain.Character.Dto.CompatibilityUserInfoDto;
@@ -17,67 +18,66 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class CharacterCardService {
-    private final CharacterCardRepository characterCardRepository;
+
+    private final CharacterCardCache characterCardCache;
 
     public Optional<CharacterCardDto> getCharacterCardById(int id) {
-        Optional<CharacterCard> cardOpt = characterCardRepository.findById(id);
-        if (cardOpt.isEmpty()) return Optional.empty();
+        try {
+            CharacterCard card = characterCardCache.getCardById(id);
 
-        CharacterCard card = cardOpt.get();
+            CharacterMatchDto best1 = getMatchDtoByCode(card.getBestMatchCode1(), card.getBestMatchReason1());
+            CharacterMatchDto best2 = getMatchDtoByCode(card.getBestMatchCode2(), card.getBestMatchReason2());
+            CharacterMatchDto worst1 = getMatchDtoByCode(card.getWorstMatchCode1(), card.getWorstMatchReason1());
+            CharacterMatchDto worst2 = getMatchDtoByCode(card.getWorstMatchCode2(), card.getWorstMatchReason2());
 
-        CharacterMatchDto best1 = getMatchDtoByCode(card.getBestMatchCode1(), card.getBestMatchReason1());
-        CharacterMatchDto best2 = getMatchDtoByCode(card.getBestMatchCode2(), card.getBestMatchReason2());
-        CharacterMatchDto worst1 = getMatchDtoByCode(card.getWorstMatchCode1(), card.getWorstMatchReason1());
-        CharacterMatchDto worst2 = getMatchDtoByCode(card.getWorstMatchCode2(), card.getWorstMatchReason2());
+            CharacterCardDto dto = CharacterCardDto.builder()
+                    .id(card.getId())
+                    .name(card.getName())
+                    .imgUrl(card.getImgUrl())
+                    .code(card.getCode())
+                    .summary(card.getSummary())
+                    .teamStrength(card.getTeamStrength())
+                    .caution(card.getCaution())
+                    .bestMatch1(best1)
+                    .bestMatch2(best2)
+                    .worstMatch1(worst1)
+                    .worstMatch2(worst2)
+                    .build();
 
-        CharacterCardDto dto = CharacterCardDto.builder()
-                .id(card.getId())
-                .name(card.getName())
-                .imgUrl(card.getImgUrl())
-                .code(card.getCode())
-                .summary(card.getSummary())
-                .teamStrength(card.getTeamStrength())
-                .caution(card.getCaution())
-                .bestMatch1(best1)
-                .bestMatch2(best2)
-                .worstMatch1(worst1)
-                .worstMatch2(worst2)
-                .build();
-
-        return Optional.of(dto);
+            return Optional.of(dto);
+        } catch (NoSuchElementException e) {
+            return Optional.empty();
+        }
     }
 
     private CharacterMatchDto getMatchDtoByCode(String code, String reason) {
-        return characterCardRepository.findByCode(code)
-                .map(m -> CharacterMatchDto.builder()
-                        .id(m.getId())
-                        .name(m.getName())
-                        .imgUrl(m.getImgUrl())
-                        .code(m.getCode())
-                        .reason(reason)
-                        .build())
-                .orElse(null);
+        try {
+            CharacterCard m = characterCardCache.getCardByCode(code);
+            return CharacterMatchDto.builder()
+                    .id(m.getId())
+                    .name(m.getName())
+                    .imgUrl(m.getImgUrl())
+                    .code(m.getCode())
+                    .reason(reason)
+                    .build();
+        } catch (NoSuchElementException e) {
+            throw new NoSuchElementException("이거 오류나면 큰일인데");
+        }
     }
-
 
     public List<CharacterCard> getAllCharacterCards() {
-        return characterCardRepository.findAll();
+        return characterCardCache.getAllCards();
     }
 
-
     public CompatibilityResult calculateCompatibilityScore(
-            CompatibilityUserInfoDto userA,
-            CompatibilityUserInfoDto userB
-    ) {
+            CompatibilityUserInfoDto userA, CompatibilityUserInfoDto userB) {
         if (userA.getCardId() == null || userB.getCardId() == null) {
             throw new IllegalArgumentException("성향 카드 정보가 누락되었습니다.");
         }
 
-        // 1. 카드 정보 조회
-        CharacterCard myCard = characterCardRepository.findById(userA.getCardId())
-                .orElseThrow(() -> new NoSuchElementException("나의 캐릭터 카드를 찾을 수 없습니다."));
-        CharacterCard otherCard = characterCardRepository.findById(userB.getCardId())
-                .orElseThrow(() -> new NoSuchElementException("상대방 캐릭터 카드를 찾을 수 없습니다."));
+        // 1. 카드 정보 조회 (인메모리 캐시 사용)
+        CharacterCard myCard = characterCardCache.getCardById(userA.getCardId());
+        CharacterCard otherCard = characterCardCache.getCardById(userB.getCardId());
 
         String myCode = myCard.getCode();
         String otherCode = otherCard.getCode();

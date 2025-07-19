@@ -25,7 +25,7 @@ public class AdminDetailsService implements UserDetailsService {
         return org.springframework.security.core.userdetails.User.builder()
                 .username(String.valueOf(admin.getId()))
                 .password(admin.getPassword())
-                .roles("Admin")  // Spring Security의 ROLE_ prefix를 자동 붙임
+                .roles("ADMIN")  // Spring Security의 ROLE_ prefix를 자동 붙임
                 .build();
     }
 }

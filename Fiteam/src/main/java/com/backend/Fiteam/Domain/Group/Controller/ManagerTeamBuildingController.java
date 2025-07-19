@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 
 
-@PreAuthorize("hasRole('Manager')")
+@PreAuthorize("hasAuthority('ROLE_MANAGER')")
 @RestController
 @RequestMapping("/v1/manager")
 @RequiredArgsConstructor

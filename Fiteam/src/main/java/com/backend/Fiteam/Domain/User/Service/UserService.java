@@ -57,7 +57,6 @@ public class UserService {
 
     // 캐싱해둔 캐릭터 카드 get 함수
 
-
     /*
     saveCharacterTestResult 함수
     1. 시간복잡도 : O(n) - 작은 상수레벨 반복 수준
@@ -150,7 +149,7 @@ public class UserService {
             throw new IllegalArgumentException("테스트 결과가 존재하지 않습니다.");
         }
 
-        CharacterCard characterCard = characterCardCache.getCard(user.getCardId1());
+        CharacterCard characterCard = characterCardCache.getCardById(user.getCardId1());
 
         return TestResultResponseDto.builder()
                 .code(characterCard.getCode())
@@ -189,13 +188,13 @@ public class UserService {
 
         // 2) 최신 카드 (cardId1) -> 캐싱으로 대체함
         // CharacterCard card1 = characterCardRepository.findById(user.getCardId1()).orElseThrow(() -> new NoSuchElementException("해당 카드 정보를 찾을 수 없습니다. id: " + user.getCardId1()));
-        CharacterCard card1 = characterCardCache.getCard(user.getCardId1());
+        CharacterCard card1 = characterCardCache.getCardById(user.getCardId1());
 
         history.add(buildDto(card1, user.getDetails()));
 
         // 3) 이전 카드 (cardId2) — null 체크
         if (user.getCardId2() != null) {
-            CharacterCard card2 = characterCardCache.getCard(user.getCardId2());
+            CharacterCard card2 = characterCardCache.getCardById(user.getCardId2());
             history.add(buildDto(card2, user.getDetails()));
         }
 
@@ -232,7 +231,7 @@ public class UserService {
             throw new NoSuchElementException("해당 유저는 테스트 결과 가 없습니다.");
         }
 
-        CharacterCard card = characterCardCache.getCard(user.getCardId1());
+        CharacterCard card = characterCardCache.getCardById(user.getCardId1());
 
         return UserCardResponseDto.builder()
                 .code(card.getCode())

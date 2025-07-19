@@ -1,37 +1,31 @@
 // src/App.js
-import React, { useState } from "react";
-import LoginPage from "./LoginPage";
-import ChatTest from "./ChatApi/ChatTest";
+import React, { useState, useEffect } from 'react';
+import LoginPage from './LoginPage.jsx';
+import ChatApp   from './ChatApi/ChatApp.jsx';
 
-function App() {
-    const [authToken, setAuthToken] = useState(localStorage.getItem("authToken"));
-    const [view, setView] = useState("login");
+export default function App() {
+  const [token, setToken]   = useState(localStorage.getItem('token') || '');
+  const [userId, setUserId] = useState(null);
 
-    const handleLoginSuccess = (token) => {
-        setAuthToken(token);
-        localStorage.setItem("authToken", token);
-    };
+  // 토큰이 바뀔 때마다 localStorage에 저장 & userId 디코딩
+  useEffect(() => {
+    if (token) {
+      localStorage.setItem('token', token);
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setUserId(parseInt(payload.sub, 10)); // 백엔드 createToken(admin.getId(), ...)에서 sub에 id 저장
+      } catch {
+        setUserId(null);
+      }
+    } else {
+      localStorage.removeItem('token');
+      setUserId(null);
+    }
+  }, [token]);
 
-    const handleLogout = () => {
-        setAuthToken(null);
-        localStorage.removeItem("authToken");
-    };
-
-    return (
-        <div>
-            <h1>채팅 기능 테스트</h1>
-            <div style={{ marginBottom: "20px" }}>
-                <button onClick={() => setView("login")}>로그인</button>
-                {authToken && <button onClick={() => setView("chatTest")}>채팅 테스트</button>}
-                {authToken && <button onClick={handleLogout}>로그아웃</button>}
-            </div>
-
-            <div>
-                {view === "login" && <LoginPage setAuthToken={handleLoginSuccess} />}
-                {view === "chatTest" && <ChatTest authToken={authToken} />}
-            </div>
-        </div>
-    );
+  return token && userId ? (
+    <ChatApp token={token} userId={userId} onLogout={() => setToken('')} />
+  ) : (
+    <LoginPage onLogin={setToken} />
+  );
 }
-
-export default App;

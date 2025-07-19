@@ -69,9 +69,9 @@ public class JwtAuthFilter extends OncePerRequestFilter{
                 // 4) 권한 리스트 생성 ("Manager" 또는 "User")
                 List<GrantedAuthority> authorities;
                 if ("manager".equals(userType)) {
-                    authorities = List.of(new SimpleGrantedAuthority("Manager"));
+                    authorities = List.of(new SimpleGrantedAuthority("ROLE_MANAGER"));
                 } else if("admin".equals(userType)){
-                    authorities = List.of(new SimpleGrantedAuthority("Admin"));
+                    authorities = List.of(new SimpleGrantedAuthority("ROLE_ADMIN"));
                 } else {
                     authorities = List.of(new SimpleGrantedAuthority("ROLE_USER"));
                 }

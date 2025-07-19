@@ -41,7 +41,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-@PreAuthorize("hasRole('Manager')")
+@PreAuthorize("hasAuthority('ROLE_MANAGER')")
 @RestController
 @RequestMapping("/v1/manager/user")
 @RequiredArgsConstructor
@@ -50,7 +50,7 @@ public class ManagerUserController {
 
     private final ManagerService managerService;
     private final ManagerUserService managerUserService;
-    private final GroupService groupService;
+
 
     /*
     1. 매니저가 그룹 멤버 리스트 조회
@@ -119,17 +119,7 @@ public class ManagerUserController {
         return ResponseEntity.ok().body("차단했습니다.");
     }
 
-    // 5. 매니저가 그룹의 팀 구성 방식을 설정함.
-    @Operation(summary = "5. 매니저가 그룹의 팀 구성 방식을 설정함.", description = "특정 그룹에 팀 빌딩 방식을 설정합니다.")
-    @PostMapping("/{groupId}/set-teamtype")
-    public ResponseEntity<String> setTeamType(@AuthenticationPrincipal UserDetails userDetails,
-            @PathVariable Integer groupId, @RequestBody GroupTeamTypeSettingDto requestDto) throws SchedulerException {
-        Integer managerId = Integer.valueOf(userDetails.getUsername());
-        managerService.authorizeManager(groupId, managerId);
 
-        groupService.setTeamType(groupId, requestDto);
-        return ResponseEntity.ok().body("팀 구성 방식을 설정했습니다.");
-    }
 
 
 }
